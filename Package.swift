@@ -10,6 +10,9 @@ let package = Package(
             name: "AMQP",
             targets: ["AMQP"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/apple/swift-nio.git", .upToNextMajor(from: "2.67.0")),
+    ],
     targets: [
         .target(
             name: "AMQP"),
