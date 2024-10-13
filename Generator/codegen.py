@@ -88,6 +88,19 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
                 print(f"        {t}({SPEC_TYPE_TO_SWIFT[t]}),")
             else:
                 print(f"        {t}({SPEC_TYPE_TO_SWIFT[t]})")
+        print()
+        print("        var size: Int {")
+        print("            switch self {")
+        print("            case .shortstr(let value): return value.shortSize")
+        print("            case .longstr(let value): return value.longSize")
+        print("            case .octet: return 1")
+        print("            case .short: return 2")
+        print("            case .long: return 4")
+        print("            case .longlong: return 8")
+        print("            case .bit: return 1")
+        print("            case .timestamp: return 8")
+        print("            }")
+        print("        }")
         print("    }")
 
     def header():

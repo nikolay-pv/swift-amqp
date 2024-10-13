@@ -30,6 +30,19 @@ public struct AMQP {
         longlong(Int64),
         bit(Bool),
         timestamp(Date)
+
+        var size: Int {
+            switch self {
+            case .shortstr(let value): return value.shortSize
+            case .longstr(let value): return value.longSize
+            case .octet: return 1
+            case .short: return 2
+            case .long: return 4
+            case .longlong: return 8
+            case .bit: return 1
+            case .timestamp: return 8
+            }
+        }
     }
 
     public struct ProtocolLevel {
