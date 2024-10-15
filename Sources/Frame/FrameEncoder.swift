@@ -159,31 +159,6 @@ private class _FrameEncoder : AMQPEncoder {
                 data.append(value.bigEndian)
             }
         }
-
-        init(_ value: String, isLong: Bool) {
-            self = isLong ? .longstring(value) : .shortstring(value)
-        }
-        init(_ value: Int8) {
-            self = .int8(value)
-        }
-        init (_ value: Int16) {
-            self = .int16(value)
-        }
-        init (_ value: Int32) {
-            self = .int32(value)
-        }
-        init (_ value: Int64) {
-            self = .int64(value)
-        }
-        init (_ value: Bool) {
-            self = .bool(value)
-        }
-        init (_ value: Date) {
-            self = .timestamp(value)
-        }
-        init (_ value: [String : AMQP.FieldValue]) {
-            self = .dictionary(value)
-        }
     }
     var storage = [WrappedValue]()
 
@@ -196,34 +171,58 @@ private class _FrameEncoder : AMQPEncoder {
     }
 
     func encode(_ value: Int8) throws {
-        storage.append(.init(value))
+        storage.append(.int8(value))
     }
 
     func encode(_ value: String, isLong: Bool) throws {
-        storage.append(.init(value, isLong: isLong))
+        storage.append(isLong ? .longstring(value) : .shortstring(value))
     }
 
     func encode(_ value: Int16) throws {
-        storage.append(.init(value))
+        storage.append(.int16(value))
     }
 
     func encode(_ value: Int32) throws {
-        storage.append(.init(value))
+        storage.append(.int32(value))
     }
 
     func encode(_ value: Int64) throws {
-        storage.append(.init(value))
+        storage.append(.int64(value))
     }
 
     func encode(_ value: Bool) throws {
-        storage.append(.init(value))
+        storage.append(.bool(value))
     }
 
     func encode(_ value: Date) throws {
-        storage.append(.init(value))
+        storage.append(.timestamp(value))
     }
 
     func encode(_ value: [String : AMQP.FieldValue]) throws {
-        storage.append(.init(value))
+        storage.append(.dictionary(value))
+    }
+
+    func encode(_ value: Double) throws {
+        storage.append(.double(value))
+    }
+
+    func encode(_ value: Float) throws {
+        storage.append(.float(value))
+    }
+
+    func encode(_ value: UInt8) throws {
+        storage.append(.uint8(value))
+    }
+
+    func encode(_ value: UInt16) throws {
+        storage.append(.uint16(value))
+    }
+
+    func encode(_ value: UInt32) throws {
+        storage.append(.uint32(value))
+    }
+
+    func encode(_ value: UInt64) throws {
+        storage.append(.uint64(value))
     }
 }
