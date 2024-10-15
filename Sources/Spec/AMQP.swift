@@ -21,12 +21,14 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
 }
 
 public struct AMQP {
+    public typealias Table = [String: FieldValue]
+
     public enum FieldValue: Equatable, Hashable {
         case long(Int32),
         decimal(UInt8, Int32),
         longstr(String),
         timestamp(Date),
-        table([String: FieldValue]),
+        table(Table),
         void
 
         var type: UInt8 {
@@ -37,6 +39,17 @@ public struct AMQP {
             case .timestamp: return Character("T").asciiValue!
             case .table: return Character("F").asciiValue!
             case .void: return Character("V").asciiValue!
+            }
+        }
+
+        var bytesCount: UInt32 {
+            switch self {
+            case .long: return 4
+            case .decimal: return 5
+            case .longstr(let value): return value.longBytesCount
+            case .timestamp: return 8
+            case .table(let value): return value.bytesCount
+            case .void: return 1
             }
         }
     }

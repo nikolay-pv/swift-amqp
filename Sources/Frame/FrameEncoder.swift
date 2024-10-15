@@ -99,21 +99,17 @@ private class _FrameEncoder : AMQPEncoder {
         case double(Double)
         case bool(Bool)
         case timestamp(Date)
-        case dictionary([String : AMQP.FieldValue])
+        case dictionary(AMQP.Table)
         case void(UInt8) // only for field values
         case decimal(UInt8, Int32) // only for field values
 
         func encode(to data: inout Data) {
             switch self {
             case .shortstring(let value):
-                withUnsafeBytes(of: value.shortSize.bigEndian) {
-                    data.append(contentsOf: $0)
-                }
+                data.append(value.shortBytesCount.bigEndian)
                 data.append(contentsOf: value.utf8)
             case .longstring(let value):
-                withUnsafeBytes(of: value.count.bigEndian) {
-                    data.append(contentsOf: $0)
-                }
+                data.append(value.longBytesCount.bigEndian)
                 data.append(contentsOf: value.utf8)
             case .uint8(let value):
                 data.append(value.bigEndian)
@@ -132,7 +128,7 @@ private class _FrameEncoder : AMQPEncoder {
             case .int64(let value):
                 data.append(value.bigEndian)
             case .bool(let value):
-                data.append(Int8(value ? 1 : 0))
+                data.append(UInt8(value ? 1 : 0))
             case .float(let value):
                 data.append(UInt32(value.bitPattern.bigEndian))
             case .double(let value):
@@ -145,7 +141,7 @@ private class _FrameEncoder : AMQPEncoder {
                 data.append(UInt16(data.count))
                 if !table.isEmpty {
                     for (key, value) in table {
-                        withUnsafeBytes(of: key.shortSize.bigEndian) {
+                        withUnsafeBytes(of: key.shortBytesCount.bigEndian) {
                             data.append(contentsOf: $0)
                         }
                         data.append(contentsOf: key.utf8)
@@ -159,11 +155,25 @@ private class _FrameEncoder : AMQPEncoder {
                 data.append(value.bigEndian)
             }
         }
+
+        var bytesCount: Int {
+            return switch self {
+            case .shortstring(let value): Int(value.shortBytesCount)
+            case .longstring(let value): Int(value.longBytesCount)
+            case .bool, .int8, .uint8, .void: 1
+            case .int16, .uint16: 2
+            case .int32, .uint32, .float: 4
+            case .decimal: 5
+            case .int64, .uint64, .timestamp, .double: 8
+            case .dictionary(let value): Int(value.bytesCount)
+            }
+        }
     }
     var storage = [WrappedValue]()
 
     func complete() -> Data {
-        var data = Data()
+        let expectedCapacity = self.storage.reduce(into: 0) { $0 += $1.bytesCount }
+        var data = Data(capacity: expectedCapacity)
         for value in self.storage {
             value.encode(to: &data)
         }
