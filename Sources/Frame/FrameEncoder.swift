@@ -170,12 +170,12 @@ private class _FrameEncoder : AMQPEncoder {
         return data
     }
 
-    func encode(_ value: Int8) throws {
-        storage.append(.int8(value))
+    func encode(_ value: Bool) throws {
+        storage.append(.bool(value))
     }
 
-    func encode(_ value: String, isLong: Bool) throws {
-        storage.append(isLong ? .longstring(value) : .shortstring(value))
+    func encode(_ value: Int8) throws {
+        storage.append(.int8(value))
     }
 
     func encode(_ value: Int16) throws {
@@ -188,26 +188,6 @@ private class _FrameEncoder : AMQPEncoder {
 
     func encode(_ value: Int64) throws {
         storage.append(.int64(value))
-    }
-
-    func encode(_ value: Bool) throws {
-        storage.append(.bool(value))
-    }
-
-    func encode(_ value: Date) throws {
-        storage.append(.timestamp(value))
-    }
-
-    func encode(_ value: [String : AMQP.FieldValue]) throws {
-        storage.append(.dictionary(value))
-    }
-
-    func encode(_ value: Double) throws {
-        storage.append(.double(value))
-    }
-
-    func encode(_ value: Float) throws {
-        storage.append(.float(value))
     }
 
     func encode(_ value: UInt8) throws {
@@ -224,5 +204,25 @@ private class _FrameEncoder : AMQPEncoder {
 
     func encode(_ value: UInt64) throws {
         storage.append(.uint64(value))
+    }
+
+    func encode(_ value: Float) throws {
+        storage.append(.float(value))
+    }
+
+    func encode(_ value: Double) throws {
+        storage.append(.double(value))
+    }
+
+    func encode(_ value: Date) throws {
+        storage.append(.timestamp(value))
+    }
+
+    func encode(_ value: String, isLong: Bool) throws {
+        storage.append(isLong ? .longstring(value) : .shortstring(value))
+    }
+
+    func encode(_ value: [String : AMQP.FieldValue]) throws {
+        storage.append(.dictionary(value))
     }
 }
