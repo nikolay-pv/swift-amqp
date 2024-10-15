@@ -80,25 +80,21 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
 
     def FieldValueEnum():
         print("    public enum FieldValue: Equatable, Hashable {")
-        types = [t for t in SPEC_TYPE_TO_SWIFT.keys() if t != "table"]
-        for i, t in enumerate(types):
-            if i == 0:
-                print(f"        case {t}({SPEC_TYPE_TO_SWIFT[t]}),")
-            elif i != len(types) - 1:
-                print(f"        {t}({SPEC_TYPE_TO_SWIFT[t]}),")
-            else:
-                print(f"        {t}({SPEC_TYPE_TO_SWIFT[t]})")
-        print()
-        print("        var size: Int {")
+        print("        case long(Int32),")
+        print("        decimal(UInt8, Int32),")
+        print("        longstr(String),")
+        print("        timestamp(Date),")
+        print("        table([String: FieldValue]),")
+        print("        void")
+        print("")
+        print("        var type: UInt8 {")
         print("            switch self {")
-        print("            case .shortstr(let value): return value.shortSize")
-        print("            case .longstr(let value): return value.longSize")
-        print("            case .octet: return 1")
-        print("            case .short: return 2")
-        print("            case .long: return 4")
-        print("            case .longlong: return 8")
-        print("            case .bit: return 1")
-        print("            case .timestamp: return 8")
+        print('            case .long: return Character("I").asciiValue!')
+        print('            case .decimal: return Character("D").asciiValue!')
+        print('            case .longstr: return Character("S").asciiValue!')
+        print('            case .timestamp: return Character("T").asciiValue!')
+        print('            case .table: return Character("F").asciiValue!')
+        print('            case .void: return Character("V").asciiValue!')
         print("            }")
         print("        }")
         print("    }")

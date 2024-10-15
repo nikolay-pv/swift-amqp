@@ -22,13 +22,31 @@ fileprivate extension Data {
         }
     }
 
+    mutating func append(_ value: UInt8) {
+        Swift.withUnsafeBytes(of: value) {
+            append(contentsOf: $0)
+        }
+    }
+
     mutating func append(_ value: Int16) {
         Swift.withUnsafeBytes(of: value) {
             append(contentsOf: $0)
         }
     }
 
+    mutating func append(_ value: UInt16) {
+        Swift.withUnsafeBytes(of: value) {
+            append(contentsOf: $0)
+        }
+    }
+
     mutating func append(_ value: Int32) {
+        Swift.withUnsafeBytes(of: value) {
+            append(contentsOf: $0)
+        }
+    }
+
+    mutating func append(_ value: UInt32) {
         Swift.withUnsafeBytes(of: value) {
             append(contentsOf: $0)
         }
@@ -41,47 +59,20 @@ fileprivate extension Data {
     }
 }
 
-
 private extension AMQP.FieldValue {
     func encode(to data: inout Data) throws {
-        switch self {
-        case .octet(_):
-            data.append(contentsOf: "b".utf8)
-            self.asWrappedValue.encode(to: &data)
-        case .shortstr(_):
-            data.append(contentsOf: "S".utf8)
-            self.asWrappedValue.encode(to: &data)
-        case .longstr(_):
-            data.append(contentsOf: "S".utf8)
-            self.asWrappedValue.encode(to: &data)
-        case .short(_):
-            data.append(contentsOf: "s".utf8)
-            self.asWrappedValue.encode(to: &data)
-        case .long(_):
-            data.append(contentsOf: "l".utf8)
-            self.asWrappedValue.encode(to: &data)
-        case .longlong(_):
-            data.append(contentsOf: "D".utf8)
-            self.asWrappedValue.encode(to: &data)
-        case .bit(_):
-            data.append(contentsOf: "t".utf8)
-            self.asWrappedValue.encode(to: &data)
-        case .timestamp(_):
-            data.append(contentsOf: "T".utf8)
-            self.asWrappedValue.encode(to: &data)
-        }
+        data.append(self.type)
+        self.asWrappedValue.encode(to: &data)
     }
 
     var asWrappedValue: _FrameEncoder.WrappedValue {
         return switch self {
-        case .octet(let value): .int8(value)
-        case .shortstr(let value): .shortstring(value)
-        case .longstr(let value): .longstring(value)
-        case .short(let value): .int16(value)
         case .long(let value): .int32(value)
-        case .longlong(let value): .int64(value)
-        case .bit(let value): .bool(value)
-        case .timestamp(let value): .date(value)
+        case .decimal(let scale, let value): .decimal(scale, value)
+        case .longstr(let value): .longstring(value)
+        case .timestamp(let value): .timestamp(value)
+        case .table(let value): .dictionary(value)
+        case .void: .void(self.type)
         }
     }
 }
@@ -97,6 +88,8 @@ private class _FrameEncoder : AMQPEncoder {
         case bool(Bool)
         case date(Date)
         case dictionary([String : AMQP.FieldValue])
+        case void(UInt8) // only for field values
+        case decimal(UInt8, UInt32) // only for field values
 
         func encode(to data: inout Data) {
             switch self {
@@ -129,22 +122,11 @@ private class _FrameEncoder : AMQPEncoder {
                     data.append(contentsOf: key.utf8)
                     value.asWrappedValue.encode(to: &data)
                 }
-            }
-        }
-
-        var size: Int {
-            switch self {
-            case .shortstring(let value): return value.shortSize
-            case .longstring(let value): return value.longSize
-            case .bool: return 1
-            case .int8: return 1
-            case .int16: return 2
-            case .int32: return 4
-            case .int64: return 8
-            case .date: return 8
-            case .dictionary(let table): return table.reduce(into: 0) { (partialResult: inout Int, pair) in
-                partialResult += pair.key.shortSize + pair.value.size
-            }
+            case .void(let value):
+                data.append(value)
+            case .decimal(let scale, let value):
+                data.append(scale.bigEndian)
+                data.append(value.bigEndian)
             }
         }
 
@@ -176,14 +158,10 @@ private class _FrameEncoder : AMQPEncoder {
     var storage = [WrappedValue]()
 
     func complete() -> Data {
-        let expectedSize = self.storage.reduce(into: 0) {
-            $0 += $1.size
-        }
-        var data = Data(capacity: expectedSize)
+        var data = Data()
         for value in self.storage {
             value.encode(to: &data)
         }
-        precondition(data.count == expectedSize)
         return data
     }
 

@@ -22,25 +22,21 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
 
 public struct AMQP {
     public enum FieldValue: Equatable, Hashable {
-        case octet(Int8),
-        shortstr(String),
+        case long(Int32),
+        decimal(UInt8, Int32),
         longstr(String),
-        short(Int16),
-        long(Int32),
-        longlong(Int64),
-        bit(Bool),
-        timestamp(Date)
+        timestamp(Date),
+        table([String: FieldValue]),
+        void
 
-        var size: Int {
+        var type: UInt8 {
             switch self {
-            case .shortstr(let value): return value.shortSize
-            case .longstr(let value): return value.longSize
-            case .octet: return 1
-            case .short: return 2
-            case .long: return 4
-            case .longlong: return 8
-            case .bit: return 1
-            case .timestamp: return 8
+            case .long: return Character("I").asciiValue!
+            case .decimal: return Character("D").asciiValue!
+            case .longstr: return Character("S").asciiValue!
+            case .timestamp: return Character("T").asciiValue!
+            case .table: return Character("F").asciiValue!
+            case .void: return Character("V").asciiValue!
             }
         }
     }
