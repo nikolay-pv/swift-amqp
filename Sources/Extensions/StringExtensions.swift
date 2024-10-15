@@ -7,13 +7,18 @@
 
 extension String {
     var isShort: Bool {
-        self.utf8.count <= UInt8.max
+        self.utf8.count <= UInt8.max - 1
     }
 
-    var shortSize: Int {
-        precondition(isShort, "String is too long")
-        return self.utf8.count + 1
+    var shortSize: UInt8 {
+        let size = UInt8(self.utf8.count)
+        precondition(size <= UInt8.max - 1, "String is too long")
+        return size
     }
-    var longSize: Int { self.utf8.count + 4 }
+    var longSize: UInt32 {
+        let size = UInt32(self.utf8.count)
+        precondition(self.utf8.count <= UInt32.max - 4, "String is too long")
+        return size
+    }
 }
 

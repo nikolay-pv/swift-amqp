@@ -52,6 +52,12 @@ fileprivate extension Data {
         }
     }
 
+    mutating func append(_ value: UInt64) {
+        Swift.withUnsafeBytes(of: value) {
+            append(contentsOf: $0)
+        }
+    }
+
     mutating func append(_ value: Int64) {
         Swift.withUnsafeBytes(of: value) {
             append(contentsOf: $0)
@@ -81,46 +87,70 @@ private class _FrameEncoder : AMQPEncoder {
     enum WrappedValue: Equatable {
         case shortstring(String)
         case longstring(String)
+        case uint8(UInt8)
         case int8(Int8)
+        case uint16(UInt16)
         case int16(Int16)
+        case uint32(UInt32)
         case int32(Int32)
+        case uint64(UInt64)
         case int64(Int64)
+        case float(Float)
+        case double(Double)
         case bool(Bool)
-        case date(Date)
+        case timestamp(Date)
         case dictionary([String : AMQP.FieldValue])
         case void(UInt8) // only for field values
-        case decimal(UInt8, UInt32) // only for field values
+        case decimal(UInt8, Int32) // only for field values
 
         func encode(to data: inout Data) {
             switch self {
-            case .shortstring(let value), .longstring(let value):
+            case .shortstring(let value):
+                withUnsafeBytes(of: value.shortSize.bigEndian) {
+                    data.append(contentsOf: $0)
+                }
+                data.append(contentsOf: value.utf8)
+            case .longstring(let value):
                 withUnsafeBytes(of: value.count.bigEndian) {
                     data.append(contentsOf: $0)
                 }
                 data.append(contentsOf: value.utf8)
+            case .uint8(let value):
+                data.append(value.bigEndian)
             case .int8(let value):
+                data.append(value.bigEndian)
+            case .uint16(let value):
                 data.append(value.bigEndian)
             case .int16(let value):
                 data.append(value.bigEndian)
+            case .uint32(let value):
+                data.append(value.bigEndian)
             case .int32(let value):
+                data.append(value.bigEndian)
+            case .uint64(let value):
                 data.append(value.bigEndian)
             case .int64(let value):
                 data.append(value.bigEndian)
             case .bool(let value):
                 data.append(Int8(value ? 1 : 0))
-            case .date(let value):
+            case .float(let value):
+                data.append(UInt32(value.bitPattern.bigEndian))
+            case .double(let value):
+                data.append(UInt64(value.bitPattern.bigEndian))
+            case .timestamp(let value):
                 let milliseconds = value.millisecondsSince1970
                 data.append(milliseconds.bigEndian)
             case .dictionary(let table):
-                if table.isEmpty {
-                    data.append(Int16(0))
-                }
-                for (key, value) in table {
-                    withUnsafeBytes(of: key.shortSize.bigEndian) {
-                        data.append(contentsOf: $0)
+                precondition(table.count <= UInt16.max)
+                data.append(UInt16(data.count))
+                if !table.isEmpty {
+                    for (key, value) in table {
+                        withUnsafeBytes(of: key.shortSize.bigEndian) {
+                            data.append(contentsOf: $0)
+                        }
+                        data.append(contentsOf: key.utf8)
+                        value.asWrappedValue.encode(to: &data)
                     }
-                    data.append(contentsOf: key.utf8)
-                    value.asWrappedValue.encode(to: &data)
                 }
             case .void(let value):
                 data.append(value)
@@ -149,7 +179,7 @@ private class _FrameEncoder : AMQPEncoder {
             self = .bool(value)
         }
         init (_ value: Date) {
-            self = .date(value)
+            self = .timestamp(value)
         }
         init (_ value: [String : AMQP.FieldValue]) {
             self = .dictionary(value)
