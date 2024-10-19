@@ -183,13 +183,50 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
 
 # --------------------------------------------------------------------------------
 
+def as_bool_literal(val: bool):
+    return "true" if val else "false"
+
+def gen_swift_impl_from_spec(spec: AmqpSpec):
+
+    def header():
+        print_file_header()
+        print("import Foundation")
+
+    def encode_extensions():
+        for c in spec.allClasses():
+            for m in c.allMethods():
+                print()
+                print(f"extension AMQP.{struct_name(c.name)}.{struct_name(m.name)} : AMQPEncodable {{")
+                print("    func encode(to encoder: AMQPEncoder) throws {")
+                print(f"        try encoder.encode(amqpClassId)")
+                print(f"        try encoder.encode(amqpMethodId)")
+                for a in m.arguments:
+                    t = spec.resolveDomain(a.domain)
+                    if t == "shortstr" or t == "longstr":
+                        is_long = t == "longstr"
+                        print(f"        try encoder.encode({variable_name(a.name)}, isLong: {as_bool_literal(is_long)})")
+                    else:
+                        print(f"        try encoder.encode({variable_name(a.name)})")
+                print("    }")
+                print("}")
+
+    def decode_extensions():
+        pass
+
+    header()
+    encode_extensions()
+    decode_extensions()
+
+
+# --------------------------------------------------------------------------------
+
 
 def gen_swift_api(specPath):
     gen_swift_api_from_spec(AmqpSpec(specPath))
 
 
 def gen_swift_impl(specPath):
-    pass
+    gen_swift_impl_from_spec(AmqpSpec(specPath))
 
 
 if __name__ == "__main__":
