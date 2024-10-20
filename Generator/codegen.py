@@ -25,19 +25,19 @@ SPEC_TYPE_TO_SWIFT = {
 }
 
 
-def as_camel_case(startUpper, name):
+def as_camel_case(startUpper: bool, name: str):
     camel_cased = "".join(c for c in name.title() if c.isalnum())
     if not startUpper:
         return camel_cased[0].lower() + camel_cased[1:]
     return camel_cased
 
 
-def struct_name(name):
+def struct_name(name: str):
     return as_camel_case(True, name)
 
 
-def variable_name(name):
-    if name == "internal":
+def variable_name(name: str, escapingInternal: bool = True):
+    if escapingInternal and name == "internal":
         return "`internal`"
     return as_camel_case(False, name)
 
@@ -200,12 +200,14 @@ def gen_swift_impl_from_spec(spec: AmqpSpec):
     def header():
         print_file_header()
         print("import Foundation")
+        print()
+        print("fileprivate typealias FieldValue = AMQP.FieldValue")
 
     def encode_extensions():
         for c in spec.allClasses():
             for m in c.allMethods():
                 print()
-                print(f"extension AMQP.{struct_name(c.name)}.{struct_name(m.name)} : AMQPEncodable {{")
+                print(f"extension AMQP.{struct_name(c.name)}.{struct_name(m.name)} : AMQPCodable {{")
                 print("    func encode(to encoder: AMQPEncoder) throws {")
                 print(f"        try encoder.encode(amqpClassId)")
                 print(f"        try encoder.encode(amqpMethodId)")
@@ -216,6 +218,23 @@ def gen_swift_impl_from_spec(spec: AmqpSpec):
                         print(f"        try encoder.encode({variable_name(a.name)}, isLong: {as_bool_literal(is_long)})")
                     else:
                         print(f"        try encoder.encode({variable_name(a.name)})")
+                print("    }")
+                print()
+                print("    init(from decoder: AMQPDecoder) throws {")
+                print(f"        // consume class and method ids")
+                print(f"        let _ = try decoder.decode(UInt16.self)")
+                print(f"        let _ = try decoder.decode(UInt16.self)")
+                print(f"        self.init(")
+                lines = []
+                for a in m.arguments:
+                    t = spec.resolveDomain(a.domain)
+                    if t == "shortstr" or t == "longstr":
+                        is_long = t == "longstr"
+                        lines.append(f"            {variable_name(a.name, False)}: try decoder.decode({swift_type(spec, a.domain)}.self, isLong: {as_bool_literal(is_long)})")
+                    else:
+                        lines.append(f"            {variable_name(a.name, False)}: try decoder.decode({swift_type(spec, a.domain)}.self)")
+                print(",\n".join(lines))
+                print(f"        )")
                 print("    }")
                 print("}")
 

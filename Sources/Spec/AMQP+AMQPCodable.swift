@@ -6,7 +6,9 @@
 
 import Foundation
 
-extension AMQP.Basic.Qos : AMQPEncodable {
+fileprivate typealias FieldValue = AMQP.FieldValue
+
+extension AMQP.Basic.Qos : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
@@ -14,16 +16,36 @@ extension AMQP.Basic.Qos : AMQPEncodable {
         try encoder.encode(prefetchCount)
         try encoder.encode(global)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            prefetchSize: try decoder.decode(Int32.self),
+            prefetchCount: try decoder.decode(Int16.self),
+            global: try decoder.decode(Bool.self)
+        )
+    }
 }
 
-extension AMQP.Basic.QosOk : AMQPEncodable {
+extension AMQP.Basic.QosOk : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+
+        )
+    }
 }
 
-extension AMQP.Basic.Consume : AMQPEncodable {
+extension AMQP.Basic.Consume : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
@@ -36,34 +58,78 @@ extension AMQP.Basic.Consume : AMQPEncodable {
         try encoder.encode(nowait)
         try encoder.encode(arguments)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            ticket: try decoder.decode(Int16.self),
+            queue: try decoder.decode(String.self, isLong: false),
+            consumerTag: try decoder.decode(String.self, isLong: false),
+            noLocal: try decoder.decode(Bool.self),
+            noAck: try decoder.decode(Bool.self),
+            exclusive: try decoder.decode(Bool.self),
+            nowait: try decoder.decode(Bool.self),
+            arguments: try decoder.decode([String: FieldValue].self)
+        )
+    }
 }
 
-extension AMQP.Basic.ConsumeOk : AMQPEncodable {
+extension AMQP.Basic.ConsumeOk : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
         try encoder.encode(consumerTag, isLong: false)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            consumerTag: try decoder.decode(String.self, isLong: false)
+        )
+    }
 }
 
-extension AMQP.Basic.Cancel : AMQPEncodable {
+extension AMQP.Basic.Cancel : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
         try encoder.encode(consumerTag, isLong: false)
         try encoder.encode(nowait)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            consumerTag: try decoder.decode(String.self, isLong: false),
+            nowait: try decoder.decode(Bool.self)
+        )
+    }
 }
 
-extension AMQP.Basic.CancelOk : AMQPEncodable {
+extension AMQP.Basic.CancelOk : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
         try encoder.encode(consumerTag, isLong: false)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            consumerTag: try decoder.decode(String.self, isLong: false)
+        )
+    }
 }
 
-extension AMQP.Basic.Publish : AMQPEncodable {
+extension AMQP.Basic.Publish : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
@@ -73,9 +139,22 @@ extension AMQP.Basic.Publish : AMQPEncodable {
         try encoder.encode(mandatory)
         try encoder.encode(immediate)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            ticket: try decoder.decode(Int16.self),
+            exchange: try decoder.decode(String.self, isLong: false),
+            routingKey: try decoder.decode(String.self, isLong: false),
+            mandatory: try decoder.decode(Bool.self),
+            immediate: try decoder.decode(Bool.self)
+        )
+    }
 }
 
-extension AMQP.Basic.Return : AMQPEncodable {
+extension AMQP.Basic.Return : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
@@ -84,9 +163,21 @@ extension AMQP.Basic.Return : AMQPEncodable {
         try encoder.encode(exchange, isLong: false)
         try encoder.encode(routingKey, isLong: false)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            replyCode: try decoder.decode(Int16.self),
+            replyText: try decoder.decode(String.self, isLong: false),
+            exchange: try decoder.decode(String.self, isLong: false),
+            routingKey: try decoder.decode(String.self, isLong: false)
+        )
+    }
 }
 
-extension AMQP.Basic.Deliver : AMQPEncodable {
+extension AMQP.Basic.Deliver : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
@@ -96,9 +187,22 @@ extension AMQP.Basic.Deliver : AMQPEncodable {
         try encoder.encode(exchange, isLong: false)
         try encoder.encode(routingKey, isLong: false)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            consumerTag: try decoder.decode(String.self, isLong: false),
+            deliveryTag: try decoder.decode(Int64.self),
+            redelivered: try decoder.decode(Bool.self),
+            exchange: try decoder.decode(String.self, isLong: false),
+            routingKey: try decoder.decode(String.self, isLong: false)
+        )
+    }
 }
 
-extension AMQP.Basic.Get : AMQPEncodable {
+extension AMQP.Basic.Get : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
@@ -106,9 +210,20 @@ extension AMQP.Basic.Get : AMQPEncodable {
         try encoder.encode(queue, isLong: false)
         try encoder.encode(noAck)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            ticket: try decoder.decode(Int16.self),
+            queue: try decoder.decode(String.self, isLong: false),
+            noAck: try decoder.decode(Bool.self)
+        )
+    }
 }
 
-extension AMQP.Basic.GetOk : AMQPEncodable {
+extension AMQP.Basic.GetOk : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
@@ -118,58 +233,127 @@ extension AMQP.Basic.GetOk : AMQPEncodable {
         try encoder.encode(routingKey, isLong: false)
         try encoder.encode(messageCount)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            deliveryTag: try decoder.decode(Int64.self),
+            redelivered: try decoder.decode(Bool.self),
+            exchange: try decoder.decode(String.self, isLong: false),
+            routingKey: try decoder.decode(String.self, isLong: false),
+            messageCount: try decoder.decode(Int32.self)
+        )
+    }
 }
 
-extension AMQP.Basic.GetEmpty : AMQPEncodable {
+extension AMQP.Basic.GetEmpty : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
         try encoder.encode(clusterId, isLong: false)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            clusterId: try decoder.decode(String.self, isLong: false)
+        )
+    }
 }
 
-extension AMQP.Basic.Ack : AMQPEncodable {
+extension AMQP.Basic.Ack : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
         try encoder.encode(deliveryTag)
         try encoder.encode(multiple)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            deliveryTag: try decoder.decode(Int64.self),
+            multiple: try decoder.decode(Bool.self)
+        )
+    }
 }
 
-extension AMQP.Basic.Reject : AMQPEncodable {
+extension AMQP.Basic.Reject : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
         try encoder.encode(deliveryTag)
         try encoder.encode(requeue)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            deliveryTag: try decoder.decode(Int64.self),
+            requeue: try decoder.decode(Bool.self)
+        )
+    }
 }
 
-extension AMQP.Basic.RecoverAsync : AMQPEncodable {
+extension AMQP.Basic.RecoverAsync : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
         try encoder.encode(requeue)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            requeue: try decoder.decode(Bool.self)
+        )
+    }
 }
 
-extension AMQP.Basic.Recover : AMQPEncodable {
+extension AMQP.Basic.Recover : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
         try encoder.encode(requeue)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            requeue: try decoder.decode(Bool.self)
+        )
+    }
 }
 
-extension AMQP.Basic.RecoverOk : AMQPEncodable {
+extension AMQP.Basic.RecoverOk : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+
+        )
+    }
 }
 
-extension AMQP.Basic.Nack : AMQPEncodable {
+extension AMQP.Basic.Nack : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
@@ -177,9 +361,20 @@ extension AMQP.Basic.Nack : AMQPEncodable {
         try encoder.encode(multiple)
         try encoder.encode(requeue)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            deliveryTag: try decoder.decode(Int64.self),
+            multiple: try decoder.decode(Bool.self),
+            requeue: try decoder.decode(Bool.self)
+        )
+    }
 }
 
-extension AMQP.Connection.Start : AMQPEncodable {
+extension AMQP.Connection.Start : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
@@ -189,9 +384,22 @@ extension AMQP.Connection.Start : AMQPEncodable {
         try encoder.encode(mechanisms, isLong: true)
         try encoder.encode(locales, isLong: true)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            versionMajor: try decoder.decode(Int8.self),
+            versionMinor: try decoder.decode(Int8.self),
+            serverProperties: try decoder.decode([String: FieldValue].self),
+            mechanisms: try decoder.decode(String.self, isLong: true),
+            locales: try decoder.decode(String.self, isLong: true)
+        )
+    }
 }
 
-extension AMQP.Connection.StartOk : AMQPEncodable {
+extension AMQP.Connection.StartOk : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
@@ -200,25 +408,55 @@ extension AMQP.Connection.StartOk : AMQPEncodable {
         try encoder.encode(response, isLong: true)
         try encoder.encode(locale, isLong: false)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            clientProperties: try decoder.decode([String: FieldValue].self),
+            mechanism: try decoder.decode(String.self, isLong: false),
+            response: try decoder.decode(String.self, isLong: true),
+            locale: try decoder.decode(String.self, isLong: false)
+        )
+    }
 }
 
-extension AMQP.Connection.Secure : AMQPEncodable {
+extension AMQP.Connection.Secure : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
         try encoder.encode(challenge, isLong: true)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            challenge: try decoder.decode(String.self, isLong: true)
+        )
+    }
 }
 
-extension AMQP.Connection.SecureOk : AMQPEncodable {
+extension AMQP.Connection.SecureOk : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
         try encoder.encode(response, isLong: true)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            response: try decoder.decode(String.self, isLong: true)
+        )
+    }
 }
 
-extension AMQP.Connection.Tune : AMQPEncodable {
+extension AMQP.Connection.Tune : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
@@ -226,9 +464,20 @@ extension AMQP.Connection.Tune : AMQPEncodable {
         try encoder.encode(frameMax)
         try encoder.encode(heartbeat)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            channelMax: try decoder.decode(Int16.self),
+            frameMax: try decoder.decode(Int32.self),
+            heartbeat: try decoder.decode(Int16.self)
+        )
+    }
 }
 
-extension AMQP.Connection.TuneOk : AMQPEncodable {
+extension AMQP.Connection.TuneOk : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
@@ -236,9 +485,20 @@ extension AMQP.Connection.TuneOk : AMQPEncodable {
         try encoder.encode(frameMax)
         try encoder.encode(heartbeat)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            channelMax: try decoder.decode(Int16.self),
+            frameMax: try decoder.decode(Int32.self),
+            heartbeat: try decoder.decode(Int16.self)
+        )
+    }
 }
 
-extension AMQP.Connection.Open : AMQPEncodable {
+extension AMQP.Connection.Open : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
@@ -246,17 +506,37 @@ extension AMQP.Connection.Open : AMQPEncodable {
         try encoder.encode(capabilities, isLong: false)
         try encoder.encode(insist)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            virtualHost: try decoder.decode(String.self, isLong: false),
+            capabilities: try decoder.decode(String.self, isLong: false),
+            insist: try decoder.decode(Bool.self)
+        )
+    }
 }
 
-extension AMQP.Connection.OpenOk : AMQPEncodable {
+extension AMQP.Connection.OpenOk : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
         try encoder.encode(knownHosts, isLong: false)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            knownHosts: try decoder.decode(String.self, isLong: false)
+        )
+    }
 }
 
-extension AMQP.Connection.Close : AMQPEncodable {
+extension AMQP.Connection.Close : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
@@ -265,79 +545,173 @@ extension AMQP.Connection.Close : AMQPEncodable {
         try encoder.encode(classId)
         try encoder.encode(methodId)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            replyCode: try decoder.decode(Int16.self),
+            replyText: try decoder.decode(String.self, isLong: false),
+            classId: try decoder.decode(Int16.self),
+            methodId: try decoder.decode(Int16.self)
+        )
+    }
 }
 
-extension AMQP.Connection.CloseOk : AMQPEncodable {
+extension AMQP.Connection.CloseOk : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+
+        )
+    }
 }
 
-extension AMQP.Connection.Blocked : AMQPEncodable {
+extension AMQP.Connection.Blocked : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
         try encoder.encode(reason, isLong: false)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            reason: try decoder.decode(String.self, isLong: false)
+        )
+    }
 }
 
-extension AMQP.Connection.Unblocked : AMQPEncodable {
+extension AMQP.Connection.Unblocked : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+
+        )
+    }
 }
 
-extension AMQP.Connection.UpdateSecret : AMQPEncodable {
+extension AMQP.Connection.UpdateSecret : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
         try encoder.encode(newSecret, isLong: true)
         try encoder.encode(reason, isLong: false)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            newSecret: try decoder.decode(String.self, isLong: true),
+            reason: try decoder.decode(String.self, isLong: false)
+        )
+    }
 }
 
-extension AMQP.Connection.UpdateSecretOk : AMQPEncodable {
+extension AMQP.Connection.UpdateSecretOk : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+
+        )
+    }
 }
 
-extension AMQP.Channel.Open : AMQPEncodable {
+extension AMQP.Channel.Open : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
         try encoder.encode(outOfBand, isLong: false)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            outOfBand: try decoder.decode(String.self, isLong: false)
+        )
+    }
 }
 
-extension AMQP.Channel.OpenOk : AMQPEncodable {
+extension AMQP.Channel.OpenOk : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
         try encoder.encode(channelId, isLong: true)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            channelId: try decoder.decode(String.self, isLong: true)
+        )
+    }
 }
 
-extension AMQP.Channel.Flow : AMQPEncodable {
+extension AMQP.Channel.Flow : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
         try encoder.encode(active)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            active: try decoder.decode(Bool.self)
+        )
+    }
 }
 
-extension AMQP.Channel.FlowOk : AMQPEncodable {
+extension AMQP.Channel.FlowOk : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
         try encoder.encode(active)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            active: try decoder.decode(Bool.self)
+        )
+    }
 }
 
-extension AMQP.Channel.Close : AMQPEncodable {
+extension AMQP.Channel.Close : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
@@ -346,16 +720,37 @@ extension AMQP.Channel.Close : AMQPEncodable {
         try encoder.encode(classId)
         try encoder.encode(methodId)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            replyCode: try decoder.decode(Int16.self),
+            replyText: try decoder.decode(String.self, isLong: false),
+            classId: try decoder.decode(Int16.self),
+            methodId: try decoder.decode(Int16.self)
+        )
+    }
 }
 
-extension AMQP.Channel.CloseOk : AMQPEncodable {
+extension AMQP.Channel.CloseOk : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+
+        )
+    }
 }
 
-extension AMQP.Access.Request : AMQPEncodable {
+extension AMQP.Access.Request : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
@@ -366,17 +761,40 @@ extension AMQP.Access.Request : AMQPEncodable {
         try encoder.encode(write)
         try encoder.encode(read)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            realm: try decoder.decode(String.self, isLong: false),
+            exclusive: try decoder.decode(Bool.self),
+            passive: try decoder.decode(Bool.self),
+            active: try decoder.decode(Bool.self),
+            write: try decoder.decode(Bool.self),
+            read: try decoder.decode(Bool.self)
+        )
+    }
 }
 
-extension AMQP.Access.RequestOk : AMQPEncodable {
+extension AMQP.Access.RequestOk : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
         try encoder.encode(ticket)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            ticket: try decoder.decode(Int16.self)
+        )
+    }
 }
 
-extension AMQP.Exchange.Declare : AMQPEncodable {
+extension AMQP.Exchange.Declare : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
@@ -390,16 +808,42 @@ extension AMQP.Exchange.Declare : AMQPEncodable {
         try encoder.encode(nowait)
         try encoder.encode(arguments)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            ticket: try decoder.decode(Int16.self),
+            exchange: try decoder.decode(String.self, isLong: false),
+            type: try decoder.decode(String.self, isLong: false),
+            passive: try decoder.decode(Bool.self),
+            durable: try decoder.decode(Bool.self),
+            autoDelete: try decoder.decode(Bool.self),
+            internal: try decoder.decode(Bool.self),
+            nowait: try decoder.decode(Bool.self),
+            arguments: try decoder.decode([String: FieldValue].self)
+        )
+    }
 }
 
-extension AMQP.Exchange.DeclareOk : AMQPEncodable {
+extension AMQP.Exchange.DeclareOk : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+
+        )
+    }
 }
 
-extension AMQP.Exchange.Delete : AMQPEncodable {
+extension AMQP.Exchange.Delete : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
@@ -408,16 +852,37 @@ extension AMQP.Exchange.Delete : AMQPEncodable {
         try encoder.encode(ifUnused)
         try encoder.encode(nowait)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            ticket: try decoder.decode(Int16.self),
+            exchange: try decoder.decode(String.self, isLong: false),
+            ifUnused: try decoder.decode(Bool.self),
+            nowait: try decoder.decode(Bool.self)
+        )
+    }
 }
 
-extension AMQP.Exchange.DeleteOk : AMQPEncodable {
+extension AMQP.Exchange.DeleteOk : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+
+        )
+    }
 }
 
-extension AMQP.Exchange.Bind : AMQPEncodable {
+extension AMQP.Exchange.Bind : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
@@ -428,16 +893,39 @@ extension AMQP.Exchange.Bind : AMQPEncodable {
         try encoder.encode(nowait)
         try encoder.encode(arguments)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            ticket: try decoder.decode(Int16.self),
+            destination: try decoder.decode(String.self, isLong: false),
+            source: try decoder.decode(String.self, isLong: false),
+            routingKey: try decoder.decode(String.self, isLong: false),
+            nowait: try decoder.decode(Bool.self),
+            arguments: try decoder.decode([String: FieldValue].self)
+        )
+    }
 }
 
-extension AMQP.Exchange.BindOk : AMQPEncodable {
+extension AMQP.Exchange.BindOk : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+
+        )
+    }
 }
 
-extension AMQP.Exchange.Unbind : AMQPEncodable {
+extension AMQP.Exchange.Unbind : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
@@ -448,16 +936,39 @@ extension AMQP.Exchange.Unbind : AMQPEncodable {
         try encoder.encode(nowait)
         try encoder.encode(arguments)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            ticket: try decoder.decode(Int16.self),
+            destination: try decoder.decode(String.self, isLong: false),
+            source: try decoder.decode(String.self, isLong: false),
+            routingKey: try decoder.decode(String.self, isLong: false),
+            nowait: try decoder.decode(Bool.self),
+            arguments: try decoder.decode([String: FieldValue].self)
+        )
+    }
 }
 
-extension AMQP.Exchange.UnbindOk : AMQPEncodable {
+extension AMQP.Exchange.UnbindOk : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+
+        )
+    }
 }
 
-extension AMQP.Queue.Declare : AMQPEncodable {
+extension AMQP.Queue.Declare : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
@@ -470,9 +981,25 @@ extension AMQP.Queue.Declare : AMQPEncodable {
         try encoder.encode(nowait)
         try encoder.encode(arguments)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            ticket: try decoder.decode(Int16.self),
+            queue: try decoder.decode(String.self, isLong: false),
+            passive: try decoder.decode(Bool.self),
+            durable: try decoder.decode(Bool.self),
+            exclusive: try decoder.decode(Bool.self),
+            autoDelete: try decoder.decode(Bool.self),
+            nowait: try decoder.decode(Bool.self),
+            arguments: try decoder.decode([String: FieldValue].self)
+        )
+    }
 }
 
-extension AMQP.Queue.DeclareOk : AMQPEncodable {
+extension AMQP.Queue.DeclareOk : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
@@ -480,9 +1007,20 @@ extension AMQP.Queue.DeclareOk : AMQPEncodable {
         try encoder.encode(messageCount)
         try encoder.encode(consumerCount)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            queue: try decoder.decode(String.self, isLong: false),
+            messageCount: try decoder.decode(Int32.self),
+            consumerCount: try decoder.decode(Int32.self)
+        )
+    }
 }
 
-extension AMQP.Queue.Bind : AMQPEncodable {
+extension AMQP.Queue.Bind : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
@@ -493,16 +1031,39 @@ extension AMQP.Queue.Bind : AMQPEncodable {
         try encoder.encode(nowait)
         try encoder.encode(arguments)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            ticket: try decoder.decode(Int16.self),
+            queue: try decoder.decode(String.self, isLong: false),
+            exchange: try decoder.decode(String.self, isLong: false),
+            routingKey: try decoder.decode(String.self, isLong: false),
+            nowait: try decoder.decode(Bool.self),
+            arguments: try decoder.decode([String: FieldValue].self)
+        )
+    }
 }
 
-extension AMQP.Queue.BindOk : AMQPEncodable {
+extension AMQP.Queue.BindOk : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+
+        )
+    }
 }
 
-extension AMQP.Queue.Purge : AMQPEncodable {
+extension AMQP.Queue.Purge : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
@@ -510,17 +1071,37 @@ extension AMQP.Queue.Purge : AMQPEncodable {
         try encoder.encode(queue, isLong: false)
         try encoder.encode(nowait)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            ticket: try decoder.decode(Int16.self),
+            queue: try decoder.decode(String.self, isLong: false),
+            nowait: try decoder.decode(Bool.self)
+        )
+    }
 }
 
-extension AMQP.Queue.PurgeOk : AMQPEncodable {
+extension AMQP.Queue.PurgeOk : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
         try encoder.encode(messageCount)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            messageCount: try decoder.decode(Int32.self)
+        )
+    }
 }
 
-extension AMQP.Queue.Delete : AMQPEncodable {
+extension AMQP.Queue.Delete : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
@@ -530,17 +1111,39 @@ extension AMQP.Queue.Delete : AMQPEncodable {
         try encoder.encode(ifEmpty)
         try encoder.encode(nowait)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            ticket: try decoder.decode(Int16.self),
+            queue: try decoder.decode(String.self, isLong: false),
+            ifUnused: try decoder.decode(Bool.self),
+            ifEmpty: try decoder.decode(Bool.self),
+            nowait: try decoder.decode(Bool.self)
+        )
+    }
 }
 
-extension AMQP.Queue.DeleteOk : AMQPEncodable {
+extension AMQP.Queue.DeleteOk : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
         try encoder.encode(messageCount)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            messageCount: try decoder.decode(Int32.self)
+        )
+    }
 }
 
-extension AMQP.Queue.Unbind : AMQPEncodable {
+extension AMQP.Queue.Unbind : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
@@ -550,68 +1153,162 @@ extension AMQP.Queue.Unbind : AMQPEncodable {
         try encoder.encode(routingKey, isLong: false)
         try encoder.encode(arguments)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            ticket: try decoder.decode(Int16.self),
+            queue: try decoder.decode(String.self, isLong: false),
+            exchange: try decoder.decode(String.self, isLong: false),
+            routingKey: try decoder.decode(String.self, isLong: false),
+            arguments: try decoder.decode([String: FieldValue].self)
+        )
+    }
 }
 
-extension AMQP.Queue.UnbindOk : AMQPEncodable {
+extension AMQP.Queue.UnbindOk : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+
+        )
+    }
 }
 
-extension AMQP.Tx.Select : AMQPEncodable {
+extension AMQP.Tx.Select : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+
+        )
+    }
 }
 
-extension AMQP.Tx.SelectOk : AMQPEncodable {
+extension AMQP.Tx.SelectOk : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+
+        )
+    }
 }
 
-extension AMQP.Tx.Commit : AMQPEncodable {
+extension AMQP.Tx.Commit : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+
+        )
+    }
 }
 
-extension AMQP.Tx.CommitOk : AMQPEncodable {
+extension AMQP.Tx.CommitOk : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+
+        )
+    }
 }
 
-extension AMQP.Tx.Rollback : AMQPEncodable {
+extension AMQP.Tx.Rollback : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+
+        )
+    }
 }
 
-extension AMQP.Tx.RollbackOk : AMQPEncodable {
+extension AMQP.Tx.RollbackOk : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+
+        )
+    }
 }
 
-extension AMQP.Confirm.Select : AMQPEncodable {
+extension AMQP.Confirm.Select : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
         try encoder.encode(nowait)
     }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+            nowait: try decoder.decode(Bool.self)
+        )
+    }
 }
 
-extension AMQP.Confirm.SelectOk : AMQPEncodable {
+extension AMQP.Confirm.SelectOk : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(amqpClassId)
         try encoder.encode(amqpMethodId)
+    }
+
+    init(from decoder: AMQPDecoder) throws {
+        // consume class and method ids
+        let _ = try decoder.decode(UInt16.self)
+        let _ = try decoder.decode(UInt16.self)
+        self.init(
+
+        )
     }
 }
