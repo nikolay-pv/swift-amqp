@@ -138,13 +138,10 @@ private class _FrameEncoder : AMQPEncoder {
                 data.append(milliseconds.bigEndian)
             case .dictionary(let table):
                 precondition(table.count <= UInt16.max)
-                data.append(UInt16(data.count))
+                data.append(UInt16(table.count))
                 if !table.isEmpty {
                     for (key, value) in table {
-                        withUnsafeBytes(of: key.shortBytesCount.bigEndian) {
-                            data.append(contentsOf: $0)
-                        }
-                        data.append(contentsOf: key.utf8)
+                        WrappedValue.shortstring(key).encode(to: &data)
                         value.asWrappedValue.encode(to: &data)
                     }
                 }

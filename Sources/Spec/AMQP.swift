@@ -23,7 +23,16 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
 public struct AMQP {
     public typealias Table = [String: FieldValue]
 
-    public enum FieldValue: Equatable, Hashable {
+    public enum FieldValue: Equatable, Hashable, CaseIterable, Sendable {
+        public static let allCases: [Self] = [
+            .long(0),
+            .decimal(0, 0),
+            .longstr(""),
+            .timestamp(Date.distantPast),
+            .table([:]),
+            .void
+        ]
+
         case long(Int32),
         decimal(UInt8, Int32),
         longstr(String),
