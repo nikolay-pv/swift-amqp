@@ -7,11 +7,6 @@ from rabbitmq_codegen.amqp_codegen import *
 
 # utilities
 
-
-def constant_name(c):
-    return "".join([p.capitalize() for p in re.split("[- ]", c)])
-
-
 SPEC_TYPE_TO_SWIFT = {
     "octet": "Int8",
     "shortstr": "String",
@@ -23,6 +18,10 @@ SPEC_TYPE_TO_SWIFT = {
     "table": "[String: FieldValue]",
     "timestamp": "Date",
 }
+
+
+def constant_name(c):
+    return "".join([p.capitalize() for p in re.split("[- ]", c)])
 
 
 def as_camel_case(startUpper: bool, name: str):
@@ -45,6 +44,19 @@ def variable_name(name: str, escapingInternal: bool = True):
 def swift_type(spec, domain):
     return SPEC_TYPE_TO_SWIFT[spec.resolveDomain(domain)]
 
+
+def default_value(spec: AmqpSpec, domain: str, value) -> str:
+    t = swift_type(spec, domain)
+    if t == "String":
+        return f"\"{value}\""
+    if domain == "table" and (value == "{}" or value == {}):
+        return "[:]"
+    if domain in [ "octet", "short", "long", "longlong" ]:
+        return value
+    if t == "Bool":
+        return str(value).lower()
+    # if t == "timestamp":
+    raise RuntimeError(f"Unknown domain - type - value: {domain} - {t} - {value}")
 
 # ---------------------------------------------------------------------------
 
@@ -147,7 +159,10 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
                 print()
                 print(f"        public struct {struct_name(m.name)} : AMQPMethodProtocol {{")
                 for a in m.arguments:
-                    print(f"           private(set) var {variable_name(a.name)}: {swift_type(spec, a.domain)}")
+                    if a.defaultvalue is None:
+                        print(f"           private(set) var {variable_name(a.name)}: {swift_type(spec, a.domain)}")
+                    else:
+                        print(f"           private(set) var {variable_name(a.name)}: {swift_type(spec, a.domain)} = {default_value(spec, a.domain, a.defaultvalue)}")
                 print()
                 print(f"           public var amqpClassId: UInt16 {{ {c.index} }}")
                 print(f"           public var amqpMethodId: UInt16 {{ {m.index} }}")
