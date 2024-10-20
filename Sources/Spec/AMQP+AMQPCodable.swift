@@ -43,9 +43,7 @@ extension AMQP.Basic.QosOk : AMQPCodable {
         precondition(c == 60)
         let m = try decoder.decode(UInt16.self)
         precondition(m == 11)
-        self.init(
-
-        )
+        self.init()
     }
 }
 
@@ -381,9 +379,7 @@ extension AMQP.Basic.RecoverOk : AMQPCodable {
         precondition(c == 60)
         let m = try decoder.decode(UInt16.self)
         precondition(m == 111)
-        self.init(
-
-        )
+        self.init()
     }
 }
 
@@ -625,9 +621,7 @@ extension AMQP.Connection.CloseOk : AMQPCodable {
         precondition(c == 10)
         let m = try decoder.decode(UInt16.self)
         precondition(m == 51)
-        self.init(
-
-        )
+        self.init()
     }
 }
 
@@ -662,9 +656,7 @@ extension AMQP.Connection.Unblocked : AMQPCodable {
         precondition(c == 10)
         let m = try decoder.decode(UInt16.self)
         precondition(m == 61)
-        self.init(
-
-        )
+        self.init()
     }
 }
 
@@ -701,9 +693,7 @@ extension AMQP.Connection.UpdateSecretOk : AMQPCodable {
         precondition(c == 10)
         let m = try decoder.decode(UInt16.self)
         precondition(m == 71)
-        self.init(
-
-        )
+        self.init()
     }
 }
 
@@ -820,9 +810,7 @@ extension AMQP.Channel.CloseOk : AMQPCodable {
         precondition(c == 20)
         let m = try decoder.decode(UInt16.self)
         precondition(m == 41)
-        self.init(
-
-        )
+        self.init()
     }
 }
 
@@ -921,9 +909,7 @@ extension AMQP.Exchange.DeclareOk : AMQPCodable {
         precondition(c == 40)
         let m = try decoder.decode(UInt16.self)
         precondition(m == 11)
-        self.init(
-
-        )
+        self.init()
     }
 }
 
@@ -964,9 +950,7 @@ extension AMQP.Exchange.DeleteOk : AMQPCodable {
         precondition(c == 40)
         let m = try decoder.decode(UInt16.self)
         precondition(m == 21)
-        self.init(
-
-        )
+        self.init()
     }
 }
 
@@ -1011,9 +995,7 @@ extension AMQP.Exchange.BindOk : AMQPCodable {
         precondition(c == 40)
         let m = try decoder.decode(UInt16.self)
         precondition(m == 31)
-        self.init(
-
-        )
+        self.init()
     }
 }
 
@@ -1058,9 +1040,7 @@ extension AMQP.Exchange.UnbindOk : AMQPCodable {
         precondition(c == 40)
         let m = try decoder.decode(UInt16.self)
         precondition(m == 51)
-        self.init(
-
-        )
+        self.init()
     }
 }
 
@@ -1161,9 +1141,7 @@ extension AMQP.Queue.BindOk : AMQPCodable {
         precondition(c == 50)
         let m = try decoder.decode(UInt16.self)
         precondition(m == 21)
-        self.init(
-
-        )
+        self.init()
     }
 }
 
@@ -1294,9 +1272,7 @@ extension AMQP.Queue.UnbindOk : AMQPCodable {
         precondition(c == 50)
         let m = try decoder.decode(UInt16.self)
         precondition(m == 51)
-        self.init(
-
-        )
+        self.init()
     }
 }
 
@@ -1312,9 +1288,7 @@ extension AMQP.Tx.Select : AMQPCodable {
         precondition(c == 90)
         let m = try decoder.decode(UInt16.self)
         precondition(m == 10)
-        self.init(
-
-        )
+        self.init()
     }
 }
 
@@ -1330,9 +1304,7 @@ extension AMQP.Tx.SelectOk : AMQPCodable {
         precondition(c == 90)
         let m = try decoder.decode(UInt16.self)
         precondition(m == 11)
-        self.init(
-
-        )
+        self.init()
     }
 }
 
@@ -1348,9 +1320,7 @@ extension AMQP.Tx.Commit : AMQPCodable {
         precondition(c == 90)
         let m = try decoder.decode(UInt16.self)
         precondition(m == 20)
-        self.init(
-
-        )
+        self.init()
     }
 }
 
@@ -1366,9 +1336,7 @@ extension AMQP.Tx.CommitOk : AMQPCodable {
         precondition(c == 90)
         let m = try decoder.decode(UInt16.self)
         precondition(m == 21)
-        self.init(
-
-        )
+        self.init()
     }
 }
 
@@ -1384,9 +1352,7 @@ extension AMQP.Tx.Rollback : AMQPCodable {
         precondition(c == 90)
         let m = try decoder.decode(UInt16.self)
         precondition(m == 30)
-        self.init(
-
-        )
+        self.init()
     }
 }
 
@@ -1402,9 +1368,7 @@ extension AMQP.Tx.RollbackOk : AMQPCodable {
         precondition(c == 90)
         let m = try decoder.decode(UInt16.self)
         precondition(m == 31)
-        self.init(
-
-        )
+        self.init()
     }
 }
 
@@ -1439,8 +1403,6 @@ extension AMQP.Confirm.SelectOk : AMQPCodable {
         precondition(c == 85)
         let m = try decoder.decode(UInt16.self)
         precondition(m == 11)
-        self.init(
-
-        )
+        self.init()
     }
 }

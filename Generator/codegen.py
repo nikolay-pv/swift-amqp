@@ -226,7 +226,6 @@ def gen_swift_impl_from_spec(spec: AmqpSpec):
                 print(f"        precondition(c == {c.index})")
                 print(f"        let m = try decoder.decode(UInt16.self)")
                 print(f"        precondition(m == {m.index})")
-                print(f"        self.init(")
                 lines = []
                 for a in m.arguments:
                     t = spec.resolveDomain(a.domain)
@@ -235,8 +234,12 @@ def gen_swift_impl_from_spec(spec: AmqpSpec):
                         lines.append(f"            {variable_name(a.name, False)}: try decoder.decode({swift_type(spec, a.domain)}.self, isLong: {as_bool_literal(is_long)})")
                     else:
                         lines.append(f"            {variable_name(a.name, False)}: try decoder.decode({swift_type(spec, a.domain)}.self)")
-                print(",\n".join(lines))
-                print(f"        )")
+                if len(lines):
+                    print(f"        self.init(")
+                    print(",\n".join(lines))
+                    print(f"        )")
+                else:
+                    print("        self.init()")
                 print("    }")
                 print("}")
 
