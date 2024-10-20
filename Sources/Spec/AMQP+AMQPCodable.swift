@@ -19,8 +19,10 @@ extension AMQP.Basic.Qos : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 60)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 10)
         self.init(
             prefetchSize: try decoder.decode(Int32.self),
             prefetchCount: try decoder.decode(Int16.self),
@@ -37,8 +39,10 @@ extension AMQP.Basic.QosOk : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 60)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 11)
         self.init(
 
         )
@@ -61,8 +65,10 @@ extension AMQP.Basic.Consume : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 60)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 20)
         self.init(
             ticket: try decoder.decode(Int16.self),
             queue: try decoder.decode(String.self, isLong: false),
@@ -85,8 +91,10 @@ extension AMQP.Basic.ConsumeOk : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 60)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 21)
         self.init(
             consumerTag: try decoder.decode(String.self, isLong: false)
         )
@@ -103,8 +111,10 @@ extension AMQP.Basic.Cancel : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 60)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 30)
         self.init(
             consumerTag: try decoder.decode(String.self, isLong: false),
             nowait: try decoder.decode(Bool.self)
@@ -121,8 +131,10 @@ extension AMQP.Basic.CancelOk : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 60)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 31)
         self.init(
             consumerTag: try decoder.decode(String.self, isLong: false)
         )
@@ -142,8 +154,10 @@ extension AMQP.Basic.Publish : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 60)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 40)
         self.init(
             ticket: try decoder.decode(Int16.self),
             exchange: try decoder.decode(String.self, isLong: false),
@@ -166,8 +180,10 @@ extension AMQP.Basic.Return : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 60)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 50)
         self.init(
             replyCode: try decoder.decode(Int16.self),
             replyText: try decoder.decode(String.self, isLong: false),
@@ -190,8 +206,10 @@ extension AMQP.Basic.Deliver : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 60)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 60)
         self.init(
             consumerTag: try decoder.decode(String.self, isLong: false),
             deliveryTag: try decoder.decode(Int64.self),
@@ -213,8 +231,10 @@ extension AMQP.Basic.Get : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 60)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 70)
         self.init(
             ticket: try decoder.decode(Int16.self),
             queue: try decoder.decode(String.self, isLong: false),
@@ -236,8 +256,10 @@ extension AMQP.Basic.GetOk : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 60)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 71)
         self.init(
             deliveryTag: try decoder.decode(Int64.self),
             redelivered: try decoder.decode(Bool.self),
@@ -257,8 +279,10 @@ extension AMQP.Basic.GetEmpty : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 60)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 72)
         self.init(
             clusterId: try decoder.decode(String.self, isLong: false)
         )
@@ -275,8 +299,10 @@ extension AMQP.Basic.Ack : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 60)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 80)
         self.init(
             deliveryTag: try decoder.decode(Int64.self),
             multiple: try decoder.decode(Bool.self)
@@ -294,8 +320,10 @@ extension AMQP.Basic.Reject : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 60)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 90)
         self.init(
             deliveryTag: try decoder.decode(Int64.self),
             requeue: try decoder.decode(Bool.self)
@@ -312,8 +340,10 @@ extension AMQP.Basic.RecoverAsync : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 60)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 100)
         self.init(
             requeue: try decoder.decode(Bool.self)
         )
@@ -329,8 +359,10 @@ extension AMQP.Basic.Recover : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 60)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 110)
         self.init(
             requeue: try decoder.decode(Bool.self)
         )
@@ -345,8 +377,10 @@ extension AMQP.Basic.RecoverOk : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 60)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 111)
         self.init(
 
         )
@@ -364,8 +398,10 @@ extension AMQP.Basic.Nack : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 60)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 120)
         self.init(
             deliveryTag: try decoder.decode(Int64.self),
             multiple: try decoder.decode(Bool.self),
@@ -387,8 +423,10 @@ extension AMQP.Connection.Start : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 10)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 10)
         self.init(
             versionMajor: try decoder.decode(Int8.self),
             versionMinor: try decoder.decode(Int8.self),
@@ -411,8 +449,10 @@ extension AMQP.Connection.StartOk : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 10)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 11)
         self.init(
             clientProperties: try decoder.decode([String: FieldValue].self),
             mechanism: try decoder.decode(String.self, isLong: false),
@@ -431,8 +471,10 @@ extension AMQP.Connection.Secure : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 10)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 20)
         self.init(
             challenge: try decoder.decode(String.self, isLong: true)
         )
@@ -448,8 +490,10 @@ extension AMQP.Connection.SecureOk : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 10)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 21)
         self.init(
             response: try decoder.decode(String.self, isLong: true)
         )
@@ -467,8 +511,10 @@ extension AMQP.Connection.Tune : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 10)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 30)
         self.init(
             channelMax: try decoder.decode(Int16.self),
             frameMax: try decoder.decode(Int32.self),
@@ -488,8 +534,10 @@ extension AMQP.Connection.TuneOk : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 10)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 31)
         self.init(
             channelMax: try decoder.decode(Int16.self),
             frameMax: try decoder.decode(Int32.self),
@@ -509,8 +557,10 @@ extension AMQP.Connection.Open : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 10)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 40)
         self.init(
             virtualHost: try decoder.decode(String.self, isLong: false),
             capabilities: try decoder.decode(String.self, isLong: false),
@@ -528,8 +578,10 @@ extension AMQP.Connection.OpenOk : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 10)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 41)
         self.init(
             knownHosts: try decoder.decode(String.self, isLong: false)
         )
@@ -548,8 +600,10 @@ extension AMQP.Connection.Close : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 10)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 50)
         self.init(
             replyCode: try decoder.decode(Int16.self),
             replyText: try decoder.decode(String.self, isLong: false),
@@ -567,8 +621,10 @@ extension AMQP.Connection.CloseOk : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 10)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 51)
         self.init(
 
         )
@@ -584,8 +640,10 @@ extension AMQP.Connection.Blocked : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 10)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 60)
         self.init(
             reason: try decoder.decode(String.self, isLong: false)
         )
@@ -600,8 +658,10 @@ extension AMQP.Connection.Unblocked : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 10)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 61)
         self.init(
 
         )
@@ -618,8 +678,10 @@ extension AMQP.Connection.UpdateSecret : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 10)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 70)
         self.init(
             newSecret: try decoder.decode(String.self, isLong: true),
             reason: try decoder.decode(String.self, isLong: false)
@@ -635,8 +697,10 @@ extension AMQP.Connection.UpdateSecretOk : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 10)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 71)
         self.init(
 
         )
@@ -652,8 +716,10 @@ extension AMQP.Channel.Open : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 20)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 10)
         self.init(
             outOfBand: try decoder.decode(String.self, isLong: false)
         )
@@ -669,8 +735,10 @@ extension AMQP.Channel.OpenOk : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 20)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 11)
         self.init(
             channelId: try decoder.decode(String.self, isLong: true)
         )
@@ -686,8 +754,10 @@ extension AMQP.Channel.Flow : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 20)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 20)
         self.init(
             active: try decoder.decode(Bool.self)
         )
@@ -703,8 +773,10 @@ extension AMQP.Channel.FlowOk : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 20)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 21)
         self.init(
             active: try decoder.decode(Bool.self)
         )
@@ -723,8 +795,10 @@ extension AMQP.Channel.Close : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 20)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 40)
         self.init(
             replyCode: try decoder.decode(Int16.self),
             replyText: try decoder.decode(String.self, isLong: false),
@@ -742,8 +816,10 @@ extension AMQP.Channel.CloseOk : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 20)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 41)
         self.init(
 
         )
@@ -764,8 +840,10 @@ extension AMQP.Access.Request : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 30)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 10)
         self.init(
             realm: try decoder.decode(String.self, isLong: false),
             exclusive: try decoder.decode(Bool.self),
@@ -786,8 +864,10 @@ extension AMQP.Access.RequestOk : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 30)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 11)
         self.init(
             ticket: try decoder.decode(Int16.self)
         )
@@ -811,8 +891,10 @@ extension AMQP.Exchange.Declare : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 40)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 10)
         self.init(
             ticket: try decoder.decode(Int16.self),
             exchange: try decoder.decode(String.self, isLong: false),
@@ -835,8 +917,10 @@ extension AMQP.Exchange.DeclareOk : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 40)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 11)
         self.init(
 
         )
@@ -855,8 +939,10 @@ extension AMQP.Exchange.Delete : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 40)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 20)
         self.init(
             ticket: try decoder.decode(Int16.self),
             exchange: try decoder.decode(String.self, isLong: false),
@@ -874,8 +960,10 @@ extension AMQP.Exchange.DeleteOk : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 40)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 21)
         self.init(
 
         )
@@ -896,8 +984,10 @@ extension AMQP.Exchange.Bind : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 40)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 30)
         self.init(
             ticket: try decoder.decode(Int16.self),
             destination: try decoder.decode(String.self, isLong: false),
@@ -917,8 +1007,10 @@ extension AMQP.Exchange.BindOk : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 40)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 31)
         self.init(
 
         )
@@ -939,8 +1031,10 @@ extension AMQP.Exchange.Unbind : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 40)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 40)
         self.init(
             ticket: try decoder.decode(Int16.self),
             destination: try decoder.decode(String.self, isLong: false),
@@ -960,8 +1054,10 @@ extension AMQP.Exchange.UnbindOk : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 40)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 51)
         self.init(
 
         )
@@ -984,8 +1080,10 @@ extension AMQP.Queue.Declare : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 50)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 10)
         self.init(
             ticket: try decoder.decode(Int16.self),
             queue: try decoder.decode(String.self, isLong: false),
@@ -1010,8 +1108,10 @@ extension AMQP.Queue.DeclareOk : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 50)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 11)
         self.init(
             queue: try decoder.decode(String.self, isLong: false),
             messageCount: try decoder.decode(Int32.self),
@@ -1034,8 +1134,10 @@ extension AMQP.Queue.Bind : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 50)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 20)
         self.init(
             ticket: try decoder.decode(Int16.self),
             queue: try decoder.decode(String.self, isLong: false),
@@ -1055,8 +1157,10 @@ extension AMQP.Queue.BindOk : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 50)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 21)
         self.init(
 
         )
@@ -1074,8 +1178,10 @@ extension AMQP.Queue.Purge : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 50)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 30)
         self.init(
             ticket: try decoder.decode(Int16.self),
             queue: try decoder.decode(String.self, isLong: false),
@@ -1093,8 +1199,10 @@ extension AMQP.Queue.PurgeOk : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 50)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 31)
         self.init(
             messageCount: try decoder.decode(Int32.self)
         )
@@ -1114,8 +1222,10 @@ extension AMQP.Queue.Delete : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 50)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 40)
         self.init(
             ticket: try decoder.decode(Int16.self),
             queue: try decoder.decode(String.self, isLong: false),
@@ -1135,8 +1245,10 @@ extension AMQP.Queue.DeleteOk : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 50)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 41)
         self.init(
             messageCount: try decoder.decode(Int32.self)
         )
@@ -1156,8 +1268,10 @@ extension AMQP.Queue.Unbind : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 50)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 50)
         self.init(
             ticket: try decoder.decode(Int16.self),
             queue: try decoder.decode(String.self, isLong: false),
@@ -1176,8 +1290,10 @@ extension AMQP.Queue.UnbindOk : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 50)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 51)
         self.init(
 
         )
@@ -1192,8 +1308,10 @@ extension AMQP.Tx.Select : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 90)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 10)
         self.init(
 
         )
@@ -1208,8 +1326,10 @@ extension AMQP.Tx.SelectOk : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 90)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 11)
         self.init(
 
         )
@@ -1224,8 +1344,10 @@ extension AMQP.Tx.Commit : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 90)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 20)
         self.init(
 
         )
@@ -1240,8 +1362,10 @@ extension AMQP.Tx.CommitOk : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 90)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 21)
         self.init(
 
         )
@@ -1256,8 +1380,10 @@ extension AMQP.Tx.Rollback : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 90)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 30)
         self.init(
 
         )
@@ -1272,8 +1398,10 @@ extension AMQP.Tx.RollbackOk : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 90)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 31)
         self.init(
 
         )
@@ -1289,8 +1417,10 @@ extension AMQP.Confirm.Select : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 85)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 10)
         self.init(
             nowait: try decoder.decode(Bool.self)
         )
@@ -1305,8 +1435,10 @@ extension AMQP.Confirm.SelectOk : AMQPCodable {
 
     init(from decoder: AMQPDecoder) throws {
         // consume class and method ids
-        let _ = try decoder.decode(UInt16.self)
-        let _ = try decoder.decode(UInt16.self)
+        let c = try decoder.decode(UInt16.self)
+        precondition(c == 85)
+        let m = try decoder.decode(UInt16.self)
+        precondition(m == 11)
         self.init(
 
         )

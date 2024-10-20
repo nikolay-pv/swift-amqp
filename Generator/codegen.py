@@ -222,8 +222,10 @@ def gen_swift_impl_from_spec(spec: AmqpSpec):
                 print()
                 print("    init(from decoder: AMQPDecoder) throws {")
                 print(f"        // consume class and method ids")
-                print(f"        let _ = try decoder.decode(UInt16.self)")
-                print(f"        let _ = try decoder.decode(UInt16.self)")
+                print(f"        let c = try decoder.decode(UInt16.self)")
+                print(f"        precondition(c == {c.index})")
+                print(f"        let m = try decoder.decode(UInt16.self)")
+                print(f"        precondition(m == {m.index})")
                 print(f"        self.init(")
                 lines = []
                 for a in m.arguments:
