@@ -69,14 +69,14 @@ fileprivate class _FrameDecoder: AMQPDecoder {
     }
 
     func decode(_ type: Bool.Type) throws -> Bool {
-        precondition(position + 1 < data.count)
+        precondition(position + 1 <= data.count)
         defer { position += 1 }
         return data[position] != 0
     }
 
     func decode(_ type: Int8.Type) throws -> Int8 {
         let offset = 1
-        precondition(position + offset < data.count)
+        precondition(position + offset <= data.count)
         defer { position += offset }
         return .init(bigEndian: data.subdata(in: position..<position + offset).withUnsafeBytes {
             $0.load(as: type)
@@ -85,7 +85,7 @@ fileprivate class _FrameDecoder: AMQPDecoder {
 
     func decode(_ type: Int16.Type) throws -> Int16 {
         let offset = 2
-        precondition(position + offset < data.count)
+        precondition(position + offset <= data.count)
         defer { position += offset }
         return .init(bigEndian: data.subdata(in: position..<position + offset).withUnsafeBytes {
             $0.load(as: type)
@@ -94,7 +94,7 @@ fileprivate class _FrameDecoder: AMQPDecoder {
 
     func decode(_ type: Int32.Type) throws -> Int32 {
         let offset = 4
-        precondition(position + offset < data.count)
+        precondition(position + offset <= data.count)
         defer { position += offset }
         return .init(bigEndian: data.subdata(in: position..<position + offset).withUnsafeBytes {
             $0.load(as: type)
@@ -103,7 +103,7 @@ fileprivate class _FrameDecoder: AMQPDecoder {
 
     func decode(_ type: Int64.Type) throws -> Int64 {
         let offset = 8
-        precondition(position + offset < data.count)
+        precondition(position + offset <= data.count)
         defer { position += offset }
         return .init(bigEndian: data.subdata(in: position..<position + offset).withUnsafeBytes {
             $0.load(as: type)
@@ -112,7 +112,7 @@ fileprivate class _FrameDecoder: AMQPDecoder {
 
     func decode(_ type: UInt8.Type) throws -> UInt8 {
         let offset = 1
-        precondition(position + offset < data.count)
+        precondition(position + offset <= data.count)
         defer { position += offset }
         return .init(bigEndian: data.subdata(in: position..<position + offset).withUnsafeBytes {
             $0.load(as: type)
@@ -121,7 +121,7 @@ fileprivate class _FrameDecoder: AMQPDecoder {
 
     func decode(_ type: UInt16.Type) throws -> UInt16 {
         let offset = 2
-        precondition(position + offset < data.count)
+        precondition(position + offset <= data.count)
         defer { position += offset }
         return .init(bigEndian: data.subdata(in: position..<position + offset).withUnsafeBytes {
             $0.load(as: type)
@@ -130,7 +130,7 @@ fileprivate class _FrameDecoder: AMQPDecoder {
 
     func decode(_ type: UInt32.Type) throws -> UInt32 {
         let offset = 4
-        precondition(position + offset < data.count)
+        precondition(position + offset <= data.count)
         defer { position += offset }
         return .init(bigEndian: data.subdata(in: position..<position + offset).withUnsafeBytes {
             $0.load(as: type)
@@ -139,7 +139,7 @@ fileprivate class _FrameDecoder: AMQPDecoder {
 
     func decode(_ type: UInt64.Type) throws -> UInt64 {
         let offset = 8
-        precondition(position + offset < data.count)
+        precondition(position + offset <= data.count)
         defer { position += offset }
         return .init(bigEndian: data.subdata(in: position..<position + offset).withUnsafeBytes {
             $0.load(as: type)
@@ -160,7 +160,7 @@ fileprivate class _FrameDecoder: AMQPDecoder {
 
     func decode(_ type: String.Type, isLong: Bool) throws -> String {
         let count = isLong ? Int(try decode(UInt32.self)) : Int(try decode(UInt8.self))
-        precondition(position + count < data.count)
+        precondition(position + count <= data.count)
         defer { position += count }
         return .init(
             decoding: data.subdata(in: position..<position + count),

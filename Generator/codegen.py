@@ -189,7 +189,7 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
                 specific_properties(c)
 
     def amqp_spec():
-        print("public struct AMQP {")
+        print("public enum AMQP {")
 
         FieldValueEnum()
         amqp_constants()
