@@ -29,6 +29,8 @@ extension AMQP.Basic.Qos : AMQPCodable {
             global: try decoder.decode(Bool.self)
         )
     }
+
+    var bytesCount: UInt32 { 1 + 2 + 4 + 4 }
 }
 
 extension AMQP.Basic.QosOk : AMQPCodable {
@@ -45,6 +47,8 @@ extension AMQP.Basic.QosOk : AMQPCodable {
         precondition(m == 11)
         self.init()
     }
+
+    var bytesCount: UInt32 { 4 }
 }
 
 extension AMQP.Basic.Consume : AMQPCodable {
@@ -78,6 +82,8 @@ extension AMQP.Basic.Consume : AMQPCodable {
             arguments: try decoder.decode([String: FieldValue].self)
         )
     }
+
+    var bytesCount: UInt32 { 1 + 1 + 1 + 1 + 2 + 4 + UInt32(consumerTag.shortBytesCount) + UInt32(queue.shortBytesCount) + arguments.bytesCount }
 }
 
 extension AMQP.Basic.ConsumeOk : AMQPCodable {
@@ -97,6 +103,8 @@ extension AMQP.Basic.ConsumeOk : AMQPCodable {
             consumerTag: try decoder.decode(String.self, isLong: false)
         )
     }
+
+    var bytesCount: UInt32 { 4 + UInt32(consumerTag.shortBytesCount) }
 }
 
 extension AMQP.Basic.Cancel : AMQPCodable {
@@ -118,6 +126,8 @@ extension AMQP.Basic.Cancel : AMQPCodable {
             nowait: try decoder.decode(Bool.self)
         )
     }
+
+    var bytesCount: UInt32 { 1 + 4 + UInt32(consumerTag.shortBytesCount) }
 }
 
 extension AMQP.Basic.CancelOk : AMQPCodable {
@@ -137,6 +147,8 @@ extension AMQP.Basic.CancelOk : AMQPCodable {
             consumerTag: try decoder.decode(String.self, isLong: false)
         )
     }
+
+    var bytesCount: UInt32 { 4 + UInt32(consumerTag.shortBytesCount) }
 }
 
 extension AMQP.Basic.Publish : AMQPCodable {
@@ -164,6 +176,8 @@ extension AMQP.Basic.Publish : AMQPCodable {
             immediate: try decoder.decode(Bool.self)
         )
     }
+
+    var bytesCount: UInt32 { 1 + 1 + 2 + 4 + UInt32(exchange.shortBytesCount) + UInt32(routingKey.shortBytesCount) }
 }
 
 extension AMQP.Basic.Return : AMQPCodable {
@@ -189,6 +203,8 @@ extension AMQP.Basic.Return : AMQPCodable {
             routingKey: try decoder.decode(String.self, isLong: false)
         )
     }
+
+    var bytesCount: UInt32 { 2 + 4 + UInt32(exchange.shortBytesCount) + UInt32(replyText.shortBytesCount) + UInt32(routingKey.shortBytesCount) }
 }
 
 extension AMQP.Basic.Deliver : AMQPCodable {
@@ -216,6 +232,8 @@ extension AMQP.Basic.Deliver : AMQPCodable {
             routingKey: try decoder.decode(String.self, isLong: false)
         )
     }
+
+    var bytesCount: UInt32 { 1 + 4 + 8 + UInt32(consumerTag.shortBytesCount) + UInt32(exchange.shortBytesCount) + UInt32(routingKey.shortBytesCount) }
 }
 
 extension AMQP.Basic.Get : AMQPCodable {
@@ -239,6 +257,8 @@ extension AMQP.Basic.Get : AMQPCodable {
             noAck: try decoder.decode(Bool.self)
         )
     }
+
+    var bytesCount: UInt32 { 1 + 2 + 4 + UInt32(queue.shortBytesCount) }
 }
 
 extension AMQP.Basic.GetOk : AMQPCodable {
@@ -266,6 +286,8 @@ extension AMQP.Basic.GetOk : AMQPCodable {
             messageCount: try decoder.decode(Int32.self)
         )
     }
+
+    var bytesCount: UInt32 { 1 + 4 + 4 + 8 + UInt32(exchange.shortBytesCount) + UInt32(routingKey.shortBytesCount) }
 }
 
 extension AMQP.Basic.GetEmpty : AMQPCodable {
@@ -285,6 +307,8 @@ extension AMQP.Basic.GetEmpty : AMQPCodable {
             clusterId: try decoder.decode(String.self, isLong: false)
         )
     }
+
+    var bytesCount: UInt32 { 4 + UInt32(clusterId.shortBytesCount) }
 }
 
 extension AMQP.Basic.Ack : AMQPCodable {
@@ -306,6 +330,8 @@ extension AMQP.Basic.Ack : AMQPCodable {
             multiple: try decoder.decode(Bool.self)
         )
     }
+
+    var bytesCount: UInt32 { 1 + 4 + 8 }
 }
 
 extension AMQP.Basic.Reject : AMQPCodable {
@@ -327,6 +353,8 @@ extension AMQP.Basic.Reject : AMQPCodable {
             requeue: try decoder.decode(Bool.self)
         )
     }
+
+    var bytesCount: UInt32 { 1 + 4 + 8 }
 }
 
 extension AMQP.Basic.RecoverAsync : AMQPCodable {
@@ -346,6 +374,8 @@ extension AMQP.Basic.RecoverAsync : AMQPCodable {
             requeue: try decoder.decode(Bool.self)
         )
     }
+
+    var bytesCount: UInt32 { 1 + 4 }
 }
 
 extension AMQP.Basic.Recover : AMQPCodable {
@@ -365,6 +395,8 @@ extension AMQP.Basic.Recover : AMQPCodable {
             requeue: try decoder.decode(Bool.self)
         )
     }
+
+    var bytesCount: UInt32 { 1 + 4 }
 }
 
 extension AMQP.Basic.RecoverOk : AMQPCodable {
@@ -381,6 +413,8 @@ extension AMQP.Basic.RecoverOk : AMQPCodable {
         precondition(m == 111)
         self.init()
     }
+
+    var bytesCount: UInt32 { 4 }
 }
 
 extension AMQP.Basic.Nack : AMQPCodable {
@@ -404,6 +438,8 @@ extension AMQP.Basic.Nack : AMQPCodable {
             requeue: try decoder.decode(Bool.self)
         )
     }
+
+    var bytesCount: UInt32 { 1 + 1 + 4 + 8 }
 }
 
 extension AMQP.Connection.Start : AMQPCodable {
@@ -431,6 +467,8 @@ extension AMQP.Connection.Start : AMQPCodable {
             locales: try decoder.decode(String.self, isLong: true)
         )
     }
+
+    var bytesCount: UInt32 { 1 + 1 + 4 + locales.longBytesCount + mechanisms.longBytesCount + serverProperties.bytesCount }
 }
 
 extension AMQP.Connection.StartOk : AMQPCodable {
@@ -456,6 +494,8 @@ extension AMQP.Connection.StartOk : AMQPCodable {
             locale: try decoder.decode(String.self, isLong: false)
         )
     }
+
+    var bytesCount: UInt32 { 4 + UInt32(locale.shortBytesCount) + UInt32(mechanism.shortBytesCount) + clientProperties.bytesCount + response.longBytesCount }
 }
 
 extension AMQP.Connection.Secure : AMQPCodable {
@@ -475,6 +515,8 @@ extension AMQP.Connection.Secure : AMQPCodable {
             challenge: try decoder.decode(String.self, isLong: true)
         )
     }
+
+    var bytesCount: UInt32 { 4 + challenge.longBytesCount }
 }
 
 extension AMQP.Connection.SecureOk : AMQPCodable {
@@ -494,6 +536,8 @@ extension AMQP.Connection.SecureOk : AMQPCodable {
             response: try decoder.decode(String.self, isLong: true)
         )
     }
+
+    var bytesCount: UInt32 { 4 + response.longBytesCount }
 }
 
 extension AMQP.Connection.Tune : AMQPCodable {
@@ -517,6 +561,8 @@ extension AMQP.Connection.Tune : AMQPCodable {
             heartbeat: try decoder.decode(Int16.self)
         )
     }
+
+    var bytesCount: UInt32 { 2 + 2 + 4 + 4 }
 }
 
 extension AMQP.Connection.TuneOk : AMQPCodable {
@@ -540,6 +586,8 @@ extension AMQP.Connection.TuneOk : AMQPCodable {
             heartbeat: try decoder.decode(Int16.self)
         )
     }
+
+    var bytesCount: UInt32 { 2 + 2 + 4 + 4 }
 }
 
 extension AMQP.Connection.Open : AMQPCodable {
@@ -563,6 +611,8 @@ extension AMQP.Connection.Open : AMQPCodable {
             insist: try decoder.decode(Bool.self)
         )
     }
+
+    var bytesCount: UInt32 { 1 + 4 + UInt32(capabilities.shortBytesCount) + UInt32(virtualHost.shortBytesCount) }
 }
 
 extension AMQP.Connection.OpenOk : AMQPCodable {
@@ -582,6 +632,8 @@ extension AMQP.Connection.OpenOk : AMQPCodable {
             knownHosts: try decoder.decode(String.self, isLong: false)
         )
     }
+
+    var bytesCount: UInt32 { 4 + UInt32(knownHosts.shortBytesCount) }
 }
 
 extension AMQP.Connection.Close : AMQPCodable {
@@ -607,6 +659,8 @@ extension AMQP.Connection.Close : AMQPCodable {
             methodId: try decoder.decode(Int16.self)
         )
     }
+
+    var bytesCount: UInt32 { 2 + 2 + 2 + 4 + UInt32(replyText.shortBytesCount) }
 }
 
 extension AMQP.Connection.CloseOk : AMQPCodable {
@@ -623,6 +677,8 @@ extension AMQP.Connection.CloseOk : AMQPCodable {
         precondition(m == 51)
         self.init()
     }
+
+    var bytesCount: UInt32 { 4 }
 }
 
 extension AMQP.Connection.Blocked : AMQPCodable {
@@ -642,6 +698,8 @@ extension AMQP.Connection.Blocked : AMQPCodable {
             reason: try decoder.decode(String.self, isLong: false)
         )
     }
+
+    var bytesCount: UInt32 { 4 + UInt32(reason.shortBytesCount) }
 }
 
 extension AMQP.Connection.Unblocked : AMQPCodable {
@@ -658,6 +716,8 @@ extension AMQP.Connection.Unblocked : AMQPCodable {
         precondition(m == 61)
         self.init()
     }
+
+    var bytesCount: UInt32 { 4 }
 }
 
 extension AMQP.Connection.UpdateSecret : AMQPCodable {
@@ -679,6 +739,8 @@ extension AMQP.Connection.UpdateSecret : AMQPCodable {
             reason: try decoder.decode(String.self, isLong: false)
         )
     }
+
+    var bytesCount: UInt32 { 4 + UInt32(reason.shortBytesCount) + newSecret.longBytesCount }
 }
 
 extension AMQP.Connection.UpdateSecretOk : AMQPCodable {
@@ -695,6 +757,8 @@ extension AMQP.Connection.UpdateSecretOk : AMQPCodable {
         precondition(m == 71)
         self.init()
     }
+
+    var bytesCount: UInt32 { 4 }
 }
 
 extension AMQP.Channel.Open : AMQPCodable {
@@ -714,6 +778,8 @@ extension AMQP.Channel.Open : AMQPCodable {
             outOfBand: try decoder.decode(String.self, isLong: false)
         )
     }
+
+    var bytesCount: UInt32 { 4 + UInt32(outOfBand.shortBytesCount) }
 }
 
 extension AMQP.Channel.OpenOk : AMQPCodable {
@@ -733,6 +799,8 @@ extension AMQP.Channel.OpenOk : AMQPCodable {
             channelId: try decoder.decode(String.self, isLong: true)
         )
     }
+
+    var bytesCount: UInt32 { 4 + channelId.longBytesCount }
 }
 
 extension AMQP.Channel.Flow : AMQPCodable {
@@ -752,6 +820,8 @@ extension AMQP.Channel.Flow : AMQPCodable {
             active: try decoder.decode(Bool.self)
         )
     }
+
+    var bytesCount: UInt32 { 1 + 4 }
 }
 
 extension AMQP.Channel.FlowOk : AMQPCodable {
@@ -771,6 +841,8 @@ extension AMQP.Channel.FlowOk : AMQPCodable {
             active: try decoder.decode(Bool.self)
         )
     }
+
+    var bytesCount: UInt32 { 1 + 4 }
 }
 
 extension AMQP.Channel.Close : AMQPCodable {
@@ -796,6 +868,8 @@ extension AMQP.Channel.Close : AMQPCodable {
             methodId: try decoder.decode(Int16.self)
         )
     }
+
+    var bytesCount: UInt32 { 2 + 2 + 2 + 4 + UInt32(replyText.shortBytesCount) }
 }
 
 extension AMQP.Channel.CloseOk : AMQPCodable {
@@ -812,6 +886,8 @@ extension AMQP.Channel.CloseOk : AMQPCodable {
         precondition(m == 41)
         self.init()
     }
+
+    var bytesCount: UInt32 { 4 }
 }
 
 extension AMQP.Access.Request : AMQPCodable {
@@ -841,6 +917,8 @@ extension AMQP.Access.Request : AMQPCodable {
             read: try decoder.decode(Bool.self)
         )
     }
+
+    var bytesCount: UInt32 { 1 + 1 + 1 + 1 + 1 + 4 + UInt32(realm.shortBytesCount) }
 }
 
 extension AMQP.Access.RequestOk : AMQPCodable {
@@ -860,6 +938,8 @@ extension AMQP.Access.RequestOk : AMQPCodable {
             ticket: try decoder.decode(Int16.self)
         )
     }
+
+    var bytesCount: UInt32 { 2 + 4 }
 }
 
 extension AMQP.Exchange.Declare : AMQPCodable {
@@ -895,6 +975,8 @@ extension AMQP.Exchange.Declare : AMQPCodable {
             arguments: try decoder.decode([String: FieldValue].self)
         )
     }
+
+    var bytesCount: UInt32 { 1 + 1 + 1 + 1 + 1 + 2 + 4 + UInt32(exchange.shortBytesCount) + UInt32(type.shortBytesCount) + arguments.bytesCount }
 }
 
 extension AMQP.Exchange.DeclareOk : AMQPCodable {
@@ -911,6 +993,8 @@ extension AMQP.Exchange.DeclareOk : AMQPCodable {
         precondition(m == 11)
         self.init()
     }
+
+    var bytesCount: UInt32 { 4 }
 }
 
 extension AMQP.Exchange.Delete : AMQPCodable {
@@ -936,6 +1020,8 @@ extension AMQP.Exchange.Delete : AMQPCodable {
             nowait: try decoder.decode(Bool.self)
         )
     }
+
+    var bytesCount: UInt32 { 1 + 1 + 2 + 4 + UInt32(exchange.shortBytesCount) }
 }
 
 extension AMQP.Exchange.DeleteOk : AMQPCodable {
@@ -952,6 +1038,8 @@ extension AMQP.Exchange.DeleteOk : AMQPCodable {
         precondition(m == 21)
         self.init()
     }
+
+    var bytesCount: UInt32 { 4 }
 }
 
 extension AMQP.Exchange.Bind : AMQPCodable {
@@ -981,6 +1069,8 @@ extension AMQP.Exchange.Bind : AMQPCodable {
             arguments: try decoder.decode([String: FieldValue].self)
         )
     }
+
+    var bytesCount: UInt32 { 1 + 2 + 4 + UInt32(destination.shortBytesCount) + UInt32(routingKey.shortBytesCount) + UInt32(source.shortBytesCount) + arguments.bytesCount }
 }
 
 extension AMQP.Exchange.BindOk : AMQPCodable {
@@ -997,6 +1087,8 @@ extension AMQP.Exchange.BindOk : AMQPCodable {
         precondition(m == 31)
         self.init()
     }
+
+    var bytesCount: UInt32 { 4 }
 }
 
 extension AMQP.Exchange.Unbind : AMQPCodable {
@@ -1026,6 +1118,8 @@ extension AMQP.Exchange.Unbind : AMQPCodable {
             arguments: try decoder.decode([String: FieldValue].self)
         )
     }
+
+    var bytesCount: UInt32 { 1 + 2 + 4 + UInt32(destination.shortBytesCount) + UInt32(routingKey.shortBytesCount) + UInt32(source.shortBytesCount) + arguments.bytesCount }
 }
 
 extension AMQP.Exchange.UnbindOk : AMQPCodable {
@@ -1042,6 +1136,8 @@ extension AMQP.Exchange.UnbindOk : AMQPCodable {
         precondition(m == 51)
         self.init()
     }
+
+    var bytesCount: UInt32 { 4 }
 }
 
 extension AMQP.Queue.Declare : AMQPCodable {
@@ -1075,6 +1171,8 @@ extension AMQP.Queue.Declare : AMQPCodable {
             arguments: try decoder.decode([String: FieldValue].self)
         )
     }
+
+    var bytesCount: UInt32 { 1 + 1 + 1 + 1 + 1 + 2 + 4 + UInt32(queue.shortBytesCount) + arguments.bytesCount }
 }
 
 extension AMQP.Queue.DeclareOk : AMQPCodable {
@@ -1098,6 +1196,8 @@ extension AMQP.Queue.DeclareOk : AMQPCodable {
             consumerCount: try decoder.decode(Int32.self)
         )
     }
+
+    var bytesCount: UInt32 { 4 + 4 + 4 + UInt32(queue.shortBytesCount) }
 }
 
 extension AMQP.Queue.Bind : AMQPCodable {
@@ -1127,6 +1227,8 @@ extension AMQP.Queue.Bind : AMQPCodable {
             arguments: try decoder.decode([String: FieldValue].self)
         )
     }
+
+    var bytesCount: UInt32 { 1 + 2 + 4 + UInt32(exchange.shortBytesCount) + UInt32(queue.shortBytesCount) + UInt32(routingKey.shortBytesCount) + arguments.bytesCount }
 }
 
 extension AMQP.Queue.BindOk : AMQPCodable {
@@ -1143,6 +1245,8 @@ extension AMQP.Queue.BindOk : AMQPCodable {
         precondition(m == 21)
         self.init()
     }
+
+    var bytesCount: UInt32 { 4 }
 }
 
 extension AMQP.Queue.Purge : AMQPCodable {
@@ -1166,6 +1270,8 @@ extension AMQP.Queue.Purge : AMQPCodable {
             nowait: try decoder.decode(Bool.self)
         )
     }
+
+    var bytesCount: UInt32 { 1 + 2 + 4 + UInt32(queue.shortBytesCount) }
 }
 
 extension AMQP.Queue.PurgeOk : AMQPCodable {
@@ -1185,6 +1291,8 @@ extension AMQP.Queue.PurgeOk : AMQPCodable {
             messageCount: try decoder.decode(Int32.self)
         )
     }
+
+    var bytesCount: UInt32 { 4 + 4 }
 }
 
 extension AMQP.Queue.Delete : AMQPCodable {
@@ -1212,6 +1320,8 @@ extension AMQP.Queue.Delete : AMQPCodable {
             nowait: try decoder.decode(Bool.self)
         )
     }
+
+    var bytesCount: UInt32 { 1 + 1 + 1 + 2 + 4 + UInt32(queue.shortBytesCount) }
 }
 
 extension AMQP.Queue.DeleteOk : AMQPCodable {
@@ -1231,6 +1341,8 @@ extension AMQP.Queue.DeleteOk : AMQPCodable {
             messageCount: try decoder.decode(Int32.self)
         )
     }
+
+    var bytesCount: UInt32 { 4 + 4 }
 }
 
 extension AMQP.Queue.Unbind : AMQPCodable {
@@ -1258,6 +1370,8 @@ extension AMQP.Queue.Unbind : AMQPCodable {
             arguments: try decoder.decode([String: FieldValue].self)
         )
     }
+
+    var bytesCount: UInt32 { 2 + 4 + UInt32(exchange.shortBytesCount) + UInt32(queue.shortBytesCount) + UInt32(routingKey.shortBytesCount) + arguments.bytesCount }
 }
 
 extension AMQP.Queue.UnbindOk : AMQPCodable {
@@ -1274,6 +1388,8 @@ extension AMQP.Queue.UnbindOk : AMQPCodable {
         precondition(m == 51)
         self.init()
     }
+
+    var bytesCount: UInt32 { 4 }
 }
 
 extension AMQP.Tx.Select : AMQPCodable {
@@ -1290,6 +1406,8 @@ extension AMQP.Tx.Select : AMQPCodable {
         precondition(m == 10)
         self.init()
     }
+
+    var bytesCount: UInt32 { 4 }
 }
 
 extension AMQP.Tx.SelectOk : AMQPCodable {
@@ -1306,6 +1424,8 @@ extension AMQP.Tx.SelectOk : AMQPCodable {
         precondition(m == 11)
         self.init()
     }
+
+    var bytesCount: UInt32 { 4 }
 }
 
 extension AMQP.Tx.Commit : AMQPCodable {
@@ -1322,6 +1442,8 @@ extension AMQP.Tx.Commit : AMQPCodable {
         precondition(m == 20)
         self.init()
     }
+
+    var bytesCount: UInt32 { 4 }
 }
 
 extension AMQP.Tx.CommitOk : AMQPCodable {
@@ -1338,6 +1460,8 @@ extension AMQP.Tx.CommitOk : AMQPCodable {
         precondition(m == 21)
         self.init()
     }
+
+    var bytesCount: UInt32 { 4 }
 }
 
 extension AMQP.Tx.Rollback : AMQPCodable {
@@ -1354,6 +1478,8 @@ extension AMQP.Tx.Rollback : AMQPCodable {
         precondition(m == 30)
         self.init()
     }
+
+    var bytesCount: UInt32 { 4 }
 }
 
 extension AMQP.Tx.RollbackOk : AMQPCodable {
@@ -1370,6 +1496,8 @@ extension AMQP.Tx.RollbackOk : AMQPCodable {
         precondition(m == 31)
         self.init()
     }
+
+    var bytesCount: UInt32 { 4 }
 }
 
 extension AMQP.Confirm.Select : AMQPCodable {
@@ -1389,6 +1517,8 @@ extension AMQP.Confirm.Select : AMQPCodable {
             nowait: try decoder.decode(Bool.self)
         )
     }
+
+    var bytesCount: UInt32 { 1 + 4 }
 }
 
 extension AMQP.Confirm.SelectOk : AMQPCodable {
@@ -1405,4 +1535,6 @@ extension AMQP.Confirm.SelectOk : AMQPCodable {
         precondition(m == 11)
         self.init()
     }
+
+    var bytesCount: UInt32 { 4 }
 }

@@ -8,9 +8,17 @@
 import Foundation
 
 struct AMQPFrame {
-    var type: Int8
-    var channelId: Int16
-    var payload: Data = .init()
+    enum FrameType: Int8 {
+        case method = 1
+        case header = 2
+        case body = 3
+        case heartbeat = 4
+    }
+    var type: FrameType
+    var channelId: UInt16 = 0
+    var size: UInt32 { payload.bytesCount }
+    var payload: any AMQPObjectProtocol & AMQPCodable
+    let frame_end: UInt8 = 0
 
-    private static let prefixSize: Int = 8 // = sum(1 for type, 2 for channel, 4 for payload size, 1 for end char)
+    private static let prefixSize: Int = 7 // = sum(1 for type, 2 for channel, 4 for payload size, 1 for end char)
 }

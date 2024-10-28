@@ -47,6 +47,7 @@ protocol AMQPEncoder {
 
 protocol AMQPEncodable {
     func encode(to encoder: AMQPEncoder) throws
+    var bytesCount: UInt32 { get }
 }
 
 protocol AMQPCodable: AMQPDecodable, AMQPEncodable {

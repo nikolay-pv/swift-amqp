@@ -58,6 +58,25 @@ def default_value(spec: AmqpSpec, domain: str, value) -> str:
     # if t == "timestamp":
     raise RuntimeError(f"Unknown domain - type - value: {domain} - {t} - {value}")
 
+
+def get_bytes_count(spec: AmqpSpec, arg_name: str, domain: str):
+    t = swift_type(spec, domain)
+    domain = spec.resolveDomain(domain)
+    if domain == "shortstr":
+        return f"UInt32({variable_name(arg_name, False)}.shortBytesCount)"
+    if domain == "longstr":
+        return f"{variable_name(arg_name, False)}.longBytesCount"
+    if domain == "table":
+        return f"{variable_name(arg_name, False)}.bytesCount"
+    if t.startswith('Int'):
+        return f"{int(t.lstrip('Int')) // 8}"
+    if t == "Bool":
+        return "1"
+    if t == "Date":
+        return "8"
+    raise RuntimeError(f"Unknown domain - type: {domain} - {t}")
+
+
 # ---------------------------------------------------------------------------
 
 
@@ -242,7 +261,9 @@ def gen_swift_impl_from_spec(spec: AmqpSpec):
                 print(f"        let m = try decoder.decode(UInt16.self)")
                 print(f"        precondition(m == {m.index})")
                 lines = []
+                bytes_count = ["4"] # the class and frame ids
                 for a in m.arguments:
+                    bytes_count.append(get_bytes_count(spec, a.name, a.domain))
                     t = spec.resolveDomain(a.domain)
                     if t == "shortstr" or t == "longstr":
                         is_long = t == "longstr"
@@ -256,6 +277,9 @@ def gen_swift_impl_from_spec(spec: AmqpSpec):
                 else:
                     print("        self.init()")
                 print("    }")
+                print()
+                bc = " + ".join(sorted(bytes_count)) # optimization for compiler
+                print("    var bytesCount: UInt32 { " + bc + " }")
                 print("}")
 
     def decode_extensions():
