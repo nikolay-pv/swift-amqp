@@ -64,18 +64,18 @@ public enum AMQP {
     }
 
     public struct ProtocolLevel {
-        static let MAJOR = 0
-        static let MINOR = 9
-        static let REVISION = 1
+        static let MAJOR: UInt8 = 0
+        static let MINOR: UInt8 = 9
+        static let REVISION: UInt8 = 1
         static let PORT = 5672
     }
 
-    static let FrameMethod = 1
-    static let FrameHeader = 2
-    static let FrameBody = 3
-    static let FrameHeartbeat = 8
+    static let FrameMethod: UInt8 = 1
+    static let FrameHeader: UInt8 = 2
+    static let FrameBody: UInt8 = 3
+    static let FrameHeartbeat: UInt8 = 8
     static let FrameMinSize = 4096
-    static let FrameEnd = 206
+    static let FrameEnd: UInt8 = 206
     static let ReplySuccess = 200
     static let ContentTooLarge = 311
     static let NoRoute = 312

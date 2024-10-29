@@ -8,17 +8,42 @@
 import Foundation
 
 struct AMQPFrame {
-    enum FrameType: Int8 {
-        case method = 1
-        case header = 2
-        case body = 3
-        case heartbeat = 4
-    }
-    var type: FrameType
+    var type: UInt8
     var channelId: UInt16 = 0
     var size: UInt32 { payload.bytesCount }
-    var payload: any AMQPObjectProtocol & AMQPCodable
-    let frame_end: UInt8 = 0
+    var payload: any AMQPCodable
+    let frame_end: UInt8 = UInt8(AMQP.FrameEnd)
+}
 
-    private static let prefixSize: Int = 7 // = sum(1 for type, 2 for channel, 4 for payload size, 1 for end char)
+extension AMQPFrame: AMQPCodable {
+    init(from decoder: any AMQPDecoder) throws {
+        type = try decoder.decode(UInt8.self)
+        channelId = try decoder.decode(UInt16.self)
+        let expectedSize = try decoder.decode(UInt32.self)
+        switch type {
+        case AMQP.FrameMethod:
+            let classId = try decoder.decode(UInt16.self)
+            let methodId = try decoder.decode(UInt16.self)
+            let factory = try AMQP.makeFactory(with: classId, and: methodId)
+            payload = try factory(decoder)
+        case AMQP.FrameHeader: fallthrough
+        case AMQP.FrameBody: fallthrough
+        case AMQP.FrameHeartbeat:
+            fatalError("Not implemented yet")
+        default: throw AMQPError.DecodingError.unknownFrameType(type)
+        }
+        precondition(payload.bytesCount == expectedSize)
+    }
+
+    func encode(to encoder: any AMQPEncoder) throws {
+        try encoder.encode(type)
+        try encoder.encode(channelId)
+        try encoder.encode(size)
+        try payload.encode(to: encoder)
+        try encoder.encode(frame_end)
+    }
+
+    var bytesCount: UInt32 {
+        7 + 1 + size
+    }
 }

@@ -74,14 +74,17 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
     def amqp_constants():
         print()
         print("    public struct ProtocolLevel {")
-        print(f"        static let MAJOR = {spec.major}")
-        print(f"        static let MINOR = {spec.minor}")
-        print(f"        static let REVISION = {spec.revision}")
+        print(f"        static let MAJOR: UInt8 = {spec.major}")
+        print(f"        static let MINOR: UInt8 = {spec.minor}")
+        print(f"        static let REVISION: UInt8 = {spec.revision}")
         print(f"        static let PORT = {spec.port}")
         print("    }")
         print()
         for c, v, _ in spec.constants:
-            print(f"    static let {constant_name(c)} = {v}")
+            c = constant_name(c)
+            if c in ["FrameMethod", "FrameHeader", "FrameBody", "FrameHeartbeat", "FrameEnd"]:
+                c += ": UInt8"
+            print(f"    static let {c} = {v}")
 
     def amqp_classes_and_methods():
         for c in spec.classes:

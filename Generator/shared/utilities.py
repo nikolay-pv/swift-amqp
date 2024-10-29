@@ -1,3 +1,5 @@
+import re
+
 SPEC_TYPE_TO_SWIFT = {
     "octet": "Int8",
     "shortstr": "String",
