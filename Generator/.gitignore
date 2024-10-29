@@ -9,3 +9,4 @@ DerivedData/
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
 amqp-rabbitmq-0.9.1.json
+rabbitmq_codegen
