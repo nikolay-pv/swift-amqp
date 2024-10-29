@@ -115,6 +115,7 @@ func tester<T>(_ object: T) throws where T : AMQPCodable & Equatable {
         let object = AMQP.Basic.Nack()
         try tester(object)
     }
+
 }
 
 @Suite struct Connection {
@@ -201,6 +202,7 @@ func tester<T>(_ object: T) throws where T : AMQPCodable & Equatable {
         let object = AMQP.Connection.UpdateSecretOk()
         try tester(object)
     }
+
 }
 
 @Suite struct Channel {
@@ -239,6 +241,7 @@ func tester<T>(_ object: T) throws where T : AMQPCodable & Equatable {
         let object = AMQP.Channel.CloseOk()
         try tester(object)
     }
+
 }
 
 @Suite struct Access {
@@ -253,6 +256,7 @@ func tester<T>(_ object: T) throws where T : AMQPCodable & Equatable {
         let object = AMQP.Access.RequestOk()
         try tester(object)
     }
+
 }
 
 @Suite struct Exchange {
@@ -303,6 +307,7 @@ func tester<T>(_ object: T) throws where T : AMQPCodable & Equatable {
         let object = AMQP.Exchange.UnbindOk()
         try tester(object)
     }
+
 }
 
 @Suite struct Queue {
@@ -365,6 +370,7 @@ func tester<T>(_ object: T) throws where T : AMQPCodable & Equatable {
         let object = AMQP.Queue.UnbindOk()
         try tester(object)
     }
+
 }
 
 @Suite struct Tx {
@@ -403,6 +409,7 @@ func tester<T>(_ object: T) throws where T : AMQPCodable & Equatable {
         let object = AMQP.Tx.RollbackOk()
         try tester(object)
     }
+
 }
 
 @Suite struct Confirm {
@@ -417,4 +424,5 @@ func tester<T>(_ object: T) throws where T : AMQPCodable & Equatable {
         let object = AMQP.Confirm.SelectOk()
         try tester(object)
     }
+
 }

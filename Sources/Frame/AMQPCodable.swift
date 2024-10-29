@@ -47,6 +47,11 @@ protocol AMQPEncoder {
 
 protocol AMQPEncodable {
     func encode(to encoder: AMQPEncoder) throws
+    /// would return the number of bytes representing thie encodable in AMQPFrame
+    ///
+    /// NOTE: at least for AMQPMethods even if there is no stored data,
+    /// this still returns non-zero value due to some storage requirements for the metadata
+    /// (class and method ids in this case)
     var bytesCount: UInt32 { get }
 }
 

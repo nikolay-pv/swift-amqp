@@ -158,8 +158,6 @@ def gen_swift_impl_from_spec(spec: AmqpSpec):
                 print()
                 print(f"extension AMQP.{struct_name(c.name)}.{struct_name(m.name)} : AMQPCodable {{")
                 print("    func encode(to encoder: AMQPEncoder) throws {")
-                print(f"        try encoder.encode(amqpClassId)")
-                print(f"        try encoder.encode(amqpMethodId)")
                 for a in m.arguments:
                     t = spec.resolveDomain(a.domain)
                     if t == "shortstr" or t == "longstr":
@@ -170,11 +168,6 @@ def gen_swift_impl_from_spec(spec: AmqpSpec):
                 print("    }")
                 print()
                 print("    init(from decoder: AMQPDecoder) throws {")
-                print(f"        // consume class and method ids")
-                print(f"        let c = try decoder.decode(UInt16.self)")
-                print(f"        precondition(c == {c.index})")
-                print(f"        let m = try decoder.decode(UInt16.self)")
-                print(f"        precondition(m == {m.index})")
                 lines = []
                 bytes_count = ["4"] # the class and frame ids
                 for a in m.arguments:
@@ -196,6 +189,19 @@ def gen_swift_impl_from_spec(spec: AmqpSpec):
                 bc = " + ".join(sorted(bytes_count)) # optimization for compiler
                 print("    var bytesCount: UInt32 { " + bc + " }")
                 print("}")
+
+        print()
+        print("extension AMQP {")
+        print("    typealias Factory = @Sendable (any AMQPDecoder) throws -> any AMQPCodable")
+        print("    static func makeFactory(with classId: UInt16, and methodId: UInt16) throws -> Factory {")
+        print("        switch(classId, methodId) {")
+        for c in spec.allClasses():
+            for m in c.allMethods():
+                print(f"        case ({c.index}, {m.index}): return AMQP.{struct_name(c.name)}.{struct_name(m.name)}.init")
+        print("        default: throw AMQPError.DecodingError.unknownClassAndMethod(class: classId, method: methodId)")
+        print("        }")
+        print("    }")
+        print("}")
 
     def decode_extensions():
         pass
