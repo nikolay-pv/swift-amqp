@@ -12,7 +12,7 @@ struct AMQPFrame {
     var channelId: UInt16 = 0
     var size: UInt32 { payload.bytesCount }
     var payload: any AMQPCodable
-    let frame_end: UInt8 = UInt8(AMQP.FrameEnd)
+    let frameEnd: UInt8 = UInt8(AMQP.FrameEnd)
 }
 
 extension AMQPFrame: AMQPCodable {
@@ -33,6 +33,8 @@ extension AMQPFrame: AMQPCodable {
         default: throw AMQPError.DecodingError.unknownFrameType(type)
         }
         precondition(payload.bytesCount == expectedSize)
+        let end = try decoder.decode(UInt8.self)
+        precondition(end == frameEnd)
     }
 
     func encode(to encoder: any AMQPEncoder) throws {
@@ -40,7 +42,7 @@ extension AMQPFrame: AMQPCodable {
         try encoder.encode(channelId)
         try encoder.encode(size)
         try payload.encode(to: encoder)
-        try encoder.encode(frame_end)
+        try encoder.encode(frameEnd)
     }
 
     var bytesCount: UInt32 {

@@ -1,5 +1,5 @@
 import Testing
-@testable import RabbitMQ
+@testable import AMQP
 
 func tester<T>(_ object: T) throws where T : AMQPCodable & Equatable {
     let binary = try FrameEncoder().encode(object)
