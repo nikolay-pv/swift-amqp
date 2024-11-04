@@ -138,12 +138,10 @@ private class _FrameEncoder : AMQPEncoder {
                 data.append(milliseconds.bigEndian)
             case .dictionary(let table):
                 precondition(table.count <= UInt16.max)
-                data.append(UInt16(table.count))
-                if !table.isEmpty {
-                    for (key, value) in table {
-                        WrappedValue.shortstring(key).encode(to: &data)
-                        value.asWrappedValue.encode(to: &data)
-                    }
+                data.append(UInt32(table.count))
+                for (key, value) in table {
+                    WrappedValue.shortstring(key).encode(to: &data)
+                    value.asWrappedValue.encode(to: &data)
                 }
             case .void(let value):
                 data.append(value)
@@ -155,14 +153,14 @@ private class _FrameEncoder : AMQPEncoder {
 
         var bytesCount: Int {
             return switch self {
-            case .shortstring(let value): Int(value.shortBytesCount)
-            case .longstring(let value): Int(value.longBytesCount)
+            case .shortstring(let value): Int(value.shortBytesCount) + 1
+            case .longstring(let value): Int(value.longBytesCount) + 4
             case .bool, .int8, .uint8, .void: 1
             case .int16, .uint16: 2
             case .int32, .uint32, .float: 4
             case .decimal: 5
             case .int64, .uint64, .timestamp, .double: 8
-            case .dictionary(let value): Int(value.bytesCount)
+            case .dictionary(let value): Int(value.bytesCount) + 2
             }
         }
     }

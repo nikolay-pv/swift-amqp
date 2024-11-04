@@ -155,19 +155,44 @@ def gen_swift_impl_from_spec(spec: AmqpSpec):
         print()
         print("fileprivate typealias FieldValue = AMQP.FieldValue")
 
+    def pack_encode_bits(bits_to_pack):
+        if len(bits_to_pack) == 0:
+            return
+        if len(bits_to_pack) == 1:
+            print(f"        try encoder.encode({variable_name(bits_to_pack[0].name)})")
+            return
+        print("        do {")
+        print(f"            var bitPack: UInt8 = 0")
+        bits_to_pack, remainder = bits_to_pack[:8], bits_to_pack[8:]
+        for k, a in enumerate(bits_to_pack):
+            print(f"            if {variable_name(a.name)}  {{ bitPack |= 1 << {k} }}")
+        print(f"            try encoder.encode(bitPack)")
+        print("        }")
+        pack_encode_bits(remainder)
+
     def encode_extensions():
         for c in spec.allClasses():
             for m in c.allMethods():
                 print()
                 print(f"extension AMQP.{struct_name(c.name)}.{struct_name(m.name)} : AMQPCodable {{")
                 print("    func encode(to encoder: AMQPEncoder) throws {")
+                bits_to_pack = []
                 for a in m.arguments:
                     t = spec.resolveDomain(a.domain)
+                    if t == "bit":
+                        bits_to_pack.append(a)
+                        continue
+                    elif len(bits_to_pack):
+                        pack_encode_bits(bits_to_pack)
+                        bits_to_pack = []
                     if t == "shortstr" or t == "longstr":
                         is_long = t == "longstr"
                         print(f"        try encoder.encode({variable_name(a.name)}, isLong: {as_bool_literal(is_long)})")
                     else:
                         print(f"        try encoder.encode({variable_name(a.name)})")
+                if len(bits_to_pack):
+                    pack_encode_bits(bits_to_pack)
+                    bits_to_pack = []
                 print("    }")
                 print()
                 print("    init(from decoder: AMQPDecoder) throws {")

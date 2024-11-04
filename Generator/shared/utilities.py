@@ -53,7 +53,6 @@ def default_value(spec, domain: str, value) -> str:
 
 
 def get_bytes_count(spec, arg_name: str, domain: str):
-
     t = swift_type(spec, domain)
     domain = spec.resolveDomain(domain)
     if domain == "shortstr":

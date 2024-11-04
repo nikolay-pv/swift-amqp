@@ -11,7 +11,7 @@ import Testing
 
 
 @Suite struct Confirm2 {
-    @Test("AMQP.Basic.Consume verification")
+    @Test("AMQP.Basic.Consume encode verification")
     func amqpConfirmSelectOkEncoding() async throws {
         let expected = try fixtureData(for: "Basic.Consume")
         let actual = try FrameEncoder().encode(AMQP.Basic.Consume())

@@ -169,7 +169,7 @@ fileprivate class _FrameDecoder: AMQPDecoder {
     }
 
     func decode(_ type: [String : AMQP.FieldValue].Type) throws -> [String : AMQP.FieldValue] {
-        let count = Int(try decode(UInt16.self))
+        let count = Int(try decode(UInt32.self))
         defer { _position += count }
         return try (0..<count).reduce(into: [String : AMQP.FieldValue]()) { d, _ in
             let key = try decode(String.self, isLong: false)

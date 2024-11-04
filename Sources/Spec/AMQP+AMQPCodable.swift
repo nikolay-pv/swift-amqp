@@ -42,10 +42,14 @@ extension AMQP.Basic.Consume : AMQPCodable {
         try encoder.encode(ticket)
         try encoder.encode(queue, isLong: false)
         try encoder.encode(consumerTag, isLong: false)
-        try encoder.encode(noLocal)
-        try encoder.encode(noAck)
-        try encoder.encode(exclusive)
-        try encoder.encode(nowait)
+        do {
+            var bitPack: UInt8 = 0
+            if noLocal  { bitPack |= 1 << 0 }
+            if noAck  { bitPack |= 1 << 1 }
+            if exclusive  { bitPack |= 1 << 2 }
+            if nowait  { bitPack |= 1 << 3 }
+            try encoder.encode(bitPack)
+        }
         try encoder.encode(arguments)
     }
 
@@ -114,8 +118,12 @@ extension AMQP.Basic.Publish : AMQPCodable {
         try encoder.encode(ticket)
         try encoder.encode(exchange, isLong: false)
         try encoder.encode(routingKey, isLong: false)
-        try encoder.encode(mandatory)
-        try encoder.encode(immediate)
+        do {
+            var bitPack: UInt8 = 0
+            if mandatory  { bitPack |= 1 << 0 }
+            if immediate  { bitPack |= 1 << 1 }
+            try encoder.encode(bitPack)
+        }
     }
 
     init(from decoder: AMQPDecoder) throws {
@@ -301,8 +309,12 @@ extension AMQP.Basic.RecoverOk : AMQPCodable {
 extension AMQP.Basic.Nack : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(deliveryTag)
-        try encoder.encode(multiple)
-        try encoder.encode(requeue)
+        do {
+            var bitPack: UInt8 = 0
+            if multiple  { bitPack |= 1 << 0 }
+            if requeue  { bitPack |= 1 << 1 }
+            try encoder.encode(bitPack)
+        }
     }
 
     init(from decoder: AMQPDecoder) throws {
@@ -627,11 +639,15 @@ extension AMQP.Channel.CloseOk : AMQPCodable {
 extension AMQP.Access.Request : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(realm, isLong: false)
-        try encoder.encode(exclusive)
-        try encoder.encode(passive)
-        try encoder.encode(active)
-        try encoder.encode(write)
-        try encoder.encode(read)
+        do {
+            var bitPack: UInt8 = 0
+            if exclusive  { bitPack |= 1 << 0 }
+            if passive  { bitPack |= 1 << 1 }
+            if active  { bitPack |= 1 << 2 }
+            if write  { bitPack |= 1 << 3 }
+            if read  { bitPack |= 1 << 4 }
+            try encoder.encode(bitPack)
+        }
     }
 
     init(from decoder: AMQPDecoder) throws {
@@ -667,11 +683,15 @@ extension AMQP.Exchange.Declare : AMQPCodable {
         try encoder.encode(ticket)
         try encoder.encode(exchange, isLong: false)
         try encoder.encode(type, isLong: false)
-        try encoder.encode(passive)
-        try encoder.encode(durable)
-        try encoder.encode(autoDelete)
-        try encoder.encode(`internal`)
-        try encoder.encode(nowait)
+        do {
+            var bitPack: UInt8 = 0
+            if passive  { bitPack |= 1 << 0 }
+            if durable  { bitPack |= 1 << 1 }
+            if autoDelete  { bitPack |= 1 << 2 }
+            if `internal`  { bitPack |= 1 << 3 }
+            if nowait  { bitPack |= 1 << 4 }
+            try encoder.encode(bitPack)
+        }
         try encoder.encode(arguments)
     }
 
@@ -707,8 +727,12 @@ extension AMQP.Exchange.Delete : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(exchange, isLong: false)
-        try encoder.encode(ifUnused)
-        try encoder.encode(nowait)
+        do {
+            var bitPack: UInt8 = 0
+            if ifUnused  { bitPack |= 1 << 0 }
+            if nowait  { bitPack |= 1 << 1 }
+            try encoder.encode(bitPack)
+        }
     }
 
     init(from decoder: AMQPDecoder) throws {
@@ -808,11 +832,15 @@ extension AMQP.Queue.Declare : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(queue, isLong: false)
-        try encoder.encode(passive)
-        try encoder.encode(durable)
-        try encoder.encode(exclusive)
-        try encoder.encode(autoDelete)
-        try encoder.encode(nowait)
+        do {
+            var bitPack: UInt8 = 0
+            if passive  { bitPack |= 1 << 0 }
+            if durable  { bitPack |= 1 << 1 }
+            if exclusive  { bitPack |= 1 << 2 }
+            if autoDelete  { bitPack |= 1 << 3 }
+            if nowait  { bitPack |= 1 << 4 }
+            try encoder.encode(bitPack)
+        }
         try encoder.encode(arguments)
     }
 
@@ -921,9 +949,13 @@ extension AMQP.Queue.Delete : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(queue, isLong: false)
-        try encoder.encode(ifUnused)
-        try encoder.encode(ifEmpty)
-        try encoder.encode(nowait)
+        do {
+            var bitPack: UInt8 = 0
+            if ifUnused  { bitPack |= 1 << 0 }
+            if ifEmpty  { bitPack |= 1 << 1 }
+            if nowait  { bitPack |= 1 << 2 }
+            try encoder.encode(bitPack)
+        }
     }
 
     init(from decoder: AMQPDecoder) throws {
