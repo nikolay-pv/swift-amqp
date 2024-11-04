@@ -4,6 +4,8 @@
 from shared.utilities import *
 from rabbitmq_codegen.amqp_codegen import *
 
+import pika
+
 # --------------------------------------------------------------------------------
 
 def gen_swift_tests_from_spec(spec: AmqpSpec):
