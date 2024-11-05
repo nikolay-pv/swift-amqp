@@ -16,10 +16,13 @@ extension AMQP.Basic.Qos : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let prefetchSize = try decoder.decode(Int32.self)
+        let prefetchCount = try decoder.decode(Int16.self)
+        let global = try decoder.decode(Bool.self)
         self.init(
-            prefetchSize: try decoder.decode(Int32.self),
-            prefetchCount: try decoder.decode(Int16.self),
-            global: try decoder.decode(Bool.self)
+            prefetchSize: prefetchSize,
+            prefetchCount: prefetchCount,
+            global: global
         )
     }
 
@@ -42,27 +45,34 @@ extension AMQP.Basic.Consume : AMQPCodable {
         try encoder.encode(ticket)
         try encoder.encode(queue, isLong: false)
         try encoder.encode(consumerTag, isLong: false)
-        do {
-            var bitPack: UInt8 = 0
-            if noLocal  { bitPack |= 1 << 0 }
-            if noAck  { bitPack |= 1 << 1 }
-            if exclusive  { bitPack |= 1 << 2 }
-            if nowait  { bitPack |= 1 << 3 }
-            try encoder.encode(bitPack)
-        }
+        var bitPack: UInt8 = 0
+        if noLocal  { bitPack |= 1 << 0 }
+        if noAck  { bitPack |= 1 << 1 }
+        if exclusive  { bitPack |= 1 << 2 }
+        if nowait  { bitPack |= 1 << 3 }
+        try encoder.encode(bitPack)
         try encoder.encode(arguments)
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let ticket = try decoder.decode(Int16.self)
+        let queue = try decoder.decode(String.self, isLong: false)
+        let consumerTag = try decoder.decode(String.self, isLong: false)
+        let bitPack: UInt8 = try decoder.decode(UInt8.self)
+        let noLocal: Bool = ((bitPack & (1 << 0)) != 0)
+        let noAck: Bool = ((bitPack & (1 << 1)) != 0)
+        let exclusive: Bool = ((bitPack & (1 << 2)) != 0)
+        let nowait: Bool = ((bitPack & (1 << 3)) != 0)
+        let arguments = try decoder.decode([String: FieldValue].self)
         self.init(
-            ticket: try decoder.decode(Int16.self),
-            queue: try decoder.decode(String.self, isLong: false),
-            consumerTag: try decoder.decode(String.self, isLong: false),
-            noLocal: try decoder.decode(Bool.self),
-            noAck: try decoder.decode(Bool.self),
-            exclusive: try decoder.decode(Bool.self),
-            nowait: try decoder.decode(Bool.self),
-            arguments: try decoder.decode([String: FieldValue].self)
+            ticket: ticket,
+            queue: queue,
+            consumerTag: consumerTag,
+            noLocal: noLocal,
+            noAck: noAck,
+            exclusive: exclusive,
+            nowait: nowait,
+            arguments: arguments
         )
     }
 
@@ -75,8 +85,9 @@ extension AMQP.Basic.ConsumeOk : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let consumerTag = try decoder.decode(String.self, isLong: false)
         self.init(
-            consumerTag: try decoder.decode(String.self, isLong: false)
+            consumerTag: consumerTag
         )
     }
 
@@ -90,9 +101,11 @@ extension AMQP.Basic.Cancel : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let consumerTag = try decoder.decode(String.self, isLong: false)
+        let nowait = try decoder.decode(Bool.self)
         self.init(
-            consumerTag: try decoder.decode(String.self, isLong: false),
-            nowait: try decoder.decode(Bool.self)
+            consumerTag: consumerTag,
+            nowait: nowait
         )
     }
 
@@ -105,8 +118,9 @@ extension AMQP.Basic.CancelOk : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let consumerTag = try decoder.decode(String.self, isLong: false)
         self.init(
-            consumerTag: try decoder.decode(String.self, isLong: false)
+            consumerTag: consumerTag
         )
     }
 
@@ -118,21 +132,25 @@ extension AMQP.Basic.Publish : AMQPCodable {
         try encoder.encode(ticket)
         try encoder.encode(exchange, isLong: false)
         try encoder.encode(routingKey, isLong: false)
-        do {
-            var bitPack: UInt8 = 0
-            if mandatory  { bitPack |= 1 << 0 }
-            if immediate  { bitPack |= 1 << 1 }
-            try encoder.encode(bitPack)
-        }
+        var bitPack: UInt8 = 0
+        if mandatory  { bitPack |= 1 << 0 }
+        if immediate  { bitPack |= 1 << 1 }
+        try encoder.encode(bitPack)
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let ticket = try decoder.decode(Int16.self)
+        let exchange = try decoder.decode(String.self, isLong: false)
+        let routingKey = try decoder.decode(String.self, isLong: false)
+        let bitPack: UInt8 = try decoder.decode(UInt8.self)
+        let mandatory: Bool = ((bitPack & (1 << 0)) != 0)
+        let immediate: Bool = ((bitPack & (1 << 1)) != 0)
         self.init(
-            ticket: try decoder.decode(Int16.self),
-            exchange: try decoder.decode(String.self, isLong: false),
-            routingKey: try decoder.decode(String.self, isLong: false),
-            mandatory: try decoder.decode(Bool.self),
-            immediate: try decoder.decode(Bool.self)
+            ticket: ticket,
+            exchange: exchange,
+            routingKey: routingKey,
+            mandatory: mandatory,
+            immediate: immediate
         )
     }
 
@@ -148,11 +166,15 @@ extension AMQP.Basic.Return : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let replyCode = try decoder.decode(Int16.self)
+        let replyText = try decoder.decode(String.self, isLong: false)
+        let exchange = try decoder.decode(String.self, isLong: false)
+        let routingKey = try decoder.decode(String.self, isLong: false)
         self.init(
-            replyCode: try decoder.decode(Int16.self),
-            replyText: try decoder.decode(String.self, isLong: false),
-            exchange: try decoder.decode(String.self, isLong: false),
-            routingKey: try decoder.decode(String.self, isLong: false)
+            replyCode: replyCode,
+            replyText: replyText,
+            exchange: exchange,
+            routingKey: routingKey
         )
     }
 
@@ -169,12 +191,17 @@ extension AMQP.Basic.Deliver : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let consumerTag = try decoder.decode(String.self, isLong: false)
+        let deliveryTag = try decoder.decode(Int64.self)
+        let redelivered = try decoder.decode(Bool.self)
+        let exchange = try decoder.decode(String.self, isLong: false)
+        let routingKey = try decoder.decode(String.self, isLong: false)
         self.init(
-            consumerTag: try decoder.decode(String.self, isLong: false),
-            deliveryTag: try decoder.decode(Int64.self),
-            redelivered: try decoder.decode(Bool.self),
-            exchange: try decoder.decode(String.self, isLong: false),
-            routingKey: try decoder.decode(String.self, isLong: false)
+            consumerTag: consumerTag,
+            deliveryTag: deliveryTag,
+            redelivered: redelivered,
+            exchange: exchange,
+            routingKey: routingKey
         )
     }
 
@@ -189,10 +216,13 @@ extension AMQP.Basic.Get : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let ticket = try decoder.decode(Int16.self)
+        let queue = try decoder.decode(String.self, isLong: false)
+        let noAck = try decoder.decode(Bool.self)
         self.init(
-            ticket: try decoder.decode(Int16.self),
-            queue: try decoder.decode(String.self, isLong: false),
-            noAck: try decoder.decode(Bool.self)
+            ticket: ticket,
+            queue: queue,
+            noAck: noAck
         )
     }
 
@@ -209,12 +239,17 @@ extension AMQP.Basic.GetOk : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let deliveryTag = try decoder.decode(Int64.self)
+        let redelivered = try decoder.decode(Bool.self)
+        let exchange = try decoder.decode(String.self, isLong: false)
+        let routingKey = try decoder.decode(String.self, isLong: false)
+        let messageCount = try decoder.decode(Int32.self)
         self.init(
-            deliveryTag: try decoder.decode(Int64.self),
-            redelivered: try decoder.decode(Bool.self),
-            exchange: try decoder.decode(String.self, isLong: false),
-            routingKey: try decoder.decode(String.self, isLong: false),
-            messageCount: try decoder.decode(Int32.self)
+            deliveryTag: deliveryTag,
+            redelivered: redelivered,
+            exchange: exchange,
+            routingKey: routingKey,
+            messageCount: messageCount
         )
     }
 
@@ -227,8 +262,9 @@ extension AMQP.Basic.GetEmpty : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let clusterId = try decoder.decode(String.self, isLong: false)
         self.init(
-            clusterId: try decoder.decode(String.self, isLong: false)
+            clusterId: clusterId
         )
     }
 
@@ -242,9 +278,11 @@ extension AMQP.Basic.Ack : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let deliveryTag = try decoder.decode(Int64.self)
+        let multiple = try decoder.decode(Bool.self)
         self.init(
-            deliveryTag: try decoder.decode(Int64.self),
-            multiple: try decoder.decode(Bool.self)
+            deliveryTag: deliveryTag,
+            multiple: multiple
         )
     }
 
@@ -258,9 +296,11 @@ extension AMQP.Basic.Reject : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let deliveryTag = try decoder.decode(Int64.self)
+        let requeue = try decoder.decode(Bool.self)
         self.init(
-            deliveryTag: try decoder.decode(Int64.self),
-            requeue: try decoder.decode(Bool.self)
+            deliveryTag: deliveryTag,
+            requeue: requeue
         )
     }
 
@@ -273,8 +313,9 @@ extension AMQP.Basic.RecoverAsync : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let requeue = try decoder.decode(Bool.self)
         self.init(
-            requeue: try decoder.decode(Bool.self)
+            requeue: requeue
         )
     }
 
@@ -287,8 +328,9 @@ extension AMQP.Basic.Recover : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let requeue = try decoder.decode(Bool.self)
         self.init(
-            requeue: try decoder.decode(Bool.self)
+            requeue: requeue
         )
     }
 
@@ -309,19 +351,21 @@ extension AMQP.Basic.RecoverOk : AMQPCodable {
 extension AMQP.Basic.Nack : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(deliveryTag)
-        do {
-            var bitPack: UInt8 = 0
-            if multiple  { bitPack |= 1 << 0 }
-            if requeue  { bitPack |= 1 << 1 }
-            try encoder.encode(bitPack)
-        }
+        var bitPack: UInt8 = 0
+        if multiple  { bitPack |= 1 << 0 }
+        if requeue  { bitPack |= 1 << 1 }
+        try encoder.encode(bitPack)
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let deliveryTag = try decoder.decode(Int64.self)
+        let bitPack: UInt8 = try decoder.decode(UInt8.self)
+        let multiple: Bool = ((bitPack & (1 << 0)) != 0)
+        let requeue: Bool = ((bitPack & (1 << 1)) != 0)
         self.init(
-            deliveryTag: try decoder.decode(Int64.self),
-            multiple: try decoder.decode(Bool.self),
-            requeue: try decoder.decode(Bool.self)
+            deliveryTag: deliveryTag,
+            multiple: multiple,
+            requeue: requeue
         )
     }
 
@@ -338,12 +382,17 @@ extension AMQP.Connection.Start : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let versionMajor = try decoder.decode(Int8.self)
+        let versionMinor = try decoder.decode(Int8.self)
+        let serverProperties = try decoder.decode([String: FieldValue].self)
+        let mechanisms = try decoder.decode(String.self, isLong: true)
+        let locales = try decoder.decode(String.self, isLong: true)
         self.init(
-            versionMajor: try decoder.decode(Int8.self),
-            versionMinor: try decoder.decode(Int8.self),
-            serverProperties: try decoder.decode([String: FieldValue].self),
-            mechanisms: try decoder.decode(String.self, isLong: true),
-            locales: try decoder.decode(String.self, isLong: true)
+            versionMajor: versionMajor,
+            versionMinor: versionMinor,
+            serverProperties: serverProperties,
+            mechanisms: mechanisms,
+            locales: locales
         )
     }
 
@@ -359,11 +408,15 @@ extension AMQP.Connection.StartOk : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let clientProperties = try decoder.decode([String: FieldValue].self)
+        let mechanism = try decoder.decode(String.self, isLong: false)
+        let response = try decoder.decode(String.self, isLong: true)
+        let locale = try decoder.decode(String.self, isLong: false)
         self.init(
-            clientProperties: try decoder.decode([String: FieldValue].self),
-            mechanism: try decoder.decode(String.self, isLong: false),
-            response: try decoder.decode(String.self, isLong: true),
-            locale: try decoder.decode(String.self, isLong: false)
+            clientProperties: clientProperties,
+            mechanism: mechanism,
+            response: response,
+            locale: locale
         )
     }
 
@@ -376,8 +429,9 @@ extension AMQP.Connection.Secure : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let challenge = try decoder.decode(String.self, isLong: true)
         self.init(
-            challenge: try decoder.decode(String.self, isLong: true)
+            challenge: challenge
         )
     }
 
@@ -390,8 +444,9 @@ extension AMQP.Connection.SecureOk : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let response = try decoder.decode(String.self, isLong: true)
         self.init(
-            response: try decoder.decode(String.self, isLong: true)
+            response: response
         )
     }
 
@@ -406,10 +461,13 @@ extension AMQP.Connection.Tune : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let channelMax = try decoder.decode(Int16.self)
+        let frameMax = try decoder.decode(Int32.self)
+        let heartbeat = try decoder.decode(Int16.self)
         self.init(
-            channelMax: try decoder.decode(Int16.self),
-            frameMax: try decoder.decode(Int32.self),
-            heartbeat: try decoder.decode(Int16.self)
+            channelMax: channelMax,
+            frameMax: frameMax,
+            heartbeat: heartbeat
         )
     }
 
@@ -424,10 +482,13 @@ extension AMQP.Connection.TuneOk : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let channelMax = try decoder.decode(Int16.self)
+        let frameMax = try decoder.decode(Int32.self)
+        let heartbeat = try decoder.decode(Int16.self)
         self.init(
-            channelMax: try decoder.decode(Int16.self),
-            frameMax: try decoder.decode(Int32.self),
-            heartbeat: try decoder.decode(Int16.self)
+            channelMax: channelMax,
+            frameMax: frameMax,
+            heartbeat: heartbeat
         )
     }
 
@@ -442,10 +503,13 @@ extension AMQP.Connection.Open : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let virtualHost = try decoder.decode(String.self, isLong: false)
+        let capabilities = try decoder.decode(String.self, isLong: false)
+        let insist = try decoder.decode(Bool.self)
         self.init(
-            virtualHost: try decoder.decode(String.self, isLong: false),
-            capabilities: try decoder.decode(String.self, isLong: false),
-            insist: try decoder.decode(Bool.self)
+            virtualHost: virtualHost,
+            capabilities: capabilities,
+            insist: insist
         )
     }
 
@@ -458,8 +522,9 @@ extension AMQP.Connection.OpenOk : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let knownHosts = try decoder.decode(String.self, isLong: false)
         self.init(
-            knownHosts: try decoder.decode(String.self, isLong: false)
+            knownHosts: knownHosts
         )
     }
 
@@ -475,11 +540,15 @@ extension AMQP.Connection.Close : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let replyCode = try decoder.decode(Int16.self)
+        let replyText = try decoder.decode(String.self, isLong: false)
+        let classId = try decoder.decode(Int16.self)
+        let methodId = try decoder.decode(Int16.self)
         self.init(
-            replyCode: try decoder.decode(Int16.self),
-            replyText: try decoder.decode(String.self, isLong: false),
-            classId: try decoder.decode(Int16.self),
-            methodId: try decoder.decode(Int16.self)
+            replyCode: replyCode,
+            replyText: replyText,
+            classId: classId,
+            methodId: methodId
         )
     }
 
@@ -503,8 +572,9 @@ extension AMQP.Connection.Blocked : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let reason = try decoder.decode(String.self, isLong: false)
         self.init(
-            reason: try decoder.decode(String.self, isLong: false)
+            reason: reason
         )
     }
 
@@ -529,9 +599,11 @@ extension AMQP.Connection.UpdateSecret : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let newSecret = try decoder.decode(String.self, isLong: true)
+        let reason = try decoder.decode(String.self, isLong: false)
         self.init(
-            newSecret: try decoder.decode(String.self, isLong: true),
-            reason: try decoder.decode(String.self, isLong: false)
+            newSecret: newSecret,
+            reason: reason
         )
     }
 
@@ -555,8 +627,9 @@ extension AMQP.Channel.Open : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let outOfBand = try decoder.decode(String.self, isLong: false)
         self.init(
-            outOfBand: try decoder.decode(String.self, isLong: false)
+            outOfBand: outOfBand
         )
     }
 
@@ -569,8 +642,9 @@ extension AMQP.Channel.OpenOk : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let channelId = try decoder.decode(String.self, isLong: true)
         self.init(
-            channelId: try decoder.decode(String.self, isLong: true)
+            channelId: channelId
         )
     }
 
@@ -583,8 +657,9 @@ extension AMQP.Channel.Flow : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let active = try decoder.decode(Bool.self)
         self.init(
-            active: try decoder.decode(Bool.self)
+            active: active
         )
     }
 
@@ -597,8 +672,9 @@ extension AMQP.Channel.FlowOk : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let active = try decoder.decode(Bool.self)
         self.init(
-            active: try decoder.decode(Bool.self)
+            active: active
         )
     }
 
@@ -614,11 +690,15 @@ extension AMQP.Channel.Close : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let replyCode = try decoder.decode(Int16.self)
+        let replyText = try decoder.decode(String.self, isLong: false)
+        let classId = try decoder.decode(Int16.self)
+        let methodId = try decoder.decode(Int16.self)
         self.init(
-            replyCode: try decoder.decode(Int16.self),
-            replyText: try decoder.decode(String.self, isLong: false),
-            classId: try decoder.decode(Int16.self),
-            methodId: try decoder.decode(Int16.self)
+            replyCode: replyCode,
+            replyText: replyText,
+            classId: classId,
+            methodId: methodId
         )
     }
 
@@ -639,25 +719,30 @@ extension AMQP.Channel.CloseOk : AMQPCodable {
 extension AMQP.Access.Request : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(realm, isLong: false)
-        do {
-            var bitPack: UInt8 = 0
-            if exclusive  { bitPack |= 1 << 0 }
-            if passive  { bitPack |= 1 << 1 }
-            if active  { bitPack |= 1 << 2 }
-            if write  { bitPack |= 1 << 3 }
-            if read  { bitPack |= 1 << 4 }
-            try encoder.encode(bitPack)
-        }
+        var bitPack: UInt8 = 0
+        if exclusive  { bitPack |= 1 << 0 }
+        if passive  { bitPack |= 1 << 1 }
+        if active  { bitPack |= 1 << 2 }
+        if write  { bitPack |= 1 << 3 }
+        if read  { bitPack |= 1 << 4 }
+        try encoder.encode(bitPack)
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let realm = try decoder.decode(String.self, isLong: false)
+        let bitPack: UInt8 = try decoder.decode(UInt8.self)
+        let exclusive: Bool = ((bitPack & (1 << 0)) != 0)
+        let passive: Bool = ((bitPack & (1 << 1)) != 0)
+        let active: Bool = ((bitPack & (1 << 2)) != 0)
+        let write: Bool = ((bitPack & (1 << 3)) != 0)
+        let read: Bool = ((bitPack & (1 << 4)) != 0)
         self.init(
-            realm: try decoder.decode(String.self, isLong: false),
-            exclusive: try decoder.decode(Bool.self),
-            passive: try decoder.decode(Bool.self),
-            active: try decoder.decode(Bool.self),
-            write: try decoder.decode(Bool.self),
-            read: try decoder.decode(Bool.self)
+            realm: realm,
+            exclusive: exclusive,
+            passive: passive,
+            active: active,
+            write: write,
+            read: read
         )
     }
 
@@ -670,8 +755,9 @@ extension AMQP.Access.RequestOk : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let ticket = try decoder.decode(Int16.self)
         self.init(
-            ticket: try decoder.decode(Int16.self)
+            ticket: ticket
         )
     }
 
@@ -683,29 +769,37 @@ extension AMQP.Exchange.Declare : AMQPCodable {
         try encoder.encode(ticket)
         try encoder.encode(exchange, isLong: false)
         try encoder.encode(type, isLong: false)
-        do {
-            var bitPack: UInt8 = 0
-            if passive  { bitPack |= 1 << 0 }
-            if durable  { bitPack |= 1 << 1 }
-            if autoDelete  { bitPack |= 1 << 2 }
-            if `internal`  { bitPack |= 1 << 3 }
-            if nowait  { bitPack |= 1 << 4 }
-            try encoder.encode(bitPack)
-        }
+        var bitPack: UInt8 = 0
+        if passive  { bitPack |= 1 << 0 }
+        if durable  { bitPack |= 1 << 1 }
+        if autoDelete  { bitPack |= 1 << 2 }
+        if `internal`  { bitPack |= 1 << 3 }
+        if nowait  { bitPack |= 1 << 4 }
+        try encoder.encode(bitPack)
         try encoder.encode(arguments)
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let ticket = try decoder.decode(Int16.self)
+        let exchange = try decoder.decode(String.self, isLong: false)
+        let type = try decoder.decode(String.self, isLong: false)
+        let bitPack: UInt8 = try decoder.decode(UInt8.self)
+        let passive: Bool = ((bitPack & (1 << 0)) != 0)
+        let durable: Bool = ((bitPack & (1 << 1)) != 0)
+        let autoDelete: Bool = ((bitPack & (1 << 2)) != 0)
+        let `internal`: Bool = ((bitPack & (1 << 3)) != 0)
+        let nowait: Bool = ((bitPack & (1 << 4)) != 0)
+        let arguments = try decoder.decode([String: FieldValue].self)
         self.init(
-            ticket: try decoder.decode(Int16.self),
-            exchange: try decoder.decode(String.self, isLong: false),
-            type: try decoder.decode(String.self, isLong: false),
-            passive: try decoder.decode(Bool.self),
-            durable: try decoder.decode(Bool.self),
-            autoDelete: try decoder.decode(Bool.self),
-            internal: try decoder.decode(Bool.self),
-            nowait: try decoder.decode(Bool.self),
-            arguments: try decoder.decode([String: FieldValue].self)
+            ticket: ticket,
+            exchange: exchange,
+            type: type,
+            passive: passive,
+            durable: durable,
+            autoDelete: autoDelete,
+            internal: `internal`,
+            nowait: nowait,
+            arguments: arguments
         )
     }
 
@@ -727,20 +821,23 @@ extension AMQP.Exchange.Delete : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(exchange, isLong: false)
-        do {
-            var bitPack: UInt8 = 0
-            if ifUnused  { bitPack |= 1 << 0 }
-            if nowait  { bitPack |= 1 << 1 }
-            try encoder.encode(bitPack)
-        }
+        var bitPack: UInt8 = 0
+        if ifUnused  { bitPack |= 1 << 0 }
+        if nowait  { bitPack |= 1 << 1 }
+        try encoder.encode(bitPack)
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let ticket = try decoder.decode(Int16.self)
+        let exchange = try decoder.decode(String.self, isLong: false)
+        let bitPack: UInt8 = try decoder.decode(UInt8.self)
+        let ifUnused: Bool = ((bitPack & (1 << 0)) != 0)
+        let nowait: Bool = ((bitPack & (1 << 1)) != 0)
         self.init(
-            ticket: try decoder.decode(Int16.self),
-            exchange: try decoder.decode(String.self, isLong: false),
-            ifUnused: try decoder.decode(Bool.self),
-            nowait: try decoder.decode(Bool.self)
+            ticket: ticket,
+            exchange: exchange,
+            ifUnused: ifUnused,
+            nowait: nowait
         )
     }
 
@@ -769,13 +866,19 @@ extension AMQP.Exchange.Bind : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let ticket = try decoder.decode(Int16.self)
+        let destination = try decoder.decode(String.self, isLong: false)
+        let source = try decoder.decode(String.self, isLong: false)
+        let routingKey = try decoder.decode(String.self, isLong: false)
+        let nowait = try decoder.decode(Bool.self)
+        let arguments = try decoder.decode([String: FieldValue].self)
         self.init(
-            ticket: try decoder.decode(Int16.self),
-            destination: try decoder.decode(String.self, isLong: false),
-            source: try decoder.decode(String.self, isLong: false),
-            routingKey: try decoder.decode(String.self, isLong: false),
-            nowait: try decoder.decode(Bool.self),
-            arguments: try decoder.decode([String: FieldValue].self)
+            ticket: ticket,
+            destination: destination,
+            source: source,
+            routingKey: routingKey,
+            nowait: nowait,
+            arguments: arguments
         )
     }
 
@@ -804,13 +907,19 @@ extension AMQP.Exchange.Unbind : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let ticket = try decoder.decode(Int16.self)
+        let destination = try decoder.decode(String.self, isLong: false)
+        let source = try decoder.decode(String.self, isLong: false)
+        let routingKey = try decoder.decode(String.self, isLong: false)
+        let nowait = try decoder.decode(Bool.self)
+        let arguments = try decoder.decode([String: FieldValue].self)
         self.init(
-            ticket: try decoder.decode(Int16.self),
-            destination: try decoder.decode(String.self, isLong: false),
-            source: try decoder.decode(String.self, isLong: false),
-            routingKey: try decoder.decode(String.self, isLong: false),
-            nowait: try decoder.decode(Bool.self),
-            arguments: try decoder.decode([String: FieldValue].self)
+            ticket: ticket,
+            destination: destination,
+            source: source,
+            routingKey: routingKey,
+            nowait: nowait,
+            arguments: arguments
         )
     }
 
@@ -832,28 +941,35 @@ extension AMQP.Queue.Declare : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(queue, isLong: false)
-        do {
-            var bitPack: UInt8 = 0
-            if passive  { bitPack |= 1 << 0 }
-            if durable  { bitPack |= 1 << 1 }
-            if exclusive  { bitPack |= 1 << 2 }
-            if autoDelete  { bitPack |= 1 << 3 }
-            if nowait  { bitPack |= 1 << 4 }
-            try encoder.encode(bitPack)
-        }
+        var bitPack: UInt8 = 0
+        if passive  { bitPack |= 1 << 0 }
+        if durable  { bitPack |= 1 << 1 }
+        if exclusive  { bitPack |= 1 << 2 }
+        if autoDelete  { bitPack |= 1 << 3 }
+        if nowait  { bitPack |= 1 << 4 }
+        try encoder.encode(bitPack)
         try encoder.encode(arguments)
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let ticket = try decoder.decode(Int16.self)
+        let queue = try decoder.decode(String.self, isLong: false)
+        let bitPack: UInt8 = try decoder.decode(UInt8.self)
+        let passive: Bool = ((bitPack & (1 << 0)) != 0)
+        let durable: Bool = ((bitPack & (1 << 1)) != 0)
+        let exclusive: Bool = ((bitPack & (1 << 2)) != 0)
+        let autoDelete: Bool = ((bitPack & (1 << 3)) != 0)
+        let nowait: Bool = ((bitPack & (1 << 4)) != 0)
+        let arguments = try decoder.decode([String: FieldValue].self)
         self.init(
-            ticket: try decoder.decode(Int16.self),
-            queue: try decoder.decode(String.self, isLong: false),
-            passive: try decoder.decode(Bool.self),
-            durable: try decoder.decode(Bool.self),
-            exclusive: try decoder.decode(Bool.self),
-            autoDelete: try decoder.decode(Bool.self),
-            nowait: try decoder.decode(Bool.self),
-            arguments: try decoder.decode([String: FieldValue].self)
+            ticket: ticket,
+            queue: queue,
+            passive: passive,
+            durable: durable,
+            exclusive: exclusive,
+            autoDelete: autoDelete,
+            nowait: nowait,
+            arguments: arguments
         )
     }
 
@@ -868,10 +984,13 @@ extension AMQP.Queue.DeclareOk : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let queue = try decoder.decode(String.self, isLong: false)
+        let messageCount = try decoder.decode(Int32.self)
+        let consumerCount = try decoder.decode(Int32.self)
         self.init(
-            queue: try decoder.decode(String.self, isLong: false),
-            messageCount: try decoder.decode(Int32.self),
-            consumerCount: try decoder.decode(Int32.self)
+            queue: queue,
+            messageCount: messageCount,
+            consumerCount: consumerCount
         )
     }
 
@@ -889,13 +1008,19 @@ extension AMQP.Queue.Bind : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let ticket = try decoder.decode(Int16.self)
+        let queue = try decoder.decode(String.self, isLong: false)
+        let exchange = try decoder.decode(String.self, isLong: false)
+        let routingKey = try decoder.decode(String.self, isLong: false)
+        let nowait = try decoder.decode(Bool.self)
+        let arguments = try decoder.decode([String: FieldValue].self)
         self.init(
-            ticket: try decoder.decode(Int16.self),
-            queue: try decoder.decode(String.self, isLong: false),
-            exchange: try decoder.decode(String.self, isLong: false),
-            routingKey: try decoder.decode(String.self, isLong: false),
-            nowait: try decoder.decode(Bool.self),
-            arguments: try decoder.decode([String: FieldValue].self)
+            ticket: ticket,
+            queue: queue,
+            exchange: exchange,
+            routingKey: routingKey,
+            nowait: nowait,
+            arguments: arguments
         )
     }
 
@@ -921,10 +1046,13 @@ extension AMQP.Queue.Purge : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let ticket = try decoder.decode(Int16.self)
+        let queue = try decoder.decode(String.self, isLong: false)
+        let nowait = try decoder.decode(Bool.self)
         self.init(
-            ticket: try decoder.decode(Int16.self),
-            queue: try decoder.decode(String.self, isLong: false),
-            nowait: try decoder.decode(Bool.self)
+            ticket: ticket,
+            queue: queue,
+            nowait: nowait
         )
     }
 
@@ -937,8 +1065,9 @@ extension AMQP.Queue.PurgeOk : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let messageCount = try decoder.decode(Int32.self)
         self.init(
-            messageCount: try decoder.decode(Int32.self)
+            messageCount: messageCount
         )
     }
 
@@ -949,22 +1078,26 @@ extension AMQP.Queue.Delete : AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(queue, isLong: false)
-        do {
-            var bitPack: UInt8 = 0
-            if ifUnused  { bitPack |= 1 << 0 }
-            if ifEmpty  { bitPack |= 1 << 1 }
-            if nowait  { bitPack |= 1 << 2 }
-            try encoder.encode(bitPack)
-        }
+        var bitPack: UInt8 = 0
+        if ifUnused  { bitPack |= 1 << 0 }
+        if ifEmpty  { bitPack |= 1 << 1 }
+        if nowait  { bitPack |= 1 << 2 }
+        try encoder.encode(bitPack)
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let ticket = try decoder.decode(Int16.self)
+        let queue = try decoder.decode(String.self, isLong: false)
+        let bitPack: UInt8 = try decoder.decode(UInt8.self)
+        let ifUnused: Bool = ((bitPack & (1 << 0)) != 0)
+        let ifEmpty: Bool = ((bitPack & (1 << 1)) != 0)
+        let nowait: Bool = ((bitPack & (1 << 2)) != 0)
         self.init(
-            ticket: try decoder.decode(Int16.self),
-            queue: try decoder.decode(String.self, isLong: false),
-            ifUnused: try decoder.decode(Bool.self),
-            ifEmpty: try decoder.decode(Bool.self),
-            nowait: try decoder.decode(Bool.self)
+            ticket: ticket,
+            queue: queue,
+            ifUnused: ifUnused,
+            ifEmpty: ifEmpty,
+            nowait: nowait
         )
     }
 
@@ -977,8 +1110,9 @@ extension AMQP.Queue.DeleteOk : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let messageCount = try decoder.decode(Int32.self)
         self.init(
-            messageCount: try decoder.decode(Int32.self)
+            messageCount: messageCount
         )
     }
 
@@ -995,12 +1129,17 @@ extension AMQP.Queue.Unbind : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let ticket = try decoder.decode(Int16.self)
+        let queue = try decoder.decode(String.self, isLong: false)
+        let exchange = try decoder.decode(String.self, isLong: false)
+        let routingKey = try decoder.decode(String.self, isLong: false)
+        let arguments = try decoder.decode([String: FieldValue].self)
         self.init(
-            ticket: try decoder.decode(Int16.self),
-            queue: try decoder.decode(String.self, isLong: false),
-            exchange: try decoder.decode(String.self, isLong: false),
-            routingKey: try decoder.decode(String.self, isLong: false),
-            arguments: try decoder.decode([String: FieldValue].self)
+            ticket: ticket,
+            queue: queue,
+            exchange: exchange,
+            routingKey: routingKey,
+            arguments: arguments
         )
     }
 
@@ -1090,8 +1229,9 @@ extension AMQP.Confirm.Select : AMQPCodable {
     }
 
     init(from decoder: AMQPDecoder) throws {
+        let nowait = try decoder.decode(Bool.self)
         self.init(
-            nowait: try decoder.decode(Bool.self)
+            nowait: nowait
         )
     }
 

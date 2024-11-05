@@ -161,14 +161,25 @@ def gen_swift_impl_from_spec(spec: AmqpSpec):
         if len(bits_to_pack) == 1:
             print(f"        try encoder.encode({variable_name(bits_to_pack[0].name)})")
             return
-        print("        do {")
-        print(f"            var bitPack: UInt8 = 0")
-        bits_to_pack, remainder = bits_to_pack[:8], bits_to_pack[8:]
+        print(f"        var bitPack: UInt8 = 0")
+        if len(bits_to_pack) > 8:
+            raise RuntimeError("packing more than 8 bits is not implemented")
         for k, a in enumerate(bits_to_pack):
-            print(f"            if {variable_name(a.name)}  {{ bitPack |= 1 << {k} }}")
-        print(f"            try encoder.encode(bitPack)")
-        print("        }")
-        pack_encode_bits(remainder)
+            print(f"        if {variable_name(a.name)}  {{ bitPack |= 1 << {k} }}")
+        print(f"        try encoder.encode(bitPack)")
+
+    def pack_decode_bits(bits_to_unpack):
+        if len(bits_to_unpack) == 0:
+            return
+        if len(bits_to_unpack) == 1:
+            a = bits_to_unpack[0]
+            print(f"        let {variable_name(a.name, True)} = try decoder.decode({swift_type(spec, a.domain)}.self)")
+            return
+        print(f"        let bitPack: UInt8 = try decoder.decode(UInt8.self)")
+        if len(bits_to_unpack) > 8:
+            raise RuntimeError("packing more than 8 bits is not implemented")
+        for k, a in enumerate(bits_to_unpack):
+            print(f"        let {variable_name(a.name, True)}: Bool = ((bitPack & (1 << {k})) != 0)")
 
     def encode_extensions():
         for c in spec.allClasses():
@@ -182,7 +193,7 @@ def gen_swift_impl_from_spec(spec: AmqpSpec):
                     if t == "bit":
                         bits_to_pack.append(a)
                         continue
-                    elif len(bits_to_pack):
+                    else:
                         pack_encode_bits(bits_to_pack)
                         bits_to_pack = []
                     if t == "shortstr" or t == "longstr":
@@ -190,28 +201,35 @@ def gen_swift_impl_from_spec(spec: AmqpSpec):
                         print(f"        try encoder.encode({variable_name(a.name)}, isLong: {as_bool_literal(is_long)})")
                     else:
                         print(f"        try encoder.encode({variable_name(a.name)})")
-                if len(bits_to_pack):
-                    pack_encode_bits(bits_to_pack)
-                    bits_to_pack = []
+                pack_encode_bits(bits_to_pack)
+                bits_to_pack = []
                 print("    }")
                 print()
                 print("    init(from decoder: AMQPDecoder) throws {")
-                lines = []
                 bytes_count = ["4"] # the class and frame ids
+                bits_to_unpack = []
                 for a in m.arguments:
                     bytes_count.append(get_bytes_count(spec, a.name, a.domain))
                     t = spec.resolveDomain(a.domain)
+                    if t == "bit":
+                        bits_to_unpack.append(a)
+                        continue
+                    else:
+                        pack_decode_bits(bits_to_unpack)
+                        bits_to_unpack = []
                     if t == "shortstr" or t == "longstr":
                         is_long = t == "longstr"
-                        lines.append(f"            {variable_name(a.name, False)}: try decoder.decode({swift_type(spec, a.domain)}.self, isLong: {as_bool_literal(is_long)})")
+                        print(f"        let {variable_name(a.name, False)} = try decoder.decode({swift_type(spec, a.domain)}.self, isLong: {as_bool_literal(is_long)})")
                     else:
-                        lines.append(f"            {variable_name(a.name, False)}: try decoder.decode({swift_type(spec, a.domain)}.self)")
-                if len(lines):
-                    print(f"        self.init(")
-                    print(",\n".join(lines))
-                    print(f"        )")
-                else:
+                        print(f"        let {variable_name(a.name, False)} = try decoder.decode({swift_type(spec, a.domain)}.self)")
+                pack_decode_bits(bits_to_unpack)
+                bits_to_unpack = []
+                if not len(m.arguments):
                     print("        self.init()")
+                else:
+                    print(f"        self.init(")
+                    print(",\n".join([f"            {variable_name(a.name, False)}: {variable_name(a.name, True)}" for a in m.arguments]))
+                    print(f"        )")
                 print("    }")
                 print()
                 bc = " + ".join(sorted(bytes_count)) # optimization for compiler
