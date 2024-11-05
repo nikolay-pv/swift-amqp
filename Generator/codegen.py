@@ -6,7 +6,7 @@ from shared.utilities import *
 from rabbitmq_codegen.amqp_codegen import *
 
 
-def gen_swift_api_from_spec(spec: AmqpSpec):
+def gen_swift_api(spec: AmqpSpec):
     def protocols():
         print(
             """protocol AMQPObjectProtocol: Equatable {
@@ -147,7 +147,7 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
 def as_bool_literal(val: bool):
     return "true" if val else "false"
 
-def gen_swift_impl_from_spec(spec: AmqpSpec):
+def gen_swift_impl(spec: AmqpSpec):
 
     def header():
         print_file_header()
@@ -259,14 +259,5 @@ def gen_swift_impl_from_spec(spec: AmqpSpec):
 
 # --------------------------------------------------------------------------------
 
-
-def gen_swift_api(specPath):
-    gen_swift_api_from_spec(AmqpSpec(specPath))
-
-
-def gen_swift_impl(specPath):
-    gen_swift_impl_from_spec(AmqpSpec(specPath))
-
-
 if __name__ == "__main__":
-    do_main(gen_swift_api, gen_swift_impl)
+    do_main(lambda x: gen_swift_api(AmqpSpec(x)), lambda x: gen_swift_impl(AmqpSpec(x)))

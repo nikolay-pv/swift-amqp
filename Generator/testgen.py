@@ -4,14 +4,13 @@
 from shared.utilities import *
 from rabbitmq_codegen.amqp_codegen import *
 
-import pika
 
 # --------------------------------------------------------------------------------
 
-def gen_swift_tests_from_spec(spec: AmqpSpec):
+def gen_swift_tests(spec: AmqpSpec):
     def header(): 
         print("import Testing")
-        print("@testable import RabbitMQ")
+        print("@testable import AMQP")
         print("")
         print("func tester<T>(_ object: T) throws where T : AMQPCodable & Equatable {")
         print("    let binary = try FrameEncoder().encode(object)")
@@ -34,12 +33,12 @@ def gen_swift_tests_from_spec(spec: AmqpSpec):
     def amqp_classes_and_methods():
         for c in spec.classes:
             print()
-            print(f"@Suite struct {struct_name(c.name)} {{")
+            print(f"@Suite struct {struct_name(c.name)}Coding {{")
             for m in c.allMethods():
                 must_be_specified = [a for a in m.arguments if a.defaultvalue is None]
                 obj = f"AMQP.{struct_name(c.name)}.{struct_name(m.name)}"
                 print(f"    @Test(\"{obj} default encoding/decoding roundtrip\")")
-                print(f"    func amqp{struct_name(c.name)}{struct_name(m.name)}Encoding() async throws {{")
+                print(f"    func amqp{struct_name(c.name)}{struct_name(m.name)}Coding() async throws {{")
                 if not len(must_be_specified):
                     print(f"        let object = {obj}()")
                 else:
@@ -55,13 +54,49 @@ def gen_swift_tests_from_spec(spec: AmqpSpec):
     amqp_classes_and_methods()
 
 
-def gen_swift_api(specPath):
-    gen_swift_tests_from_spec(AmqpSpec(specPath))
+def gen_swift_verify_tests(spec: AmqpSpec):
+    def header(): 
+        print("import Testing")
+        print("@testable import AMQP")
+        print("")
+    
+    def generate_value(spec, domain: str):
+        t = swift_type(spec, domain)
+        if t == "String":
+            return f"\"FooBar\""
+        if t == "[String: FieldValue]":
+            return ".init()"
+        if t.startswith("Int"):
+            return "1"
+        if t == "Bool":
+            return "true"
+        raise RuntimeError(f"Unknown domain - type: {domain} - {t}")
 
+    def amqp_classes_and_methods():
+        for c in spec.classes:
+            print()
+            print(f"@Suite struct {struct_name(c.name)}Decode {{")
+            for m in c.allMethods():
+                must_be_specified = [a for a in m.arguments if a.defaultvalue is None]
+                obj = f"{struct_name(c.name)}.{struct_name(m.name)}"
+                print(f"    @Test(\"AMQP.{obj} verify decode bytes\")")
+                print(f"    func amqp{struct_name(c.name)}{struct_name(m.name)}DecodeBytes() async throws {{")
+                print(f"        let input = try fixtureData(for: \"{obj}\")")
+                print(f"        let decoded = try FrameDecoder().decode(AMQP.{obj}.self, from: input)")
+                if not len(must_be_specified):
+                    print(f"        let expected = AMQP.{obj}()")
+                else:
+                    args = [f"{variable_name(a.name)}: {generate_value(spec, a.domain)}" for a in must_be_specified]
+                    print(f"        let expected = AMQP.{obj}({', '.join(args)})")
+                print(f"        #expect(decoded == expected)")
+                print("    }")
+                print()
 
-def gen_swift_impl(specPath):
-    pass
+            print("}")
+
+    header()
+    amqp_classes_and_methods()
 
 
 if __name__ == "__main__":
-    do_main(gen_swift_api, gen_swift_impl)
+    do_main(lambda x: gen_swift_tests(AmqpSpec(x)), lambda x: gen_swift_verify_tests(AmqpSpec(x)))
