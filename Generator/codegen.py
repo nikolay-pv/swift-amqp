@@ -153,7 +153,7 @@ def gen_swift_impl(spec: AmqpSpec):
         print_file_header()
         print("import Foundation")
         print()
-        print("fileprivate typealias FieldValue = AMQP.FieldValue")
+        print("private typealias FieldValue = AMQP.FieldValue")
 
     def pack_encode_bits(bits_to_pack):
         if len(bits_to_pack) == 0:
@@ -165,7 +165,7 @@ def gen_swift_impl(spec: AmqpSpec):
         if len(bits_to_pack) > 8:
             raise RuntimeError("packing more than 8 bits is not implemented")
         for k, a in enumerate(bits_to_pack):
-            print(f"        if {variable_name(a.name)}  {{ bitPack |= 1 << {k} }}")
+            print(f"        if {variable_name(a.name)} {{ bitPack |= 1 << {k} }}")
         print(f"        try encoder.encode(bitPack)")
 
     def pack_decode_bits(bits_to_unpack):
@@ -185,7 +185,7 @@ def gen_swift_impl(spec: AmqpSpec):
         for c in spec.allClasses():
             for m in c.allMethods():
                 print()
-                print(f"extension AMQP.{struct_name(c.name)}.{struct_name(m.name)}: AMQPCodable {{")
+                print(f"extension AMQP.{struct_name(c.name)}.{struct_name(m.name).strip()}: AMQPCodable {{")
                 print("    func encode(to encoder: AMQPEncoder) throws {")
                 bits_to_pack = []
                 for a in m.arguments:
@@ -240,7 +240,7 @@ def gen_swift_impl(spec: AmqpSpec):
         print("extension AMQP {")
         print("    typealias Factory = @Sendable (any AMQPDecoder) throws -> any AMQPCodable")
         print("    static func makeFactory(with classId: UInt16, and methodId: UInt16) throws -> Factory {")
-        print("        switch(classId, methodId) {")
+        print("        switch (classId, methodId) {")
         for c in spec.allClasses():
             for m in c.allMethods():
                 print(f"        case ({c.index}, {m.index}): return AMQP.{struct_name(c.name)}.{struct_name(m.name)}.init")

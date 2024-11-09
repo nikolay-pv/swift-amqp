@@ -6,9 +6,9 @@
 
 import Foundation
 
-fileprivate typealias FieldValue = AMQP.FieldValue
+private typealias FieldValue = AMQP.FieldValue
 
-extension AMQP.Basic.Qos : AMQPCodable {
+extension AMQP.Basic.Qos: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(prefetchSize)
         try encoder.encode(prefetchCount)
@@ -29,7 +29,7 @@ extension AMQP.Basic.Qos : AMQPCodable {
     var bytesCount: UInt32 { 1 + 2 + 4 + 4 }
 }
 
-extension AMQP.Basic.QosOk : AMQPCodable {
+extension AMQP.Basic.QosOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -40,16 +40,16 @@ extension AMQP.Basic.QosOk : AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Basic.Consume : AMQPCodable {
+extension AMQP.Basic.Consume: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(queue, isLong: false)
         try encoder.encode(consumerTag, isLong: false)
         var bitPack: UInt8 = 0
-        if noLocal  { bitPack |= 1 << 0 }
-        if noAck  { bitPack |= 1 << 1 }
-        if exclusive  { bitPack |= 1 << 2 }
-        if nowait  { bitPack |= 1 << 3 }
+        if noLocal { bitPack |= 1 << 0 }
+        if noAck { bitPack |= 1 << 1 }
+        if exclusive { bitPack |= 1 << 2 }
+        if nowait { bitPack |= 1 << 3 }
         try encoder.encode(bitPack)
         try encoder.encode(arguments)
     }
@@ -79,7 +79,7 @@ extension AMQP.Basic.Consume : AMQPCodable {
     var bytesCount: UInt32 { 1 + 1 + 1 + 1 + 2 + 4 + UInt32(consumerTag.shortBytesCount) + UInt32(queue.shortBytesCount) + arguments.bytesCount }
 }
 
-extension AMQP.Basic.ConsumeOk : AMQPCodable {
+extension AMQP.Basic.ConsumeOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(consumerTag, isLong: false)
     }
@@ -94,7 +94,7 @@ extension AMQP.Basic.ConsumeOk : AMQPCodable {
     var bytesCount: UInt32 { 4 + UInt32(consumerTag.shortBytesCount) }
 }
 
-extension AMQP.Basic.Cancel : AMQPCodable {
+extension AMQP.Basic.Cancel: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(consumerTag, isLong: false)
         try encoder.encode(nowait)
@@ -112,7 +112,7 @@ extension AMQP.Basic.Cancel : AMQPCodable {
     var bytesCount: UInt32 { 1 + 4 + UInt32(consumerTag.shortBytesCount) }
 }
 
-extension AMQP.Basic.CancelOk : AMQPCodable {
+extension AMQP.Basic.CancelOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(consumerTag, isLong: false)
     }
@@ -127,14 +127,14 @@ extension AMQP.Basic.CancelOk : AMQPCodable {
     var bytesCount: UInt32 { 4 + UInt32(consumerTag.shortBytesCount) }
 }
 
-extension AMQP.Basic.Publish : AMQPCodable {
+extension AMQP.Basic.Publish: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(exchange, isLong: false)
         try encoder.encode(routingKey, isLong: false)
         var bitPack: UInt8 = 0
-        if mandatory  { bitPack |= 1 << 0 }
-        if immediate  { bitPack |= 1 << 1 }
+        if mandatory { bitPack |= 1 << 0 }
+        if immediate { bitPack |= 1 << 1 }
         try encoder.encode(bitPack)
     }
 
@@ -157,7 +157,7 @@ extension AMQP.Basic.Publish : AMQPCodable {
     var bytesCount: UInt32 { 1 + 1 + 2 + 4 + UInt32(exchange.shortBytesCount) + UInt32(routingKey.shortBytesCount) }
 }
 
-extension AMQP.Basic.Return : AMQPCodable {
+extension AMQP.Basic.Return: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(replyCode)
         try encoder.encode(replyText, isLong: false)
@@ -181,7 +181,7 @@ extension AMQP.Basic.Return : AMQPCodable {
     var bytesCount: UInt32 { 2 + 4 + UInt32(exchange.shortBytesCount) + UInt32(replyText.shortBytesCount) + UInt32(routingKey.shortBytesCount) }
 }
 
-extension AMQP.Basic.Deliver : AMQPCodable {
+extension AMQP.Basic.Deliver: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(consumerTag, isLong: false)
         try encoder.encode(deliveryTag)
@@ -208,7 +208,7 @@ extension AMQP.Basic.Deliver : AMQPCodable {
     var bytesCount: UInt32 { 1 + 4 + 8 + UInt32(consumerTag.shortBytesCount) + UInt32(exchange.shortBytesCount) + UInt32(routingKey.shortBytesCount) }
 }
 
-extension AMQP.Basic.Get : AMQPCodable {
+extension AMQP.Basic.Get: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(queue, isLong: false)
@@ -229,7 +229,7 @@ extension AMQP.Basic.Get : AMQPCodable {
     var bytesCount: UInt32 { 1 + 2 + 4 + UInt32(queue.shortBytesCount) }
 }
 
-extension AMQP.Basic.GetOk : AMQPCodable {
+extension AMQP.Basic.GetOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(deliveryTag)
         try encoder.encode(redelivered)
@@ -256,7 +256,7 @@ extension AMQP.Basic.GetOk : AMQPCodable {
     var bytesCount: UInt32 { 1 + 4 + 4 + 8 + UInt32(exchange.shortBytesCount) + UInt32(routingKey.shortBytesCount) }
 }
 
-extension AMQP.Basic.GetEmpty : AMQPCodable {
+extension AMQP.Basic.GetEmpty: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(clusterId, isLong: false)
     }
@@ -271,7 +271,7 @@ extension AMQP.Basic.GetEmpty : AMQPCodable {
     var bytesCount: UInt32 { 4 + UInt32(clusterId.shortBytesCount) }
 }
 
-extension AMQP.Basic.Ack : AMQPCodable {
+extension AMQP.Basic.Ack: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(deliveryTag)
         try encoder.encode(multiple)
@@ -289,7 +289,7 @@ extension AMQP.Basic.Ack : AMQPCodable {
     var bytesCount: UInt32 { 1 + 4 + 8 }
 }
 
-extension AMQP.Basic.Reject : AMQPCodable {
+extension AMQP.Basic.Reject: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(deliveryTag)
         try encoder.encode(requeue)
@@ -307,7 +307,7 @@ extension AMQP.Basic.Reject : AMQPCodable {
     var bytesCount: UInt32 { 1 + 4 + 8 }
 }
 
-extension AMQP.Basic.RecoverAsync : AMQPCodable {
+extension AMQP.Basic.RecoverAsync: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(requeue)
     }
@@ -322,7 +322,7 @@ extension AMQP.Basic.RecoverAsync : AMQPCodable {
     var bytesCount: UInt32 { 1 + 4 }
 }
 
-extension AMQP.Basic.Recover : AMQPCodable {
+extension AMQP.Basic.Recover: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(requeue)
     }
@@ -337,7 +337,7 @@ extension AMQP.Basic.Recover : AMQPCodable {
     var bytesCount: UInt32 { 1 + 4 }
 }
 
-extension AMQP.Basic.RecoverOk : AMQPCodable {
+extension AMQP.Basic.RecoverOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -348,12 +348,12 @@ extension AMQP.Basic.RecoverOk : AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Basic.Nack : AMQPCodable {
+extension AMQP.Basic.Nack: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(deliveryTag)
         var bitPack: UInt8 = 0
-        if multiple  { bitPack |= 1 << 0 }
-        if requeue  { bitPack |= 1 << 1 }
+        if multiple { bitPack |= 1 << 0 }
+        if requeue { bitPack |= 1 << 1 }
         try encoder.encode(bitPack)
     }
 
@@ -372,7 +372,7 @@ extension AMQP.Basic.Nack : AMQPCodable {
     var bytesCount: UInt32 { 1 + 1 + 4 + 8 }
 }
 
-extension AMQP.Connection.Start : AMQPCodable {
+extension AMQP.Connection.Start: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(versionMajor)
         try encoder.encode(versionMinor)
@@ -399,7 +399,7 @@ extension AMQP.Connection.Start : AMQPCodable {
     var bytesCount: UInt32 { 1 + 1 + 4 + locales.longBytesCount + mechanisms.longBytesCount + serverProperties.bytesCount }
 }
 
-extension AMQP.Connection.StartOk : AMQPCodable {
+extension AMQP.Connection.StartOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(clientProperties)
         try encoder.encode(mechanism, isLong: false)
@@ -423,7 +423,7 @@ extension AMQP.Connection.StartOk : AMQPCodable {
     var bytesCount: UInt32 { 4 + UInt32(locale.shortBytesCount) + UInt32(mechanism.shortBytesCount) + clientProperties.bytesCount + response.longBytesCount }
 }
 
-extension AMQP.Connection.Secure : AMQPCodable {
+extension AMQP.Connection.Secure: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(challenge, isLong: true)
     }
@@ -438,7 +438,7 @@ extension AMQP.Connection.Secure : AMQPCodable {
     var bytesCount: UInt32 { 4 + challenge.longBytesCount }
 }
 
-extension AMQP.Connection.SecureOk : AMQPCodable {
+extension AMQP.Connection.SecureOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(response, isLong: true)
     }
@@ -453,7 +453,7 @@ extension AMQP.Connection.SecureOk : AMQPCodable {
     var bytesCount: UInt32 { 4 + response.longBytesCount }
 }
 
-extension AMQP.Connection.Tune : AMQPCodable {
+extension AMQP.Connection.Tune: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(channelMax)
         try encoder.encode(frameMax)
@@ -474,7 +474,7 @@ extension AMQP.Connection.Tune : AMQPCodable {
     var bytesCount: UInt32 { 2 + 2 + 4 + 4 }
 }
 
-extension AMQP.Connection.TuneOk : AMQPCodable {
+extension AMQP.Connection.TuneOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(channelMax)
         try encoder.encode(frameMax)
@@ -495,7 +495,7 @@ extension AMQP.Connection.TuneOk : AMQPCodable {
     var bytesCount: UInt32 { 2 + 2 + 4 + 4 }
 }
 
-extension AMQP.Connection.Open : AMQPCodable {
+extension AMQP.Connection.Open: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(virtualHost, isLong: false)
         try encoder.encode(capabilities, isLong: false)
@@ -516,7 +516,7 @@ extension AMQP.Connection.Open : AMQPCodable {
     var bytesCount: UInt32 { 1 + 4 + UInt32(capabilities.shortBytesCount) + UInt32(virtualHost.shortBytesCount) }
 }
 
-extension AMQP.Connection.OpenOk : AMQPCodable {
+extension AMQP.Connection.OpenOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(knownHosts, isLong: false)
     }
@@ -531,7 +531,7 @@ extension AMQP.Connection.OpenOk : AMQPCodable {
     var bytesCount: UInt32 { 4 + UInt32(knownHosts.shortBytesCount) }
 }
 
-extension AMQP.Connection.Close : AMQPCodable {
+extension AMQP.Connection.Close: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(replyCode)
         try encoder.encode(replyText, isLong: false)
@@ -555,7 +555,7 @@ extension AMQP.Connection.Close : AMQPCodable {
     var bytesCount: UInt32 { 2 + 2 + 2 + 4 + UInt32(replyText.shortBytesCount) }
 }
 
-extension AMQP.Connection.CloseOk : AMQPCodable {
+extension AMQP.Connection.CloseOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -566,7 +566,7 @@ extension AMQP.Connection.CloseOk : AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Connection.Blocked : AMQPCodable {
+extension AMQP.Connection.Blocked: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(reason, isLong: false)
     }
@@ -581,7 +581,7 @@ extension AMQP.Connection.Blocked : AMQPCodable {
     var bytesCount: UInt32 { 4 + UInt32(reason.shortBytesCount) }
 }
 
-extension AMQP.Connection.Unblocked : AMQPCodable {
+extension AMQP.Connection.Unblocked: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -592,7 +592,7 @@ extension AMQP.Connection.Unblocked : AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Connection.UpdateSecret : AMQPCodable {
+extension AMQP.Connection.UpdateSecret: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(newSecret, isLong: true)
         try encoder.encode(reason, isLong: false)
@@ -610,7 +610,7 @@ extension AMQP.Connection.UpdateSecret : AMQPCodable {
     var bytesCount: UInt32 { 4 + UInt32(reason.shortBytesCount) + newSecret.longBytesCount }
 }
 
-extension AMQP.Connection.UpdateSecretOk : AMQPCodable {
+extension AMQP.Connection.UpdateSecretOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -621,7 +621,7 @@ extension AMQP.Connection.UpdateSecretOk : AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Channel.Open : AMQPCodable {
+extension AMQP.Channel.Open: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(outOfBand, isLong: false)
     }
@@ -636,7 +636,7 @@ extension AMQP.Channel.Open : AMQPCodable {
     var bytesCount: UInt32 { 4 + UInt32(outOfBand.shortBytesCount) }
 }
 
-extension AMQP.Channel.OpenOk : AMQPCodable {
+extension AMQP.Channel.OpenOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(channelId, isLong: true)
     }
@@ -651,7 +651,7 @@ extension AMQP.Channel.OpenOk : AMQPCodable {
     var bytesCount: UInt32 { 4 + channelId.longBytesCount }
 }
 
-extension AMQP.Channel.Flow : AMQPCodable {
+extension AMQP.Channel.Flow: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(active)
     }
@@ -666,7 +666,7 @@ extension AMQP.Channel.Flow : AMQPCodable {
     var bytesCount: UInt32 { 1 + 4 }
 }
 
-extension AMQP.Channel.FlowOk : AMQPCodable {
+extension AMQP.Channel.FlowOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(active)
     }
@@ -681,7 +681,7 @@ extension AMQP.Channel.FlowOk : AMQPCodable {
     var bytesCount: UInt32 { 1 + 4 }
 }
 
-extension AMQP.Channel.Close : AMQPCodable {
+extension AMQP.Channel.Close: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(replyCode)
         try encoder.encode(replyText, isLong: false)
@@ -705,7 +705,7 @@ extension AMQP.Channel.Close : AMQPCodable {
     var bytesCount: UInt32 { 2 + 2 + 2 + 4 + UInt32(replyText.shortBytesCount) }
 }
 
-extension AMQP.Channel.CloseOk : AMQPCodable {
+extension AMQP.Channel.CloseOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -716,15 +716,15 @@ extension AMQP.Channel.CloseOk : AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Access.Request : AMQPCodable {
+extension AMQP.Access.Request: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(realm, isLong: false)
         var bitPack: UInt8 = 0
-        if exclusive  { bitPack |= 1 << 0 }
-        if passive  { bitPack |= 1 << 1 }
-        if active  { bitPack |= 1 << 2 }
-        if write  { bitPack |= 1 << 3 }
-        if read  { bitPack |= 1 << 4 }
+        if exclusive { bitPack |= 1 << 0 }
+        if passive { bitPack |= 1 << 1 }
+        if active { bitPack |= 1 << 2 }
+        if write { bitPack |= 1 << 3 }
+        if read { bitPack |= 1 << 4 }
         try encoder.encode(bitPack)
     }
 
@@ -749,7 +749,7 @@ extension AMQP.Access.Request : AMQPCodable {
     var bytesCount: UInt32 { 1 + 1 + 1 + 1 + 1 + 4 + UInt32(realm.shortBytesCount) }
 }
 
-extension AMQP.Access.RequestOk : AMQPCodable {
+extension AMQP.Access.RequestOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
     }
@@ -764,17 +764,17 @@ extension AMQP.Access.RequestOk : AMQPCodable {
     var bytesCount: UInt32 { 2 + 4 }
 }
 
-extension AMQP.Exchange.Declare : AMQPCodable {
+extension AMQP.Exchange.Declare: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(exchange, isLong: false)
         try encoder.encode(type, isLong: false)
         var bitPack: UInt8 = 0
-        if passive  { bitPack |= 1 << 0 }
-        if durable  { bitPack |= 1 << 1 }
-        if autoDelete  { bitPack |= 1 << 2 }
-        if `internal`  { bitPack |= 1 << 3 }
-        if nowait  { bitPack |= 1 << 4 }
+        if passive { bitPack |= 1 << 0 }
+        if durable { bitPack |= 1 << 1 }
+        if autoDelete { bitPack |= 1 << 2 }
+        if `internal` { bitPack |= 1 << 3 }
+        if nowait { bitPack |= 1 << 4 }
         try encoder.encode(bitPack)
         try encoder.encode(arguments)
     }
@@ -806,7 +806,7 @@ extension AMQP.Exchange.Declare : AMQPCodable {
     var bytesCount: UInt32 { 1 + 1 + 1 + 1 + 1 + 2 + 4 + UInt32(exchange.shortBytesCount) + UInt32(type.shortBytesCount) + arguments.bytesCount }
 }
 
-extension AMQP.Exchange.DeclareOk : AMQPCodable {
+extension AMQP.Exchange.DeclareOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -817,13 +817,13 @@ extension AMQP.Exchange.DeclareOk : AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Exchange.Delete : AMQPCodable {
+extension AMQP.Exchange.Delete: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(exchange, isLong: false)
         var bitPack: UInt8 = 0
-        if ifUnused  { bitPack |= 1 << 0 }
-        if nowait  { bitPack |= 1 << 1 }
+        if ifUnused { bitPack |= 1 << 0 }
+        if nowait { bitPack |= 1 << 1 }
         try encoder.encode(bitPack)
     }
 
@@ -844,7 +844,7 @@ extension AMQP.Exchange.Delete : AMQPCodable {
     var bytesCount: UInt32 { 1 + 1 + 2 + 4 + UInt32(exchange.shortBytesCount) }
 }
 
-extension AMQP.Exchange.DeleteOk : AMQPCodable {
+extension AMQP.Exchange.DeleteOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -855,7 +855,7 @@ extension AMQP.Exchange.DeleteOk : AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Exchange.Bind : AMQPCodable {
+extension AMQP.Exchange.Bind: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(destination, isLong: false)
@@ -885,7 +885,7 @@ extension AMQP.Exchange.Bind : AMQPCodable {
     var bytesCount: UInt32 { 1 + 2 + 4 + UInt32(destination.shortBytesCount) + UInt32(routingKey.shortBytesCount) + UInt32(source.shortBytesCount) + arguments.bytesCount }
 }
 
-extension AMQP.Exchange.BindOk : AMQPCodable {
+extension AMQP.Exchange.BindOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -896,7 +896,7 @@ extension AMQP.Exchange.BindOk : AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Exchange.Unbind : AMQPCodable {
+extension AMQP.Exchange.Unbind: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(destination, isLong: false)
@@ -926,7 +926,7 @@ extension AMQP.Exchange.Unbind : AMQPCodable {
     var bytesCount: UInt32 { 1 + 2 + 4 + UInt32(destination.shortBytesCount) + UInt32(routingKey.shortBytesCount) + UInt32(source.shortBytesCount) + arguments.bytesCount }
 }
 
-extension AMQP.Exchange.UnbindOk : AMQPCodable {
+extension AMQP.Exchange.UnbindOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -937,16 +937,16 @@ extension AMQP.Exchange.UnbindOk : AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Queue.Declare : AMQPCodable {
+extension AMQP.Queue.Declare: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(queue, isLong: false)
         var bitPack: UInt8 = 0
-        if passive  { bitPack |= 1 << 0 }
-        if durable  { bitPack |= 1 << 1 }
-        if exclusive  { bitPack |= 1 << 2 }
-        if autoDelete  { bitPack |= 1 << 3 }
-        if nowait  { bitPack |= 1 << 4 }
+        if passive { bitPack |= 1 << 0 }
+        if durable { bitPack |= 1 << 1 }
+        if exclusive { bitPack |= 1 << 2 }
+        if autoDelete { bitPack |= 1 << 3 }
+        if nowait { bitPack |= 1 << 4 }
         try encoder.encode(bitPack)
         try encoder.encode(arguments)
     }
@@ -976,7 +976,7 @@ extension AMQP.Queue.Declare : AMQPCodable {
     var bytesCount: UInt32 { 1 + 1 + 1 + 1 + 1 + 2 + 4 + UInt32(queue.shortBytesCount) + arguments.bytesCount }
 }
 
-extension AMQP.Queue.DeclareOk : AMQPCodable {
+extension AMQP.Queue.DeclareOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(queue, isLong: false)
         try encoder.encode(messageCount)
@@ -997,7 +997,7 @@ extension AMQP.Queue.DeclareOk : AMQPCodable {
     var bytesCount: UInt32 { 4 + 4 + 4 + UInt32(queue.shortBytesCount) }
 }
 
-extension AMQP.Queue.Bind : AMQPCodable {
+extension AMQP.Queue.Bind: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(queue, isLong: false)
@@ -1027,7 +1027,7 @@ extension AMQP.Queue.Bind : AMQPCodable {
     var bytesCount: UInt32 { 1 + 2 + 4 + UInt32(exchange.shortBytesCount) + UInt32(queue.shortBytesCount) + UInt32(routingKey.shortBytesCount) + arguments.bytesCount }
 }
 
-extension AMQP.Queue.BindOk : AMQPCodable {
+extension AMQP.Queue.BindOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -1038,7 +1038,7 @@ extension AMQP.Queue.BindOk : AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Queue.Purge : AMQPCodable {
+extension AMQP.Queue.Purge: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(queue, isLong: false)
@@ -1059,7 +1059,7 @@ extension AMQP.Queue.Purge : AMQPCodable {
     var bytesCount: UInt32 { 1 + 2 + 4 + UInt32(queue.shortBytesCount) }
 }
 
-extension AMQP.Queue.PurgeOk : AMQPCodable {
+extension AMQP.Queue.PurgeOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(messageCount)
     }
@@ -1074,14 +1074,14 @@ extension AMQP.Queue.PurgeOk : AMQPCodable {
     var bytesCount: UInt32 { 4 + 4 }
 }
 
-extension AMQP.Queue.Delete : AMQPCodable {
+extension AMQP.Queue.Delete: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(queue, isLong: false)
         var bitPack: UInt8 = 0
-        if ifUnused  { bitPack |= 1 << 0 }
-        if ifEmpty  { bitPack |= 1 << 1 }
-        if nowait  { bitPack |= 1 << 2 }
+        if ifUnused { bitPack |= 1 << 0 }
+        if ifEmpty { bitPack |= 1 << 1 }
+        if nowait { bitPack |= 1 << 2 }
         try encoder.encode(bitPack)
     }
 
@@ -1104,7 +1104,7 @@ extension AMQP.Queue.Delete : AMQPCodable {
     var bytesCount: UInt32 { 1 + 1 + 1 + 2 + 4 + UInt32(queue.shortBytesCount) }
 }
 
-extension AMQP.Queue.DeleteOk : AMQPCodable {
+extension AMQP.Queue.DeleteOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(messageCount)
     }
@@ -1119,7 +1119,7 @@ extension AMQP.Queue.DeleteOk : AMQPCodable {
     var bytesCount: UInt32 { 4 + 4 }
 }
 
-extension AMQP.Queue.Unbind : AMQPCodable {
+extension AMQP.Queue.Unbind: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(queue, isLong: false)
@@ -1146,7 +1146,7 @@ extension AMQP.Queue.Unbind : AMQPCodable {
     var bytesCount: UInt32 { 2 + 4 + UInt32(exchange.shortBytesCount) + UInt32(queue.shortBytesCount) + UInt32(routingKey.shortBytesCount) + arguments.bytesCount }
 }
 
-extension AMQP.Queue.UnbindOk : AMQPCodable {
+extension AMQP.Queue.UnbindOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -1157,7 +1157,7 @@ extension AMQP.Queue.UnbindOk : AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Tx.Select : AMQPCodable {
+extension AMQP.Tx.Select: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -1168,7 +1168,7 @@ extension AMQP.Tx.Select : AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Tx.SelectOk : AMQPCodable {
+extension AMQP.Tx.SelectOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -1179,7 +1179,7 @@ extension AMQP.Tx.SelectOk : AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Tx.Commit : AMQPCodable {
+extension AMQP.Tx.Commit: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -1190,7 +1190,7 @@ extension AMQP.Tx.Commit : AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Tx.CommitOk : AMQPCodable {
+extension AMQP.Tx.CommitOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -1201,7 +1201,7 @@ extension AMQP.Tx.CommitOk : AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Tx.Rollback : AMQPCodable {
+extension AMQP.Tx.Rollback: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -1212,7 +1212,7 @@ extension AMQP.Tx.Rollback : AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Tx.RollbackOk : AMQPCodable {
+extension AMQP.Tx.RollbackOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -1223,7 +1223,7 @@ extension AMQP.Tx.RollbackOk : AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Confirm.Select : AMQPCodable {
+extension AMQP.Confirm.Select: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(nowait)
     }
@@ -1238,7 +1238,7 @@ extension AMQP.Confirm.Select : AMQPCodable {
     var bytesCount: UInt32 { 1 + 4 }
 }
 
-extension AMQP.Confirm.SelectOk : AMQPCodable {
+extension AMQP.Confirm.SelectOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -1252,7 +1252,7 @@ extension AMQP.Confirm.SelectOk : AMQPCodable {
 extension AMQP {
     typealias Factory = @Sendable (any AMQPDecoder) throws -> any AMQPCodable
     static func makeFactory(with classId: UInt16, and methodId: UInt16) throws -> Factory {
-        switch(classId, methodId) {
+        switch (classId, methodId) {
         case (60, 10): return AMQP.Basic.Qos.init
         case (60, 11): return AMQP.Basic.QosOk.init
         case (60, 20): return AMQP.Basic.Consume.init

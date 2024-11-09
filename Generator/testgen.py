@@ -10,9 +10,10 @@ from rabbitmq_codegen.amqp_codegen import *
 def gen_swift_tests(spec: AmqpSpec):
     def header(): 
         print("import Testing")
+        print("")
         print("@testable import AMQP")
         print("")
-        print("func tester<T>(_ object: T) throws where T : AMQPCodable & Equatable {")
+        print("func tester<T>(_ object: T) throws where T: AMQPCodable & Equatable {")
         print("    let binary = try FrameEncoder().encode(object)")
         print("    let decoded = try FrameDecoder().decode(T.self, from: binary)")
         print("    #expect(decoded == object)")
@@ -57,8 +58,8 @@ def gen_swift_tests(spec: AmqpSpec):
 def gen_swift_verify_tests(spec: AmqpSpec):
     def header(): 
         print("import Testing")
-        print("@testable import AMQP")
         print("")
+        print("@testable import AMQP")
     
     def generate_value(spec, domain: str):
         t = swift_type(spec, domain)

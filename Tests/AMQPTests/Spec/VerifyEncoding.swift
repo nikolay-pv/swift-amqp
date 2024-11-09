@@ -1,6 +1,6 @@
 import Testing
-@testable import AMQP
 
+@testable import AMQP
 
 @Suite struct BasicDecode {
     @Test("AMQP.Basic.Qos verify decode bytes")
