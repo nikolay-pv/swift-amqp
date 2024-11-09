@@ -17,7 +17,7 @@ protocol AMQPClassProtocol: AMQPObjectProtocol {
     var amqpClassId: UInt16 { get }
 }
 
-protocol AMQPPropertiesProtocol: AMQPObjectProtocol, Hashable { }
+protocol AMQPPropertiesProtocol: AMQPObjectProtocol, Hashable {}
 
 protocol AMQPMethodProtocol: AMQPClassProtocol {
     var amqpMethodId: UInt16 { get }
@@ -34,15 +34,15 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
         print('            .longstr(""),')
         print("            .timestamp(Date.distantPast),")
         print("            .table([:]),")
-        print("            .void")
+        print("            .void,")
         print("        ]")
         print()
         print("        case long(Int32),")
-        print("        decimal(UInt8, Int32),")
-        print("        longstr(String),")
-        print("        timestamp(Date),")
-        print("        table(Table),")
-        print("        void")
+        print("            decimal(UInt8, Int32),")
+        print("            longstr(String),")
+        print("            timestamp(Date),")
+        print("            table(Table),")
+        print("            void")
         print("")
         print("        var type: UInt8 {")
         print("            switch self {")
@@ -89,21 +89,21 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
     def amqp_classes_and_methods():
         for c in spec.classes:
             print()
-            print(f"    public struct {struct_name(c.name)} : AMQPClassProtocol {{")
+            print(f"    public struct {struct_name(c.name)}: AMQPClassProtocol {{")
             print(f"        public var amqpClassId: UInt16 {{ {c.index} }}")
             print(f'        public var amqpName: String {{ "{c.name}" }}')
             for m in c.allMethods():
                 print()
-                print(f"        public struct {struct_name(m.name)} : AMQPMethodProtocol {{")
+                print(f"        public struct {struct_name(m.name)}: AMQPMethodProtocol {{")
                 for a in m.arguments:
                     if a.defaultvalue is None:
-                        print(f"           private(set) var {variable_name(a.name)}: {swift_type(spec, a.domain)}")
+                        print(f"            private(set) var {variable_name(a.name)}: {swift_type(spec, a.domain)}")
                     else:
-                        print(f"           private(set) var {variable_name(a.name)}: {swift_type(spec, a.domain)} = {default_value(spec, a.domain, a.defaultvalue)}")
+                        print(f"            private(set) var {variable_name(a.name)}: {swift_type(spec, a.domain)} = {default_value(spec, a.domain, a.defaultvalue)}")
                 print()
-                print(f"           public var amqpClassId: UInt16 {{ {c.index} }}")
-                print(f"           public var amqpMethodId: UInt16 {{ {m.index} }}")
-                print(f'           public var amqpName: String {{ "{c.name}.{m.name}" }}')
+                print(f"            public var amqpClassId: UInt16 {{ {c.index} }}")
+                print(f"            public var amqpMethodId: UInt16 {{ {m.index} }}")
+                print(f'            public var amqpName: String {{ "{c.name}.{m.name}" }}')
                 print("        }")
             print("    }")
 
@@ -111,7 +111,7 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
         structName = struct_name(c.name)
 
         print()
-        print(f"    public struct {structName}Properties : AMQPPropertiesProtocol {{")
+        print(f"    public struct {structName}Properties: AMQPPropertiesProtocol {{")
         for f in c.fields:
             print(f"        private(set) var {variable_name(f.name)}: {swift_type(spec, f.domain)}")
 
@@ -185,7 +185,7 @@ def gen_swift_impl(spec: AmqpSpec):
         for c in spec.allClasses():
             for m in c.allMethods():
                 print()
-                print(f"extension AMQP.{struct_name(c.name)}.{struct_name(m.name)} : AMQPCodable {{")
+                print(f"extension AMQP.{struct_name(c.name)}.{struct_name(m.name)}: AMQPCodable {{")
                 print("    func encode(to encoder: AMQPEncoder) throws {")
                 bits_to_pack = []
                 for a in m.arguments:

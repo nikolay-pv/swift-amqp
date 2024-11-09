@@ -14,7 +14,7 @@ protocol AMQPClassProtocol: AMQPObjectProtocol {
     var amqpClassId: UInt16 { get }
 }
 
-protocol AMQPPropertiesProtocol: AMQPObjectProtocol, Hashable { }
+protocol AMQPPropertiesProtocol: AMQPObjectProtocol, Hashable {}
 
 protocol AMQPMethodProtocol: AMQPClassProtocol {
     var amqpMethodId: UInt16 { get }
@@ -30,15 +30,15 @@ public enum AMQP {
             .longstr(""),
             .timestamp(Date.distantPast),
             .table([:]),
-            .void
+            .void,
         ]
 
         case long(Int32),
-        decimal(UInt8, Int32),
-        longstr(String),
-        timestamp(Date),
-        table(Table),
-        void
+            decimal(UInt8, Int32),
+            longstr(String),
+            timestamp(Date),
+            table(Table),
+            void
 
         var type: UInt8 {
             switch self {
@@ -96,657 +96,657 @@ public enum AMQP {
     static let NotImplemented = 540
     static let InternalError = 541
 
-    public struct Basic : AMQPClassProtocol {
+    public struct Basic: AMQPClassProtocol {
         public var amqpClassId: UInt16 { 60 }
         public var amqpName: String { "basic" }
 
-        public struct Qos : AMQPMethodProtocol {
-           private(set) var prefetchSize: Int32 = 0
-           private(set) var prefetchCount: Int16 = 0
-           private(set) var global: Bool = false
+        public struct Qos: AMQPMethodProtocol {
+            private(set) var prefetchSize: Int32 = 0
+            private(set) var prefetchCount: Int16 = 0
+            private(set) var global: Bool = false
 
-           public var amqpClassId: UInt16 { 60 }
-           public var amqpMethodId: UInt16 { 10 }
-           public var amqpName: String { "basic.qos" }
+            public var amqpClassId: UInt16 { 60 }
+            public var amqpMethodId: UInt16 { 10 }
+            public var amqpName: String { "basic.qos" }
         }
 
-        public struct QosOk : AMQPMethodProtocol {
+        public struct QosOk: AMQPMethodProtocol {
 
-           public var amqpClassId: UInt16 { 60 }
-           public var amqpMethodId: UInt16 { 11 }
-           public var amqpName: String { "basic.qos-ok" }
+            public var amqpClassId: UInt16 { 60 }
+            public var amqpMethodId: UInt16 { 11 }
+            public var amqpName: String { "basic.qos-ok" }
         }
 
-        public struct Consume : AMQPMethodProtocol {
-           private(set) var ticket: Int16 = 0
-           private(set) var queue: String = ""
-           private(set) var consumerTag: String = ""
-           private(set) var noLocal: Bool = false
-           private(set) var noAck: Bool = false
-           private(set) var exclusive: Bool = false
-           private(set) var nowait: Bool = false
-           private(set) var arguments: [String: FieldValue] = [:]
+        public struct Consume: AMQPMethodProtocol {
+            private(set) var ticket: Int16 = 0
+            private(set) var queue: String = ""
+            private(set) var consumerTag: String = ""
+            private(set) var noLocal: Bool = false
+            private(set) var noAck: Bool = false
+            private(set) var exclusive: Bool = false
+            private(set) var nowait: Bool = false
+            private(set) var arguments: [String: FieldValue] = [:]
 
-           public var amqpClassId: UInt16 { 60 }
-           public var amqpMethodId: UInt16 { 20 }
-           public var amqpName: String { "basic.consume" }
+            public var amqpClassId: UInt16 { 60 }
+            public var amqpMethodId: UInt16 { 20 }
+            public var amqpName: String { "basic.consume" }
         }
 
-        public struct ConsumeOk : AMQPMethodProtocol {
-           private(set) var consumerTag: String
+        public struct ConsumeOk: AMQPMethodProtocol {
+            private(set) var consumerTag: String
 
-           public var amqpClassId: UInt16 { 60 }
-           public var amqpMethodId: UInt16 { 21 }
-           public var amqpName: String { "basic.consume-ok" }
+            public var amqpClassId: UInt16 { 60 }
+            public var amqpMethodId: UInt16 { 21 }
+            public var amqpName: String { "basic.consume-ok" }
         }
 
-        public struct Cancel : AMQPMethodProtocol {
-           private(set) var consumerTag: String
-           private(set) var nowait: Bool = false
+        public struct Cancel: AMQPMethodProtocol {
+            private(set) var consumerTag: String
+            private(set) var nowait: Bool = false
 
-           public var amqpClassId: UInt16 { 60 }
-           public var amqpMethodId: UInt16 { 30 }
-           public var amqpName: String { "basic.cancel" }
+            public var amqpClassId: UInt16 { 60 }
+            public var amqpMethodId: UInt16 { 30 }
+            public var amqpName: String { "basic.cancel" }
         }
 
-        public struct CancelOk : AMQPMethodProtocol {
-           private(set) var consumerTag: String
+        public struct CancelOk: AMQPMethodProtocol {
+            private(set) var consumerTag: String
 
-           public var amqpClassId: UInt16 { 60 }
-           public var amqpMethodId: UInt16 { 31 }
-           public var amqpName: String { "basic.cancel-ok" }
+            public var amqpClassId: UInt16 { 60 }
+            public var amqpMethodId: UInt16 { 31 }
+            public var amqpName: String { "basic.cancel-ok" }
         }
 
-        public struct Publish : AMQPMethodProtocol {
-           private(set) var ticket: Int16 = 0
-           private(set) var exchange: String = ""
-           private(set) var routingKey: String = ""
-           private(set) var mandatory: Bool = false
-           private(set) var immediate: Bool = false
+        public struct Publish: AMQPMethodProtocol {
+            private(set) var ticket: Int16 = 0
+            private(set) var exchange: String = ""
+            private(set) var routingKey: String = ""
+            private(set) var mandatory: Bool = false
+            private(set) var immediate: Bool = false
 
-           public var amqpClassId: UInt16 { 60 }
-           public var amqpMethodId: UInt16 { 40 }
-           public var amqpName: String { "basic.publish" }
+            public var amqpClassId: UInt16 { 60 }
+            public var amqpMethodId: UInt16 { 40 }
+            public var amqpName: String { "basic.publish" }
         }
 
-        public struct Return : AMQPMethodProtocol {
-           private(set) var replyCode: Int16
-           private(set) var replyText: String = ""
-           private(set) var exchange: String
-           private(set) var routingKey: String
+        public struct Return: AMQPMethodProtocol {
+            private(set) var replyCode: Int16
+            private(set) var replyText: String = ""
+            private(set) var exchange: String
+            private(set) var routingKey: String
 
-           public var amqpClassId: UInt16 { 60 }
-           public var amqpMethodId: UInt16 { 50 }
-           public var amqpName: String { "basic.return" }
+            public var amqpClassId: UInt16 { 60 }
+            public var amqpMethodId: UInt16 { 50 }
+            public var amqpName: String { "basic.return" }
         }
 
-        public struct Deliver : AMQPMethodProtocol {
-           private(set) var consumerTag: String
-           private(set) var deliveryTag: Int64
-           private(set) var redelivered: Bool = false
-           private(set) var exchange: String
-           private(set) var routingKey: String
+        public struct Deliver: AMQPMethodProtocol {
+            private(set) var consumerTag: String
+            private(set) var deliveryTag: Int64
+            private(set) var redelivered: Bool = false
+            private(set) var exchange: String
+            private(set) var routingKey: String
 
-           public var amqpClassId: UInt16 { 60 }
-           public var amqpMethodId: UInt16 { 60 }
-           public var amqpName: String { "basic.deliver" }
+            public var amqpClassId: UInt16 { 60 }
+            public var amqpMethodId: UInt16 { 60 }
+            public var amqpName: String { "basic.deliver" }
         }
 
-        public struct Get : AMQPMethodProtocol {
-           private(set) var ticket: Int16 = 0
-           private(set) var queue: String = ""
-           private(set) var noAck: Bool = false
+        public struct Get: AMQPMethodProtocol {
+            private(set) var ticket: Int16 = 0
+            private(set) var queue: String = ""
+            private(set) var noAck: Bool = false
 
-           public var amqpClassId: UInt16 { 60 }
-           public var amqpMethodId: UInt16 { 70 }
-           public var amqpName: String { "basic.get" }
+            public var amqpClassId: UInt16 { 60 }
+            public var amqpMethodId: UInt16 { 70 }
+            public var amqpName: String { "basic.get" }
         }
 
-        public struct GetOk : AMQPMethodProtocol {
-           private(set) var deliveryTag: Int64
-           private(set) var redelivered: Bool = false
-           private(set) var exchange: String
-           private(set) var routingKey: String
-           private(set) var messageCount: Int32
+        public struct GetOk: AMQPMethodProtocol {
+            private(set) var deliveryTag: Int64
+            private(set) var redelivered: Bool = false
+            private(set) var exchange: String
+            private(set) var routingKey: String
+            private(set) var messageCount: Int32
 
-           public var amqpClassId: UInt16 { 60 }
-           public var amqpMethodId: UInt16 { 71 }
-           public var amqpName: String { "basic.get-ok" }
+            public var amqpClassId: UInt16 { 60 }
+            public var amqpMethodId: UInt16 { 71 }
+            public var amqpName: String { "basic.get-ok" }
         }
 
-        public struct GetEmpty : AMQPMethodProtocol {
-           private(set) var clusterId: String = ""
+        public struct GetEmpty: AMQPMethodProtocol {
+            private(set) var clusterId: String = ""
 
-           public var amqpClassId: UInt16 { 60 }
-           public var amqpMethodId: UInt16 { 72 }
-           public var amqpName: String { "basic.get-empty" }
+            public var amqpClassId: UInt16 { 60 }
+            public var amqpMethodId: UInt16 { 72 }
+            public var amqpName: String { "basic.get-empty" }
         }
 
-        public struct Ack : AMQPMethodProtocol {
-           private(set) var deliveryTag: Int64 = 0
-           private(set) var multiple: Bool = false
+        public struct Ack: AMQPMethodProtocol {
+            private(set) var deliveryTag: Int64 = 0
+            private(set) var multiple: Bool = false
 
-           public var amqpClassId: UInt16 { 60 }
-           public var amqpMethodId: UInt16 { 80 }
-           public var amqpName: String { "basic.ack" }
+            public var amqpClassId: UInt16 { 60 }
+            public var amqpMethodId: UInt16 { 80 }
+            public var amqpName: String { "basic.ack" }
         }
 
-        public struct Reject : AMQPMethodProtocol {
-           private(set) var deliveryTag: Int64
-           private(set) var requeue: Bool = true
+        public struct Reject: AMQPMethodProtocol {
+            private(set) var deliveryTag: Int64
+            private(set) var requeue: Bool = true
 
-           public var amqpClassId: UInt16 { 60 }
-           public var amqpMethodId: UInt16 { 90 }
-           public var amqpName: String { "basic.reject" }
+            public var amqpClassId: UInt16 { 60 }
+            public var amqpMethodId: UInt16 { 90 }
+            public var amqpName: String { "basic.reject" }
         }
 
-        public struct RecoverAsync : AMQPMethodProtocol {
-           private(set) var requeue: Bool = false
+        public struct RecoverAsync: AMQPMethodProtocol {
+            private(set) var requeue: Bool = false
 
-           public var amqpClassId: UInt16 { 60 }
-           public var amqpMethodId: UInt16 { 100 }
-           public var amqpName: String { "basic.recover-async" }
+            public var amqpClassId: UInt16 { 60 }
+            public var amqpMethodId: UInt16 { 100 }
+            public var amqpName: String { "basic.recover-async" }
         }
 
-        public struct Recover : AMQPMethodProtocol {
-           private(set) var requeue: Bool = false
+        public struct Recover: AMQPMethodProtocol {
+            private(set) var requeue: Bool = false
 
-           public var amqpClassId: UInt16 { 60 }
-           public var amqpMethodId: UInt16 { 110 }
-           public var amqpName: String { "basic.recover" }
+            public var amqpClassId: UInt16 { 60 }
+            public var amqpMethodId: UInt16 { 110 }
+            public var amqpName: String { "basic.recover" }
         }
 
-        public struct RecoverOk : AMQPMethodProtocol {
+        public struct RecoverOk: AMQPMethodProtocol {
 
-           public var amqpClassId: UInt16 { 60 }
-           public var amqpMethodId: UInt16 { 111 }
-           public var amqpName: String { "basic.recover-ok" }
+            public var amqpClassId: UInt16 { 60 }
+            public var amqpMethodId: UInt16 { 111 }
+            public var amqpName: String { "basic.recover-ok" }
         }
 
-        public struct Nack : AMQPMethodProtocol {
-           private(set) var deliveryTag: Int64 = 0
-           private(set) var multiple: Bool = false
-           private(set) var requeue: Bool = true
+        public struct Nack: AMQPMethodProtocol {
+            private(set) var deliveryTag: Int64 = 0
+            private(set) var multiple: Bool = false
+            private(set) var requeue: Bool = true
 
-           public var amqpClassId: UInt16 { 60 }
-           public var amqpMethodId: UInt16 { 120 }
-           public var amqpName: String { "basic.nack" }
+            public var amqpClassId: UInt16 { 60 }
+            public var amqpMethodId: UInt16 { 120 }
+            public var amqpName: String { "basic.nack" }
         }
     }
 
-    public struct Connection : AMQPClassProtocol {
+    public struct Connection: AMQPClassProtocol {
         public var amqpClassId: UInt16 { 10 }
         public var amqpName: String { "connection" }
 
-        public struct Start : AMQPMethodProtocol {
-           private(set) var versionMajor: Int8 = 0
-           private(set) var versionMinor: Int8 = 9
-           private(set) var serverProperties: [String: FieldValue]
-           private(set) var mechanisms: String = "PLAIN"
-           private(set) var locales: String = "en_US"
+        public struct Start: AMQPMethodProtocol {
+            private(set) var versionMajor: Int8 = 0
+            private(set) var versionMinor: Int8 = 9
+            private(set) var serverProperties: [String: FieldValue]
+            private(set) var mechanisms: String = "PLAIN"
+            private(set) var locales: String = "en_US"
 
-           public var amqpClassId: UInt16 { 10 }
-           public var amqpMethodId: UInt16 { 10 }
-           public var amqpName: String { "connection.start" }
+            public var amqpClassId: UInt16 { 10 }
+            public var amqpMethodId: UInt16 { 10 }
+            public var amqpName: String { "connection.start" }
         }
 
-        public struct StartOk : AMQPMethodProtocol {
-           private(set) var clientProperties: [String: FieldValue]
-           private(set) var mechanism: String = "PLAIN"
-           private(set) var response: String
-           private(set) var locale: String = "en_US"
+        public struct StartOk: AMQPMethodProtocol {
+            private(set) var clientProperties: [String: FieldValue]
+            private(set) var mechanism: String = "PLAIN"
+            private(set) var response: String
+            private(set) var locale: String = "en_US"
 
-           public var amqpClassId: UInt16 { 10 }
-           public var amqpMethodId: UInt16 { 11 }
-           public var amqpName: String { "connection.start-ok" }
+            public var amqpClassId: UInt16 { 10 }
+            public var amqpMethodId: UInt16 { 11 }
+            public var amqpName: String { "connection.start-ok" }
         }
 
-        public struct Secure : AMQPMethodProtocol {
-           private(set) var challenge: String
+        public struct Secure: AMQPMethodProtocol {
+            private(set) var challenge: String
 
-           public var amqpClassId: UInt16 { 10 }
-           public var amqpMethodId: UInt16 { 20 }
-           public var amqpName: String { "connection.secure" }
+            public var amqpClassId: UInt16 { 10 }
+            public var amqpMethodId: UInt16 { 20 }
+            public var amqpName: String { "connection.secure" }
         }
 
-        public struct SecureOk : AMQPMethodProtocol {
-           private(set) var response: String
+        public struct SecureOk: AMQPMethodProtocol {
+            private(set) var response: String
 
-           public var amqpClassId: UInt16 { 10 }
-           public var amqpMethodId: UInt16 { 21 }
-           public var amqpName: String { "connection.secure-ok" }
+            public var amqpClassId: UInt16 { 10 }
+            public var amqpMethodId: UInt16 { 21 }
+            public var amqpName: String { "connection.secure-ok" }
         }
 
-        public struct Tune : AMQPMethodProtocol {
-           private(set) var channelMax: Int16 = 0
-           private(set) var frameMax: Int32 = 0
-           private(set) var heartbeat: Int16 = 0
+        public struct Tune: AMQPMethodProtocol {
+            private(set) var channelMax: Int16 = 0
+            private(set) var frameMax: Int32 = 0
+            private(set) var heartbeat: Int16 = 0
 
-           public var amqpClassId: UInt16 { 10 }
-           public var amqpMethodId: UInt16 { 30 }
-           public var amqpName: String { "connection.tune" }
+            public var amqpClassId: UInt16 { 10 }
+            public var amqpMethodId: UInt16 { 30 }
+            public var amqpName: String { "connection.tune" }
         }
 
-        public struct TuneOk : AMQPMethodProtocol {
-           private(set) var channelMax: Int16 = 0
-           private(set) var frameMax: Int32 = 0
-           private(set) var heartbeat: Int16 = 0
+        public struct TuneOk: AMQPMethodProtocol {
+            private(set) var channelMax: Int16 = 0
+            private(set) var frameMax: Int32 = 0
+            private(set) var heartbeat: Int16 = 0
 
-           public var amqpClassId: UInt16 { 10 }
-           public var amqpMethodId: UInt16 { 31 }
-           public var amqpName: String { "connection.tune-ok" }
+            public var amqpClassId: UInt16 { 10 }
+            public var amqpMethodId: UInt16 { 31 }
+            public var amqpName: String { "connection.tune-ok" }
         }
 
-        public struct Open : AMQPMethodProtocol {
-           private(set) var virtualHost: String = "/"
-           private(set) var capabilities: String = ""
-           private(set) var insist: Bool = false
+        public struct Open: AMQPMethodProtocol {
+            private(set) var virtualHost: String = "/"
+            private(set) var capabilities: String = ""
+            private(set) var insist: Bool = false
 
-           public var amqpClassId: UInt16 { 10 }
-           public var amqpMethodId: UInt16 { 40 }
-           public var amqpName: String { "connection.open" }
+            public var amqpClassId: UInt16 { 10 }
+            public var amqpMethodId: UInt16 { 40 }
+            public var amqpName: String { "connection.open" }
         }
 
-        public struct OpenOk : AMQPMethodProtocol {
-           private(set) var knownHosts: String = ""
+        public struct OpenOk: AMQPMethodProtocol {
+            private(set) var knownHosts: String = ""
 
-           public var amqpClassId: UInt16 { 10 }
-           public var amqpMethodId: UInt16 { 41 }
-           public var amqpName: String { "connection.open-ok" }
+            public var amqpClassId: UInt16 { 10 }
+            public var amqpMethodId: UInt16 { 41 }
+            public var amqpName: String { "connection.open-ok" }
         }
 
-        public struct Close : AMQPMethodProtocol {
-           private(set) var replyCode: Int16
-           private(set) var replyText: String = ""
-           private(set) var classId: Int16
-           private(set) var methodId: Int16
+        public struct Close: AMQPMethodProtocol {
+            private(set) var replyCode: Int16
+            private(set) var replyText: String = ""
+            private(set) var classId: Int16
+            private(set) var methodId: Int16
 
-           public var amqpClassId: UInt16 { 10 }
-           public var amqpMethodId: UInt16 { 50 }
-           public var amqpName: String { "connection.close" }
+            public var amqpClassId: UInt16 { 10 }
+            public var amqpMethodId: UInt16 { 50 }
+            public var amqpName: String { "connection.close" }
         }
 
-        public struct CloseOk : AMQPMethodProtocol {
+        public struct CloseOk: AMQPMethodProtocol {
 
-           public var amqpClassId: UInt16 { 10 }
-           public var amqpMethodId: UInt16 { 51 }
-           public var amqpName: String { "connection.close-ok" }
+            public var amqpClassId: UInt16 { 10 }
+            public var amqpMethodId: UInt16 { 51 }
+            public var amqpName: String { "connection.close-ok" }
         }
 
-        public struct Blocked : AMQPMethodProtocol {
-           private(set) var reason: String = ""
+        public struct Blocked: AMQPMethodProtocol {
+            private(set) var reason: String = ""
 
-           public var amqpClassId: UInt16 { 10 }
-           public var amqpMethodId: UInt16 { 60 }
-           public var amqpName: String { "connection.blocked" }
+            public var amqpClassId: UInt16 { 10 }
+            public var amqpMethodId: UInt16 { 60 }
+            public var amqpName: String { "connection.blocked" }
         }
 
-        public struct Unblocked : AMQPMethodProtocol {
+        public struct Unblocked: AMQPMethodProtocol {
 
-           public var amqpClassId: UInt16 { 10 }
-           public var amqpMethodId: UInt16 { 61 }
-           public var amqpName: String { "connection.unblocked" }
+            public var amqpClassId: UInt16 { 10 }
+            public var amqpMethodId: UInt16 { 61 }
+            public var amqpName: String { "connection.unblocked" }
         }
 
-        public struct UpdateSecret : AMQPMethodProtocol {
-           private(set) var newSecret: String
-           private(set) var reason: String
+        public struct UpdateSecret: AMQPMethodProtocol {
+            private(set) var newSecret: String
+            private(set) var reason: String
 
-           public var amqpClassId: UInt16 { 10 }
-           public var amqpMethodId: UInt16 { 70 }
-           public var amqpName: String { "connection.update-secret" }
+            public var amqpClassId: UInt16 { 10 }
+            public var amqpMethodId: UInt16 { 70 }
+            public var amqpName: String { "connection.update-secret" }
         }
 
-        public struct UpdateSecretOk : AMQPMethodProtocol {
+        public struct UpdateSecretOk: AMQPMethodProtocol {
 
-           public var amqpClassId: UInt16 { 10 }
-           public var amqpMethodId: UInt16 { 71 }
-           public var amqpName: String { "connection.update-secret-ok" }
+            public var amqpClassId: UInt16 { 10 }
+            public var amqpMethodId: UInt16 { 71 }
+            public var amqpName: String { "connection.update-secret-ok" }
         }
     }
 
-    public struct Channel : AMQPClassProtocol {
+    public struct Channel: AMQPClassProtocol {
         public var amqpClassId: UInt16 { 20 }
         public var amqpName: String { "channel" }
 
-        public struct Open : AMQPMethodProtocol {
-           private(set) var outOfBand: String = ""
+        public struct Open: AMQPMethodProtocol {
+            private(set) var outOfBand: String = ""
 
-           public var amqpClassId: UInt16 { 20 }
-           public var amqpMethodId: UInt16 { 10 }
-           public var amqpName: String { "channel.open" }
+            public var amqpClassId: UInt16 { 20 }
+            public var amqpMethodId: UInt16 { 10 }
+            public var amqpName: String { "channel.open" }
         }
 
-        public struct OpenOk : AMQPMethodProtocol {
-           private(set) var channelId: String = ""
+        public struct OpenOk: AMQPMethodProtocol {
+            private(set) var channelId: String = ""
 
-           public var amqpClassId: UInt16 { 20 }
-           public var amqpMethodId: UInt16 { 11 }
-           public var amqpName: String { "channel.open-ok" }
+            public var amqpClassId: UInt16 { 20 }
+            public var amqpMethodId: UInt16 { 11 }
+            public var amqpName: String { "channel.open-ok" }
         }
 
-        public struct Flow : AMQPMethodProtocol {
-           private(set) var active: Bool
+        public struct Flow: AMQPMethodProtocol {
+            private(set) var active: Bool
 
-           public var amqpClassId: UInt16 { 20 }
-           public var amqpMethodId: UInt16 { 20 }
-           public var amqpName: String { "channel.flow" }
+            public var amqpClassId: UInt16 { 20 }
+            public var amqpMethodId: UInt16 { 20 }
+            public var amqpName: String { "channel.flow" }
         }
 
-        public struct FlowOk : AMQPMethodProtocol {
-           private(set) var active: Bool
+        public struct FlowOk: AMQPMethodProtocol {
+            private(set) var active: Bool
 
-           public var amqpClassId: UInt16 { 20 }
-           public var amqpMethodId: UInt16 { 21 }
-           public var amqpName: String { "channel.flow-ok" }
+            public var amqpClassId: UInt16 { 20 }
+            public var amqpMethodId: UInt16 { 21 }
+            public var amqpName: String { "channel.flow-ok" }
         }
 
-        public struct Close : AMQPMethodProtocol {
-           private(set) var replyCode: Int16
-           private(set) var replyText: String = ""
-           private(set) var classId: Int16
-           private(set) var methodId: Int16
+        public struct Close: AMQPMethodProtocol {
+            private(set) var replyCode: Int16
+            private(set) var replyText: String = ""
+            private(set) var classId: Int16
+            private(set) var methodId: Int16
 
-           public var amqpClassId: UInt16 { 20 }
-           public var amqpMethodId: UInt16 { 40 }
-           public var amqpName: String { "channel.close" }
+            public var amqpClassId: UInt16 { 20 }
+            public var amqpMethodId: UInt16 { 40 }
+            public var amqpName: String { "channel.close" }
         }
 
-        public struct CloseOk : AMQPMethodProtocol {
+        public struct CloseOk: AMQPMethodProtocol {
 
-           public var amqpClassId: UInt16 { 20 }
-           public var amqpMethodId: UInt16 { 41 }
-           public var amqpName: String { "channel.close-ok" }
+            public var amqpClassId: UInt16 { 20 }
+            public var amqpMethodId: UInt16 { 41 }
+            public var amqpName: String { "channel.close-ok" }
         }
     }
 
-    public struct Access : AMQPClassProtocol {
+    public struct Access: AMQPClassProtocol {
         public var amqpClassId: UInt16 { 30 }
         public var amqpName: String { "access" }
 
-        public struct Request : AMQPMethodProtocol {
-           private(set) var realm: String = "/data"
-           private(set) var exclusive: Bool = false
-           private(set) var passive: Bool = true
-           private(set) var active: Bool = true
-           private(set) var write: Bool = true
-           private(set) var read: Bool = true
+        public struct Request: AMQPMethodProtocol {
+            private(set) var realm: String = "/data"
+            private(set) var exclusive: Bool = false
+            private(set) var passive: Bool = true
+            private(set) var active: Bool = true
+            private(set) var write: Bool = true
+            private(set) var read: Bool = true
 
-           public var amqpClassId: UInt16 { 30 }
-           public var amqpMethodId: UInt16 { 10 }
-           public var amqpName: String { "access.request" }
+            public var amqpClassId: UInt16 { 30 }
+            public var amqpMethodId: UInt16 { 10 }
+            public var amqpName: String { "access.request" }
         }
 
-        public struct RequestOk : AMQPMethodProtocol {
-           private(set) var ticket: Int16 = 1
+        public struct RequestOk: AMQPMethodProtocol {
+            private(set) var ticket: Int16 = 1
 
-           public var amqpClassId: UInt16 { 30 }
-           public var amqpMethodId: UInt16 { 11 }
-           public var amqpName: String { "access.request-ok" }
+            public var amqpClassId: UInt16 { 30 }
+            public var amqpMethodId: UInt16 { 11 }
+            public var amqpName: String { "access.request-ok" }
         }
     }
 
-    public struct Exchange : AMQPClassProtocol {
+    public struct Exchange: AMQPClassProtocol {
         public var amqpClassId: UInt16 { 40 }
         public var amqpName: String { "exchange" }
 
-        public struct Declare : AMQPMethodProtocol {
-           private(set) var ticket: Int16 = 0
-           private(set) var exchange: String
-           private(set) var type: String = "direct"
-           private(set) var passive: Bool = false
-           private(set) var durable: Bool = false
-           private(set) var autoDelete: Bool = false
-           private(set) var `internal`: Bool = false
-           private(set) var nowait: Bool = false
-           private(set) var arguments: [String: FieldValue] = [:]
+        public struct Declare: AMQPMethodProtocol {
+            private(set) var ticket: Int16 = 0
+            private(set) var exchange: String
+            private(set) var type: String = "direct"
+            private(set) var passive: Bool = false
+            private(set) var durable: Bool = false
+            private(set) var autoDelete: Bool = false
+            private(set) var `internal`: Bool = false
+            private(set) var nowait: Bool = false
+            private(set) var arguments: [String: FieldValue] = [:]
 
-           public var amqpClassId: UInt16 { 40 }
-           public var amqpMethodId: UInt16 { 10 }
-           public var amqpName: String { "exchange.declare" }
+            public var amqpClassId: UInt16 { 40 }
+            public var amqpMethodId: UInt16 { 10 }
+            public var amqpName: String { "exchange.declare" }
         }
 
-        public struct DeclareOk : AMQPMethodProtocol {
+        public struct DeclareOk: AMQPMethodProtocol {
 
-           public var amqpClassId: UInt16 { 40 }
-           public var amqpMethodId: UInt16 { 11 }
-           public var amqpName: String { "exchange.declare-ok" }
+            public var amqpClassId: UInt16 { 40 }
+            public var amqpMethodId: UInt16 { 11 }
+            public var amqpName: String { "exchange.declare-ok" }
         }
 
-        public struct Delete : AMQPMethodProtocol {
-           private(set) var ticket: Int16 = 0
-           private(set) var exchange: String
-           private(set) var ifUnused: Bool = false
-           private(set) var nowait: Bool = false
+        public struct Delete: AMQPMethodProtocol {
+            private(set) var ticket: Int16 = 0
+            private(set) var exchange: String
+            private(set) var ifUnused: Bool = false
+            private(set) var nowait: Bool = false
 
-           public var amqpClassId: UInt16 { 40 }
-           public var amqpMethodId: UInt16 { 20 }
-           public var amqpName: String { "exchange.delete" }
+            public var amqpClassId: UInt16 { 40 }
+            public var amqpMethodId: UInt16 { 20 }
+            public var amqpName: String { "exchange.delete" }
         }
 
-        public struct DeleteOk : AMQPMethodProtocol {
+        public struct DeleteOk: AMQPMethodProtocol {
 
-           public var amqpClassId: UInt16 { 40 }
-           public var amqpMethodId: UInt16 { 21 }
-           public var amqpName: String { "exchange.delete-ok" }
+            public var amqpClassId: UInt16 { 40 }
+            public var amqpMethodId: UInt16 { 21 }
+            public var amqpName: String { "exchange.delete-ok" }
         }
 
-        public struct Bind : AMQPMethodProtocol {
-           private(set) var ticket: Int16 = 0
-           private(set) var destination: String
-           private(set) var source: String
-           private(set) var routingKey: String = ""
-           private(set) var nowait: Bool = false
-           private(set) var arguments: [String: FieldValue] = [:]
+        public struct Bind: AMQPMethodProtocol {
+            private(set) var ticket: Int16 = 0
+            private(set) var destination: String
+            private(set) var source: String
+            private(set) var routingKey: String = ""
+            private(set) var nowait: Bool = false
+            private(set) var arguments: [String: FieldValue] = [:]
 
-           public var amqpClassId: UInt16 { 40 }
-           public var amqpMethodId: UInt16 { 30 }
-           public var amqpName: String { "exchange.bind" }
+            public var amqpClassId: UInt16 { 40 }
+            public var amqpMethodId: UInt16 { 30 }
+            public var amqpName: String { "exchange.bind" }
         }
 
-        public struct BindOk : AMQPMethodProtocol {
+        public struct BindOk: AMQPMethodProtocol {
 
-           public var amqpClassId: UInt16 { 40 }
-           public var amqpMethodId: UInt16 { 31 }
-           public var amqpName: String { "exchange.bind-ok" }
+            public var amqpClassId: UInt16 { 40 }
+            public var amqpMethodId: UInt16 { 31 }
+            public var amqpName: String { "exchange.bind-ok" }
         }
 
-        public struct Unbind : AMQPMethodProtocol {
-           private(set) var ticket: Int16 = 0
-           private(set) var destination: String
-           private(set) var source: String
-           private(set) var routingKey: String = ""
-           private(set) var nowait: Bool = false
-           private(set) var arguments: [String: FieldValue] = [:]
+        public struct Unbind: AMQPMethodProtocol {
+            private(set) var ticket: Int16 = 0
+            private(set) var destination: String
+            private(set) var source: String
+            private(set) var routingKey: String = ""
+            private(set) var nowait: Bool = false
+            private(set) var arguments: [String: FieldValue] = [:]
 
-           public var amqpClassId: UInt16 { 40 }
-           public var amqpMethodId: UInt16 { 40 }
-           public var amqpName: String { "exchange.unbind" }
+            public var amqpClassId: UInt16 { 40 }
+            public var amqpMethodId: UInt16 { 40 }
+            public var amqpName: String { "exchange.unbind" }
         }
 
-        public struct UnbindOk : AMQPMethodProtocol {
+        public struct UnbindOk: AMQPMethodProtocol {
 
-           public var amqpClassId: UInt16 { 40 }
-           public var amqpMethodId: UInt16 { 51 }
-           public var amqpName: String { "exchange.unbind-ok" }
+            public var amqpClassId: UInt16 { 40 }
+            public var amqpMethodId: UInt16 { 51 }
+            public var amqpName: String { "exchange.unbind-ok" }
         }
     }
 
-    public struct Queue : AMQPClassProtocol {
+    public struct Queue: AMQPClassProtocol {
         public var amqpClassId: UInt16 { 50 }
         public var amqpName: String { "queue" }
 
-        public struct Declare : AMQPMethodProtocol {
-           private(set) var ticket: Int16 = 0
-           private(set) var queue: String = ""
-           private(set) var passive: Bool = false
-           private(set) var durable: Bool = false
-           private(set) var exclusive: Bool = false
-           private(set) var autoDelete: Bool = false
-           private(set) var nowait: Bool = false
-           private(set) var arguments: [String: FieldValue] = [:]
+        public struct Declare: AMQPMethodProtocol {
+            private(set) var ticket: Int16 = 0
+            private(set) var queue: String = ""
+            private(set) var passive: Bool = false
+            private(set) var durable: Bool = false
+            private(set) var exclusive: Bool = false
+            private(set) var autoDelete: Bool = false
+            private(set) var nowait: Bool = false
+            private(set) var arguments: [String: FieldValue] = [:]
 
-           public var amqpClassId: UInt16 { 50 }
-           public var amqpMethodId: UInt16 { 10 }
-           public var amqpName: String { "queue.declare" }
+            public var amqpClassId: UInt16 { 50 }
+            public var amqpMethodId: UInt16 { 10 }
+            public var amqpName: String { "queue.declare" }
         }
 
-        public struct DeclareOk : AMQPMethodProtocol {
-           private(set) var queue: String
-           private(set) var messageCount: Int32
-           private(set) var consumerCount: Int32
+        public struct DeclareOk: AMQPMethodProtocol {
+            private(set) var queue: String
+            private(set) var messageCount: Int32
+            private(set) var consumerCount: Int32
 
-           public var amqpClassId: UInt16 { 50 }
-           public var amqpMethodId: UInt16 { 11 }
-           public var amqpName: String { "queue.declare-ok" }
+            public var amqpClassId: UInt16 { 50 }
+            public var amqpMethodId: UInt16 { 11 }
+            public var amqpName: String { "queue.declare-ok" }
         }
 
-        public struct Bind : AMQPMethodProtocol {
-           private(set) var ticket: Int16 = 0
-           private(set) var queue: String = ""
-           private(set) var exchange: String
-           private(set) var routingKey: String = ""
-           private(set) var nowait: Bool = false
-           private(set) var arguments: [String: FieldValue] = [:]
+        public struct Bind: AMQPMethodProtocol {
+            private(set) var ticket: Int16 = 0
+            private(set) var queue: String = ""
+            private(set) var exchange: String
+            private(set) var routingKey: String = ""
+            private(set) var nowait: Bool = false
+            private(set) var arguments: [String: FieldValue] = [:]
 
-           public var amqpClassId: UInt16 { 50 }
-           public var amqpMethodId: UInt16 { 20 }
-           public var amqpName: String { "queue.bind" }
+            public var amqpClassId: UInt16 { 50 }
+            public var amqpMethodId: UInt16 { 20 }
+            public var amqpName: String { "queue.bind" }
         }
 
-        public struct BindOk : AMQPMethodProtocol {
+        public struct BindOk: AMQPMethodProtocol {
 
-           public var amqpClassId: UInt16 { 50 }
-           public var amqpMethodId: UInt16 { 21 }
-           public var amqpName: String { "queue.bind-ok" }
+            public var amqpClassId: UInt16 { 50 }
+            public var amqpMethodId: UInt16 { 21 }
+            public var amqpName: String { "queue.bind-ok" }
         }
 
-        public struct Purge : AMQPMethodProtocol {
-           private(set) var ticket: Int16 = 0
-           private(set) var queue: String = ""
-           private(set) var nowait: Bool = false
+        public struct Purge: AMQPMethodProtocol {
+            private(set) var ticket: Int16 = 0
+            private(set) var queue: String = ""
+            private(set) var nowait: Bool = false
 
-           public var amqpClassId: UInt16 { 50 }
-           public var amqpMethodId: UInt16 { 30 }
-           public var amqpName: String { "queue.purge" }
+            public var amqpClassId: UInt16 { 50 }
+            public var amqpMethodId: UInt16 { 30 }
+            public var amqpName: String { "queue.purge" }
         }
 
-        public struct PurgeOk : AMQPMethodProtocol {
-           private(set) var messageCount: Int32
+        public struct PurgeOk: AMQPMethodProtocol {
+            private(set) var messageCount: Int32
 
-           public var amqpClassId: UInt16 { 50 }
-           public var amqpMethodId: UInt16 { 31 }
-           public var amqpName: String { "queue.purge-ok" }
+            public var amqpClassId: UInt16 { 50 }
+            public var amqpMethodId: UInt16 { 31 }
+            public var amqpName: String { "queue.purge-ok" }
         }
 
-        public struct Delete : AMQPMethodProtocol {
-           private(set) var ticket: Int16 = 0
-           private(set) var queue: String = ""
-           private(set) var ifUnused: Bool = false
-           private(set) var ifEmpty: Bool = false
-           private(set) var nowait: Bool = false
+        public struct Delete: AMQPMethodProtocol {
+            private(set) var ticket: Int16 = 0
+            private(set) var queue: String = ""
+            private(set) var ifUnused: Bool = false
+            private(set) var ifEmpty: Bool = false
+            private(set) var nowait: Bool = false
 
-           public var amqpClassId: UInt16 { 50 }
-           public var amqpMethodId: UInt16 { 40 }
-           public var amqpName: String { "queue.delete" }
+            public var amqpClassId: UInt16 { 50 }
+            public var amqpMethodId: UInt16 { 40 }
+            public var amqpName: String { "queue.delete" }
         }
 
-        public struct DeleteOk : AMQPMethodProtocol {
-           private(set) var messageCount: Int32
+        public struct DeleteOk: AMQPMethodProtocol {
+            private(set) var messageCount: Int32
 
-           public var amqpClassId: UInt16 { 50 }
-           public var amqpMethodId: UInt16 { 41 }
-           public var amqpName: String { "queue.delete-ok" }
+            public var amqpClassId: UInt16 { 50 }
+            public var amqpMethodId: UInt16 { 41 }
+            public var amqpName: String { "queue.delete-ok" }
         }
 
-        public struct Unbind : AMQPMethodProtocol {
-           private(set) var ticket: Int16 = 0
-           private(set) var queue: String = ""
-           private(set) var exchange: String
-           private(set) var routingKey: String = ""
-           private(set) var arguments: [String: FieldValue] = [:]
+        public struct Unbind: AMQPMethodProtocol {
+            private(set) var ticket: Int16 = 0
+            private(set) var queue: String = ""
+            private(set) var exchange: String
+            private(set) var routingKey: String = ""
+            private(set) var arguments: [String: FieldValue] = [:]
 
-           public var amqpClassId: UInt16 { 50 }
-           public var amqpMethodId: UInt16 { 50 }
-           public var amqpName: String { "queue.unbind" }
+            public var amqpClassId: UInt16 { 50 }
+            public var amqpMethodId: UInt16 { 50 }
+            public var amqpName: String { "queue.unbind" }
         }
 
-        public struct UnbindOk : AMQPMethodProtocol {
+        public struct UnbindOk: AMQPMethodProtocol {
 
-           public var amqpClassId: UInt16 { 50 }
-           public var amqpMethodId: UInt16 { 51 }
-           public var amqpName: String { "queue.unbind-ok" }
+            public var amqpClassId: UInt16 { 50 }
+            public var amqpMethodId: UInt16 { 51 }
+            public var amqpName: String { "queue.unbind-ok" }
         }
     }
 
-    public struct Tx : AMQPClassProtocol {
+    public struct Tx: AMQPClassProtocol {
         public var amqpClassId: UInt16 { 90 }
         public var amqpName: String { "tx" }
 
-        public struct Select : AMQPMethodProtocol {
+        public struct Select: AMQPMethodProtocol {
 
-           public var amqpClassId: UInt16 { 90 }
-           public var amqpMethodId: UInt16 { 10 }
-           public var amqpName: String { "tx.select" }
+            public var amqpClassId: UInt16 { 90 }
+            public var amqpMethodId: UInt16 { 10 }
+            public var amqpName: String { "tx.select" }
         }
 
-        public struct SelectOk : AMQPMethodProtocol {
+        public struct SelectOk: AMQPMethodProtocol {
 
-           public var amqpClassId: UInt16 { 90 }
-           public var amqpMethodId: UInt16 { 11 }
-           public var amqpName: String { "tx.select-ok" }
+            public var amqpClassId: UInt16 { 90 }
+            public var amqpMethodId: UInt16 { 11 }
+            public var amqpName: String { "tx.select-ok" }
         }
 
-        public struct Commit : AMQPMethodProtocol {
+        public struct Commit: AMQPMethodProtocol {
 
-           public var amqpClassId: UInt16 { 90 }
-           public var amqpMethodId: UInt16 { 20 }
-           public var amqpName: String { "tx.commit" }
+            public var amqpClassId: UInt16 { 90 }
+            public var amqpMethodId: UInt16 { 20 }
+            public var amqpName: String { "tx.commit" }
         }
 
-        public struct CommitOk : AMQPMethodProtocol {
+        public struct CommitOk: AMQPMethodProtocol {
 
-           public var amqpClassId: UInt16 { 90 }
-           public var amqpMethodId: UInt16 { 21 }
-           public var amqpName: String { "tx.commit-ok" }
+            public var amqpClassId: UInt16 { 90 }
+            public var amqpMethodId: UInt16 { 21 }
+            public var amqpName: String { "tx.commit-ok" }
         }
 
-        public struct Rollback : AMQPMethodProtocol {
+        public struct Rollback: AMQPMethodProtocol {
 
-           public var amqpClassId: UInt16 { 90 }
-           public var amqpMethodId: UInt16 { 30 }
-           public var amqpName: String { "tx.rollback" }
+            public var amqpClassId: UInt16 { 90 }
+            public var amqpMethodId: UInt16 { 30 }
+            public var amqpName: String { "tx.rollback" }
         }
 
-        public struct RollbackOk : AMQPMethodProtocol {
+        public struct RollbackOk: AMQPMethodProtocol {
 
-           public var amqpClassId: UInt16 { 90 }
-           public var amqpMethodId: UInt16 { 31 }
-           public var amqpName: String { "tx.rollback-ok" }
+            public var amqpClassId: UInt16 { 90 }
+            public var amqpMethodId: UInt16 { 31 }
+            public var amqpName: String { "tx.rollback-ok" }
         }
     }
 
-    public struct Confirm : AMQPClassProtocol {
+    public struct Confirm: AMQPClassProtocol {
         public var amqpClassId: UInt16 { 85 }
         public var amqpName: String { "confirm" }
 
-        public struct Select : AMQPMethodProtocol {
-           private(set) var nowait: Bool = false
+        public struct Select: AMQPMethodProtocol {
+            private(set) var nowait: Bool = false
 
-           public var amqpClassId: UInt16 { 85 }
-           public var amqpMethodId: UInt16 { 10 }
-           public var amqpName: String { "confirm.select" }
+            public var amqpClassId: UInt16 { 85 }
+            public var amqpMethodId: UInt16 { 10 }
+            public var amqpName: String { "confirm.select" }
         }
 
-        public struct SelectOk : AMQPMethodProtocol {
+        public struct SelectOk: AMQPMethodProtocol {
 
-           public var amqpClassId: UInt16 { 85 }
-           public var amqpMethodId: UInt16 { 11 }
-           public var amqpName: String { "confirm.select-ok" }
+            public var amqpClassId: UInt16 { 85 }
+            public var amqpMethodId: UInt16 { 11 }
+            public var amqpName: String { "confirm.select-ok" }
         }
     }
 
-    public struct BasicProperties : AMQPPropertiesProtocol {
+    public struct BasicProperties: AMQPPropertiesProtocol {
         private(set) var contentType: String
         private(set) var contentEncoding: String
         private(set) var headers: [String: FieldValue]
