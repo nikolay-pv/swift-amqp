@@ -5,7 +5,6 @@
 //  Created by Nikolay Petrov on 28.09.2024.
 //
 
-
 protocol AMQPTransportProtocol {
     func connect() throws
     func close()

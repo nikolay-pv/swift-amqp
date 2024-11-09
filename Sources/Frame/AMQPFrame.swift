@@ -26,9 +26,7 @@ extension AMQPFrame: AMQPCodable {
             let methodId = try decoder.decode(UInt16.self)
             let factory = try AMQP.makeFactory(with: classId, and: methodId)
             payload = try factory(decoder)
-        case AMQP.FrameHeader: fallthrough
-        case AMQP.FrameBody: fallthrough
-        case AMQP.FrameHeartbeat:
+        case AMQP.FrameHeader, AMQP.FrameBody, AMQP.FrameHeartbeat:
             fatalError("Not implemented yet")
         default: throw AMQPError.DecodingError.unknownFrameType(type)
         }

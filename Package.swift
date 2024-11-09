@@ -8,18 +8,22 @@ let package = Package(
     products: [
         .library(
             name: "AMQP",
-            targets: ["AMQP"]),
+            targets: ["AMQP"]
+        )
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-nio.git", .upToNextMajor(from: "2.67.0")),
-        .package(url: "https://github.com/apple/swift-collections.git", .upToNextMajor(from: "1.1.0")),
+        .package(
+            url: "https://github.com/apple/swift-collections.git",
+            .upToNextMajor(from: "1.1.0")
+        ),
     ],
     targets: [
         .target(
             name: "AMQP",
             dependencies: [
                 .product(name: "NIOCore", package: "swift-nio"),
-                .product(name: "Collections", package: "swift-collections")
+                .product(name: "Collections", package: "swift-collections"),
             ]
         ),
         .testTarget(

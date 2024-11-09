@@ -12,12 +12,4 @@ enum AMQPError {
         case unknownClassAndMethod(class: UInt16, method: UInt16)
         case unknownFrameType(_ type: UInt8)
     }
-//    case invalidFrame
-//    case invalidFrameSize
-//    case invalidFrameField
-//    case invalidFrameFieldValue
-//    case invalidFrameFieldValueLength
-//    case invalidFrameFieldValueEncoding
-//    case invalidFrameFieldValueEncodingLength
-//    case invalidFrameFieldValueEncodingString
 }

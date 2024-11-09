@@ -16,14 +16,14 @@ class FrameDecoder {
     }
 }
 
-fileprivate extension AMQP.FieldValue {
-    static let charToValue: [UInt8: AMQP.FieldValue] = {
+extension AMQP.FieldValue {
+    fileprivate static let charToValue: [UInt8: AMQP.FieldValue] = {
         return Self.allCases.reduce(into: [:]) {
             $0[$1.type] = $1
         }
-    } ()
+    }()
 
-    func decode(from decoder: AMQPDecoder) throws -> Self {
+    fileprivate func decode(from decoder: AMQPDecoder) throws -> Self {
         switch self {
         case .long(_):
             return .long(try decoder.decode(Int32.self))
@@ -44,7 +44,7 @@ fileprivate extension AMQP.FieldValue {
     }
 }
 
-fileprivate class _FrameDecoder: AMQPDecoder {
+private class _FrameDecoder: AMQPDecoder {
     // TODO: any better way?
     private var _data: Data?
     var data: Data {
@@ -62,7 +62,8 @@ fileprivate class _FrameDecoder: AMQPDecoder {
         _data = nil
     }
 
-    func with<T>(data: Data, closure: (AMQPDecoder) throws -> T) throws -> T where T: AMQPDecodable {
+    func with<T>(data: Data, closure: (AMQPDecoder) throws -> T) throws -> T
+    where T: AMQPDecodable {
         self.data = data
         defer { self._reset() }
         return try closure(self)
@@ -78,72 +79,96 @@ fileprivate class _FrameDecoder: AMQPDecoder {
         let offset = 1
         precondition(_position + offset <= data.count)
         defer { _position += offset }
-        return .init(bigEndian: data.subdata(in: _position..<_position + offset).withUnsafeBytes {
-            $0.load(as: type)
-        })
+        return .init(
+            bigEndian: data.subdata(in: _position..<_position + offset)
+                .withUnsafeBytes {
+                    $0.load(as: type)
+                }
+        )
     }
 
     func decode(_ type: Int16.Type) throws -> Int16 {
         let offset = 2
         precondition(_position + offset <= data.count)
         defer { _position += offset }
-        return .init(bigEndian: data.subdata(in: _position..<_position + offset).withUnsafeBytes {
-            $0.load(as: type)
-        })
+        return .init(
+            bigEndian: data.subdata(in: _position..<_position + offset)
+                .withUnsafeBytes {
+                    $0.load(as: type)
+                }
+        )
     }
 
     func decode(_ type: Int32.Type) throws -> Int32 {
         let offset = 4
         precondition(_position + offset <= data.count)
         defer { _position += offset }
-        return .init(bigEndian: data.subdata(in: _position..<_position + offset).withUnsafeBytes {
-            $0.load(as: type)
-        })
+        return .init(
+            bigEndian: data.subdata(in: _position..<_position + offset)
+                .withUnsafeBytes {
+                    $0.load(as: type)
+                }
+        )
     }
 
     func decode(_ type: Int64.Type) throws -> Int64 {
         let offset = 8
         precondition(_position + offset <= data.count)
         defer { _position += offset }
-        return .init(bigEndian: data.subdata(in: _position..<_position + offset).withUnsafeBytes {
-            $0.load(as: type)
-        })
+        return .init(
+            bigEndian: data.subdata(in: _position..<_position + offset)
+                .withUnsafeBytes {
+                    $0.load(as: type)
+                }
+        )
     }
 
     func decode(_ type: UInt8.Type) throws -> UInt8 {
         let offset = 1
         precondition(_position + offset <= data.count)
         defer { _position += offset }
-        return .init(bigEndian: data.subdata(in: _position..<_position + offset).withUnsafeBytes {
-            $0.load(as: type)
-        })
+        return .init(
+            bigEndian: data.subdata(in: _position..<_position + offset)
+                .withUnsafeBytes {
+                    $0.load(as: type)
+                }
+        )
     }
 
     func decode(_ type: UInt16.Type) throws -> UInt16 {
         let offset = 2
         precondition(_position + offset <= data.count)
         defer { _position += offset }
-        return .init(bigEndian: data.subdata(in: _position..<_position + offset).withUnsafeBytes {
-            $0.load(as: type)
-        })
+        return .init(
+            bigEndian: data.subdata(in: _position..<_position + offset)
+                .withUnsafeBytes {
+                    $0.load(as: type)
+                }
+        )
     }
 
     func decode(_ type: UInt32.Type) throws -> UInt32 {
         let offset = 4
         precondition(_position + offset <= data.count)
         defer { _position += offset }
-        return .init(bigEndian: data.subdata(in: _position..<_position + offset).withUnsafeBytes {
-            $0.load(as: type)
-        })
+        return .init(
+            bigEndian: data.subdata(in: _position..<_position + offset)
+                .withUnsafeBytes {
+                    $0.load(as: type)
+                }
+        )
     }
 
     func decode(_ type: UInt64.Type) throws -> UInt64 {
         let offset = 8
         precondition(_position + offset <= data.count)
         defer { _position += offset }
-        return .init(bigEndian: data.subdata(in: _position..<_position + offset).withUnsafeBytes {
-            $0.load(as: type)
-        })
+        return .init(
+            bigEndian: data.subdata(in: _position..<_position + offset)
+                .withUnsafeBytes {
+                    $0.load(as: type)
+                }
+        )
     }
 
     func decode(_ type: Float.Type) throws -> Float {
@@ -168,14 +193,15 @@ fileprivate class _FrameDecoder: AMQPDecoder {
         )
     }
 
-    func decode(_ type: [String : AMQP.FieldValue].Type) throws -> [String : AMQP.FieldValue] {
+    func decode(_ type: [String: AMQP.FieldValue].Type) throws -> [String: AMQP.FieldValue] {
         let count = Int(try decode(UInt32.self))
         defer { _position += count }
-        return try (0..<count).reduce(into: [String : AMQP.FieldValue]()) { d, _ in
-            let key = try decode(String.self, isLong: false)
-            let value = try decode(AMQP.FieldValue.self)
-            d[key] = value
-        }
+        return try (0..<count)
+            .reduce(into: [String: AMQP.FieldValue]()) { d, _ in
+                let key = try decode(String.self, isLong: false)
+                let value = try decode(AMQP.FieldValue.self)
+                d[key] = value
+            }
     }
 
     func decode(_ type: AMQP.FieldValue.Type) throws -> AMQP.FieldValue {

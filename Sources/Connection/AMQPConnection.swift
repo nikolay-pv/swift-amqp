@@ -74,9 +74,6 @@ public actor AMQPConnection {
         channel0 = AMQPChannel(id: 0)
     }
 
-//    deinit {
-//        close()
-//    }
 
     // MARK: - state management
     public enum State: String, Sendable {
@@ -97,7 +94,9 @@ public actor AMQPConnection {
     public var isOpen: Bool { return state == .open }
 
     func start() async throws {
-        guard state.isClosed else { throw AMQPConnectionError.unexpectedState(actual: state, expected: .closed) }
+        guard state.isClosed else {
+            throw AMQPConnectionError.unexpectedState(actual: state, expected: .closed)
+        }
         try transport.connect()
         // do a sequence here
         state = .handshake
@@ -107,8 +106,8 @@ public actor AMQPConnection {
         state = .open
     }
 
-    func close() { }
-    func blockingClose() { }
+    func close() {}
+    func blockingClose() {}
 
     // MARK: - channel management
 
@@ -117,7 +116,9 @@ public actor AMQPConnection {
     private var channelIDs: ChannelIDs = .init()
 
     func makeChannel(id: Int?) async throws -> AMQPChannel {
-        guard isOpen else { throw AMQPConnectionError.unexpectedState(actual: state, expected: .open) }
+        guard isOpen else {
+            throw AMQPConnectionError.unexpectedState(actual: state, expected: .open)
+        }
         // will throw if id is already occupied
         let id = id == nil ? channelIDs.next() : try channelIDs.add(id: id!)
         let channel = AMQPChannel.init(id: id)
@@ -126,6 +127,4 @@ public actor AMQPConnection {
         return channel
     }
 
-//    func updateeSecret(with newSecret: String, reason: String) async {
-//    }
 }

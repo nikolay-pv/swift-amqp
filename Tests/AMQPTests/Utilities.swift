@@ -11,11 +11,9 @@ func fixtureData(for fixture: String) throws -> Data {
     try Data(contentsOf: fixtureUrl(for: fixture))
 }
 
-
 func fixtureUrl(for fixture: String) -> URL {
     fixturesDirectory().appendingPathComponent(fixture)
 }
-
 
 func fixturesDirectory(path: String = #filePath) -> URL {
     let url = URL(fileURLWithPath: path)

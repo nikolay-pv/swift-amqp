@@ -8,70 +8,70 @@
 import Foundation
 
 class FrameEncoder {
-    func encode<T>(_ value: T) throws -> Data where T : AMQPEncodable {
+    func encode<T>(_ value: T) throws -> Data where T: AMQPEncodable {
         let encoder = _FrameEncoder()
         try value.encode(to: encoder)
         return encoder.complete()
     }
 }
 
-fileprivate extension Data {
-    mutating func append(_ value: Int8) {
+extension Data {
+    fileprivate mutating func append(_ value: Int8) {
         Swift.withUnsafeBytes(of: value) {
             append(contentsOf: $0)
         }
     }
 
-    mutating func append(_ value: UInt8) {
+    fileprivate mutating func append(_ value: UInt8) {
         Swift.withUnsafeBytes(of: value) {
             append(contentsOf: $0)
         }
     }
 
-    mutating func append(_ value: Int16) {
+    fileprivate mutating func append(_ value: Int16) {
         Swift.withUnsafeBytes(of: value) {
             append(contentsOf: $0)
         }
     }
 
-    mutating func append(_ value: UInt16) {
+    fileprivate mutating func append(_ value: UInt16) {
         Swift.withUnsafeBytes(of: value) {
             append(contentsOf: $0)
         }
     }
 
-    mutating func append(_ value: Int32) {
+    fileprivate mutating func append(_ value: Int32) {
         Swift.withUnsafeBytes(of: value) {
             append(contentsOf: $0)
         }
     }
 
-    mutating func append(_ value: UInt32) {
+    fileprivate mutating func append(_ value: UInt32) {
         Swift.withUnsafeBytes(of: value) {
             append(contentsOf: $0)
         }
     }
 
-    mutating func append(_ value: UInt64) {
+    fileprivate mutating func append(_ value: UInt64) {
         Swift.withUnsafeBytes(of: value) {
             append(contentsOf: $0)
         }
     }
 
-    mutating func append(_ value: Int64) {
+    fileprivate mutating func append(_ value: Int64) {
         Swift.withUnsafeBytes(of: value) {
             append(contentsOf: $0)
         }
     }
 }
 
-private extension AMQP.FieldValue {
-    func encode(to data: inout Data) throws {
+extension AMQP.FieldValue {
+    fileprivate func encode(to data: inout Data) throws {
         data.append(self.type)
         self.asWrappedValue.encode(to: &data)
     }
 
-    var asWrappedValue: _FrameEncoder.WrappedValue {
+    fileprivate var asWrappedValue: _FrameEncoder.WrappedValue {
         return switch self {
         case .long(let value): .int32(value)
         case .decimal(let scale, let value): .decimal(scale, value)
@@ -83,7 +83,7 @@ private extension AMQP.FieldValue {
     }
 }
 
-private class _FrameEncoder : AMQPEncoder {
+private class _FrameEncoder: AMQPEncoder {
     enum WrappedValue: Equatable {
         case shortstring(String)
         case longstring(String)
@@ -100,8 +100,8 @@ private class _FrameEncoder : AMQPEncoder {
         case bool(Bool)
         case timestamp(Date)
         case dictionary(AMQP.Table)
-        case void(UInt8) // only for field values
-        case decimal(UInt8, Int32) // only for field values
+        case void(UInt8)  // only for field values
+        case decimal(UInt8, Int32)  // only for field values
 
         func encode(to data: inout Data) {
             switch self {
@@ -227,7 +227,7 @@ private class _FrameEncoder : AMQPEncoder {
         storage.append(isLong ? .longstring(value) : .shortstring(value))
     }
 
-    func encode(_ value: [String : AMQP.FieldValue]) throws {
+    func encode(_ value: [String: AMQP.FieldValue]) throws {
         storage.append(.dictionary(value))
     }
 }
