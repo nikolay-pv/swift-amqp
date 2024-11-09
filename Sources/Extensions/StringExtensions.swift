@@ -6,9 +6,7 @@
 //
 
 extension String {
-    var isShort: Bool {
-        self.utf8.count <= UInt8.max - 1
-    }
+    var isShort: Bool { self.utf8.count <= UInt8.max - 1 }
 
     var shortBytesCount: UInt8 {
         let size = UInt8(self.utf8.count)

@@ -43,7 +43,5 @@ extension AMQPFrame: AMQPCodable {
         try encoder.encode(frameEnd)
     }
 
-    var bytesCount: UInt32 {
-        7 + 1 + size
-    }
+    var bytesCount: UInt32 { 7 + 1 + size }
 }

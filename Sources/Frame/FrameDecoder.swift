@@ -10,33 +10,25 @@ import Foundation
 class FrameDecoder {
     func decode<T>(_ type: T.Type, from data: Data) throws -> T where T: AMQPDecodable {
         let decoder = _FrameDecoder()
-        return try decoder.with(data: data) {
-            try T.init(from: $0)
-        }
+        return try decoder.with(data: data) { try T.init(from: $0) }
     }
 }
 
 extension AMQP.FieldValue {
     fileprivate static let charToValue: [UInt8: AMQP.FieldValue] = {
-        return Self.allCases.reduce(into: [:]) {
-            $0[$1.type] = $1
-        }
+        return Self.allCases.reduce(into: [:]) { $0[$1.type] = $1 }
     }()
 
     fileprivate func decode(from decoder: AMQPDecoder) throws -> Self {
         switch self {
-        case .long(_):
-            return .long(try decoder.decode(Int32.self))
+        case .long(_): return .long(try decoder.decode(Int32.self))
         case .decimal(_, _):
             let scale = try decoder.decode(UInt8.self)
             let value = try decoder.decode(Int32.self)
             return .decimal(scale, value)
-        case .longstr(_):
-            return .longstr(try decoder.decode(String.self, isLong: true))
-        case .timestamp(_):
-            return .timestamp(try decoder.decode(Date.self))
-        case .table(_):
-            return .table(try decoder.decode(AMQP.Table.self))
+        case .longstr(_): return .longstr(try decoder.decode(String.self, isLong: true))
+        case .timestamp(_): return .timestamp(try decoder.decode(Date.self))
+        case .table(_): return .table(try decoder.decode(AMQP.Table.self))
         case .void:
             let _ = try decoder.decode(UInt8.self)
             return .void
@@ -81,9 +73,7 @@ private class _FrameDecoder: AMQPDecoder {
         defer { _position += offset }
         return .init(
             bigEndian: data.subdata(in: _position..<_position + offset)
-                .withUnsafeBytes {
-                    $0.load(as: type)
-                }
+                .withUnsafeBytes { $0.load(as: type) }
         )
     }
 
@@ -93,9 +83,7 @@ private class _FrameDecoder: AMQPDecoder {
         defer { _position += offset }
         return .init(
             bigEndian: data.subdata(in: _position..<_position + offset)
-                .withUnsafeBytes {
-                    $0.load(as: type)
-                }
+                .withUnsafeBytes { $0.load(as: type) }
         )
     }
 
@@ -105,9 +93,7 @@ private class _FrameDecoder: AMQPDecoder {
         defer { _position += offset }
         return .init(
             bigEndian: data.subdata(in: _position..<_position + offset)
-                .withUnsafeBytes {
-                    $0.load(as: type)
-                }
+                .withUnsafeBytes { $0.load(as: type) }
         )
     }
 
@@ -117,9 +103,7 @@ private class _FrameDecoder: AMQPDecoder {
         defer { _position += offset }
         return .init(
             bigEndian: data.subdata(in: _position..<_position + offset)
-                .withUnsafeBytes {
-                    $0.load(as: type)
-                }
+                .withUnsafeBytes { $0.load(as: type) }
         )
     }
 
@@ -129,9 +113,7 @@ private class _FrameDecoder: AMQPDecoder {
         defer { _position += offset }
         return .init(
             bigEndian: data.subdata(in: _position..<_position + offset)
-                .withUnsafeBytes {
-                    $0.load(as: type)
-                }
+                .withUnsafeBytes { $0.load(as: type) }
         )
     }
 
@@ -141,9 +123,7 @@ private class _FrameDecoder: AMQPDecoder {
         defer { _position += offset }
         return .init(
             bigEndian: data.subdata(in: _position..<_position + offset)
-                .withUnsafeBytes {
-                    $0.load(as: type)
-                }
+                .withUnsafeBytes { $0.load(as: type) }
         )
     }
 
@@ -153,9 +133,7 @@ private class _FrameDecoder: AMQPDecoder {
         defer { _position += offset }
         return .init(
             bigEndian: data.subdata(in: _position..<_position + offset)
-                .withUnsafeBytes {
-                    $0.load(as: type)
-                }
+                .withUnsafeBytes { $0.load(as: type) }
         )
     }
 
@@ -165,9 +143,7 @@ private class _FrameDecoder: AMQPDecoder {
         defer { _position += offset }
         return .init(
             bigEndian: data.subdata(in: _position..<_position + offset)
-                .withUnsafeBytes {
-                    $0.load(as: type)
-                }
+                .withUnsafeBytes { $0.load(as: type) }
         )
     }
 
@@ -187,10 +163,7 @@ private class _FrameDecoder: AMQPDecoder {
         let count = isLong ? Int(try decode(UInt32.self)) : Int(try decode(UInt8.self))
         precondition(_position + count <= data.count)
         defer { _position += count }
-        return .init(
-            decoding: data.subdata(in: _position..<_position + count),
-            as: UTF8.self
-        )
+        return .init(decoding: data.subdata(in: _position..<_position + count), as: UTF8.self)
     }
 
     func decode(_ type: [String: AMQP.FieldValue].Type) throws -> [String: AMQP.FieldValue] {

@@ -55,5 +55,4 @@ protocol AMQPEncodable {
     var bytesCount: UInt32 { get }
 }
 
-protocol AMQPCodable: AMQPDecodable, AMQPEncodable {
-}
+protocol AMQPCodable: AMQPDecodable, AMQPEncodable {}

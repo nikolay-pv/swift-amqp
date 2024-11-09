@@ -17,19 +17,10 @@ protocol AMQPTransportProtocol {
 }
 
 class FakeAMQPTransport: AMQPTransportProtocol {
-    func connect() throws {
-    }
-    func close() {
-    }
-    func write(_ data: String) throws {
-    }
-    func readFrame() -> String {
-        return ""
-    }
-    var isConnected: Bool {
-        return false
-    }
-    var isDisconnected: Bool {
-        return true
-    }
+    func connect() throws {}
+    func close() {}
+    func write(_ data: String) throws {}
+    func readFrame() -> String { return "" }
+    var isConnected: Bool { return false }
+    var isDisconnected: Bool { return true }
 }

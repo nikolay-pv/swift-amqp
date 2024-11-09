@@ -17,51 +17,35 @@ class FrameEncoder {
 
 extension Data {
     fileprivate mutating func append(_ value: Int8) {
-        Swift.withUnsafeBytes(of: value) {
-            append(contentsOf: $0)
-        }
+        Swift.withUnsafeBytes(of: value) { append(contentsOf: $0) }
     }
 
     fileprivate mutating func append(_ value: UInt8) {
-        Swift.withUnsafeBytes(of: value) {
-            append(contentsOf: $0)
-        }
+        Swift.withUnsafeBytes(of: value) { append(contentsOf: $0) }
     }
 
     fileprivate mutating func append(_ value: Int16) {
-        Swift.withUnsafeBytes(of: value) {
-            append(contentsOf: $0)
-        }
+        Swift.withUnsafeBytes(of: value) { append(contentsOf: $0) }
     }
 
     fileprivate mutating func append(_ value: UInt16) {
-        Swift.withUnsafeBytes(of: value) {
-            append(contentsOf: $0)
-        }
+        Swift.withUnsafeBytes(of: value) { append(contentsOf: $0) }
     }
 
     fileprivate mutating func append(_ value: Int32) {
-        Swift.withUnsafeBytes(of: value) {
-            append(contentsOf: $0)
-        }
+        Swift.withUnsafeBytes(of: value) { append(contentsOf: $0) }
     }
 
     fileprivate mutating func append(_ value: UInt32) {
-        Swift.withUnsafeBytes(of: value) {
-            append(contentsOf: $0)
-        }
+        Swift.withUnsafeBytes(of: value) { append(contentsOf: $0) }
     }
 
     fileprivate mutating func append(_ value: UInt64) {
-        Swift.withUnsafeBytes(of: value) {
-            append(contentsOf: $0)
-        }
+        Swift.withUnsafeBytes(of: value) { append(contentsOf: $0) }
     }
 
     fileprivate mutating func append(_ value: Int64) {
-        Swift.withUnsafeBytes(of: value) {
-            append(contentsOf: $0)
-        }
+        Swift.withUnsafeBytes(of: value) { append(contentsOf: $0) }
     }
 }
 
@@ -111,28 +95,17 @@ private class _FrameEncoder: AMQPEncoder {
             case .longstring(let value):
                 data.append(value.longBytesCount.bigEndian)
                 data.append(contentsOf: value.utf8)
-            case .uint8(let value):
-                data.append(value.bigEndian)
-            case .int8(let value):
-                data.append(value.bigEndian)
-            case .uint16(let value):
-                data.append(value.bigEndian)
-            case .int16(let value):
-                data.append(value.bigEndian)
-            case .uint32(let value):
-                data.append(value.bigEndian)
-            case .int32(let value):
-                data.append(value.bigEndian)
-            case .uint64(let value):
-                data.append(value.bigEndian)
-            case .int64(let value):
-                data.append(value.bigEndian)
-            case .bool(let value):
-                data.append(UInt8(value ? 1 : 0))
-            case .float(let value):
-                data.append(UInt32(value.bitPattern.bigEndian))
-            case .double(let value):
-                data.append(UInt64(value.bitPattern.bigEndian))
+            case .uint8(let value): data.append(value.bigEndian)
+            case .int8(let value): data.append(value.bigEndian)
+            case .uint16(let value): data.append(value.bigEndian)
+            case .int16(let value): data.append(value.bigEndian)
+            case .uint32(let value): data.append(value.bigEndian)
+            case .int32(let value): data.append(value.bigEndian)
+            case .uint64(let value): data.append(value.bigEndian)
+            case .int64(let value): data.append(value.bigEndian)
+            case .bool(let value): data.append(UInt8(value ? 1 : 0))
+            case .float(let value): data.append(UInt32(value.bitPattern.bigEndian))
+            case .double(let value): data.append(UInt64(value.bitPattern.bigEndian))
             case .timestamp(let value):
                 let milliseconds = value.millisecondsSince1970
                 data.append(milliseconds.bigEndian)
@@ -143,8 +116,7 @@ private class _FrameEncoder: AMQPEncoder {
                     WrappedValue.shortstring(key).encode(to: &data)
                     value.asWrappedValue.encode(to: &data)
                 }
-            case .void(let value):
-                data.append(value)
+            case .void(let value): data.append(value)
             case .decimal(let scale, let value):
                 data.append(scale.bigEndian)
                 data.append(value.bigEndian)

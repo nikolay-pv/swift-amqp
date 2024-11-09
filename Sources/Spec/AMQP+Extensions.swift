@@ -7,8 +7,6 @@
 
 extension AMQP.Table {
     var bytesCount: UInt32 {
-        self.reduce(into: UInt32(0)) {
-            $0 += UInt32($1.key.shortBytesCount) + $1.value.bytesCount
-        }
+        self.reduce(into: UInt32(0)) { $0 += UInt32($1.key.shortBytesCount) + $1.value.bytesCount }
     }
 }
