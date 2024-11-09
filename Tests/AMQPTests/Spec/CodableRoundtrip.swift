@@ -59,7 +59,12 @@ func tester<T>(_ object: T) throws where T: AMQPCodable & Equatable {
 
     @Test("AMQP.Basic.Deliver default encoding/decoding roundtrip")
     func amqpBasicDeliverCoding() async throws {
-        let object = AMQP.Basic.Deliver(consumerTag: "FooBar", deliveryTag: 1, exchange: "FooBar", routingKey: "FooBar")
+        let object = AMQP.Basic.Deliver(
+            consumerTag: "FooBar",
+            deliveryTag: 1,
+            exchange: "FooBar",
+            routingKey: "FooBar"
+        )
         try tester(object)
     }
 
@@ -71,7 +76,12 @@ func tester<T>(_ object: T) throws where T: AMQPCodable & Equatable {
 
     @Test("AMQP.Basic.GetOk default encoding/decoding roundtrip")
     func amqpBasicGetOkCoding() async throws {
-        let object = AMQP.Basic.GetOk(deliveryTag: 1, exchange: "FooBar", routingKey: "FooBar", messageCount: 1)
+        let object = AMQP.Basic.GetOk(
+            deliveryTag: 1,
+            exchange: "FooBar",
+            routingKey: "FooBar",
+            messageCount: 1
+        )
         try tester(object)
     }
 

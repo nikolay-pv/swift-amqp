@@ -71,7 +71,12 @@ import Testing
     func amqpBasicDeliverDecodeBytes() async throws {
         let input = try fixtureData(for: "Basic.Deliver")
         let decoded = try FrameDecoder().decode(AMQP.Basic.Deliver.self, from: input)
-        let expected = AMQP.Basic.Deliver(consumerTag: "FooBar", deliveryTag: 1, exchange: "FooBar", routingKey: "FooBar")
+        let expected = AMQP.Basic.Deliver(
+            consumerTag: "FooBar",
+            deliveryTag: 1,
+            exchange: "FooBar",
+            routingKey: "FooBar"
+        )
         #expect(decoded == expected)
     }
 
@@ -87,7 +92,12 @@ import Testing
     func amqpBasicGetOkDecodeBytes() async throws {
         let input = try fixtureData(for: "Basic.GetOk")
         let decoded = try FrameDecoder().decode(AMQP.Basic.GetOk.self, from: input)
-        let expected = AMQP.Basic.GetOk(deliveryTag: 1, exchange: "FooBar", routingKey: "FooBar", messageCount: 1)
+        let expected = AMQP.Basic.GetOk(
+            deliveryTag: 1,
+            exchange: "FooBar",
+            routingKey: "FooBar",
+            messageCount: 1
+        )
         #expect(decoded == expected)
     }
 

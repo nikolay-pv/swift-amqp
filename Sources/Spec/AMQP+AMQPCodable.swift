@@ -76,7 +76,10 @@ extension AMQP.Basic.Consume: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 1 + 1 + 1 + 1 + 2 + 4 + UInt32(consumerTag.shortBytesCount) + UInt32(queue.shortBytesCount) + arguments.bytesCount }
+    var bytesCount: UInt32 {
+        1 + 1 + 1 + 1 + 2 + 4 + UInt32(consumerTag.shortBytesCount) + UInt32(queue.shortBytesCount)
+            + arguments.bytesCount
+    }
 }
 
 extension AMQP.Basic.ConsumeOk: AMQPCodable {
@@ -154,7 +157,9 @@ extension AMQP.Basic.Publish: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 1 + 1 + 2 + 4 + UInt32(exchange.shortBytesCount) + UInt32(routingKey.shortBytesCount) }
+    var bytesCount: UInt32 {
+        1 + 1 + 2 + 4 + UInt32(exchange.shortBytesCount) + UInt32(routingKey.shortBytesCount)
+    }
 }
 
 extension AMQP.Basic.Return: AMQPCodable {
@@ -178,7 +183,10 @@ extension AMQP.Basic.Return: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 2 + 4 + UInt32(exchange.shortBytesCount) + UInt32(replyText.shortBytesCount) + UInt32(routingKey.shortBytesCount) }
+    var bytesCount: UInt32 {
+        2 + 4 + UInt32(exchange.shortBytesCount) + UInt32(replyText.shortBytesCount)
+            + UInt32(routingKey.shortBytesCount)
+    }
 }
 
 extension AMQP.Basic.Deliver: AMQPCodable {
@@ -205,7 +213,10 @@ extension AMQP.Basic.Deliver: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 1 + 4 + 8 + UInt32(consumerTag.shortBytesCount) + UInt32(exchange.shortBytesCount) + UInt32(routingKey.shortBytesCount) }
+    var bytesCount: UInt32 {
+        1 + 4 + 8 + UInt32(consumerTag.shortBytesCount) + UInt32(exchange.shortBytesCount)
+            + UInt32(routingKey.shortBytesCount)
+    }
 }
 
 extension AMQP.Basic.Get: AMQPCodable {
@@ -253,7 +264,9 @@ extension AMQP.Basic.GetOk: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 1 + 4 + 4 + 8 + UInt32(exchange.shortBytesCount) + UInt32(routingKey.shortBytesCount) }
+    var bytesCount: UInt32 {
+        1 + 4 + 4 + 8 + UInt32(exchange.shortBytesCount) + UInt32(routingKey.shortBytesCount)
+    }
 }
 
 extension AMQP.Basic.GetEmpty: AMQPCodable {
@@ -396,7 +409,9 @@ extension AMQP.Connection.Start: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 1 + 1 + 4 + locales.longBytesCount + mechanisms.longBytesCount + serverProperties.bytesCount }
+    var bytesCount: UInt32 {
+        1 + 1 + 4 + locales.longBytesCount + mechanisms.longBytesCount + serverProperties.bytesCount
+    }
 }
 
 extension AMQP.Connection.StartOk: AMQPCodable {
@@ -420,7 +435,10 @@ extension AMQP.Connection.StartOk: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 4 + UInt32(locale.shortBytesCount) + UInt32(mechanism.shortBytesCount) + clientProperties.bytesCount + response.longBytesCount }
+    var bytesCount: UInt32 {
+        4 + UInt32(locale.shortBytesCount) + UInt32(mechanism.shortBytesCount)
+            + clientProperties.bytesCount + response.longBytesCount
+    }
 }
 
 extension AMQP.Connection.Secure: AMQPCodable {
@@ -513,7 +531,9 @@ extension AMQP.Connection.Open: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 1 + 4 + UInt32(capabilities.shortBytesCount) + UInt32(virtualHost.shortBytesCount) }
+    var bytesCount: UInt32 {
+        1 + 4 + UInt32(capabilities.shortBytesCount) + UInt32(virtualHost.shortBytesCount)
+    }
 }
 
 extension AMQP.Connection.OpenOk: AMQPCodable {
@@ -803,7 +823,10 @@ extension AMQP.Exchange.Declare: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 1 + 1 + 1 + 1 + 1 + 2 + 4 + UInt32(exchange.shortBytesCount) + UInt32(type.shortBytesCount) + arguments.bytesCount }
+    var bytesCount: UInt32 {
+        1 + 1 + 1 + 1 + 1 + 2 + 4 + UInt32(exchange.shortBytesCount) + UInt32(type.shortBytesCount)
+            + arguments.bytesCount
+    }
 }
 
 extension AMQP.Exchange.DeclareOk: AMQPCodable {
@@ -882,7 +905,10 @@ extension AMQP.Exchange.Bind: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 1 + 2 + 4 + UInt32(destination.shortBytesCount) + UInt32(routingKey.shortBytesCount) + UInt32(source.shortBytesCount) + arguments.bytesCount }
+    var bytesCount: UInt32 {
+        1 + 2 + 4 + UInt32(destination.shortBytesCount) + UInt32(routingKey.shortBytesCount)
+            + UInt32(source.shortBytesCount) + arguments.bytesCount
+    }
 }
 
 extension AMQP.Exchange.BindOk: AMQPCodable {
@@ -923,7 +949,10 @@ extension AMQP.Exchange.Unbind: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 1 + 2 + 4 + UInt32(destination.shortBytesCount) + UInt32(routingKey.shortBytesCount) + UInt32(source.shortBytesCount) + arguments.bytesCount }
+    var bytesCount: UInt32 {
+        1 + 2 + 4 + UInt32(destination.shortBytesCount) + UInt32(routingKey.shortBytesCount)
+            + UInt32(source.shortBytesCount) + arguments.bytesCount
+    }
 }
 
 extension AMQP.Exchange.UnbindOk: AMQPCodable {
@@ -973,7 +1002,9 @@ extension AMQP.Queue.Declare: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 1 + 1 + 1 + 1 + 1 + 2 + 4 + UInt32(queue.shortBytesCount) + arguments.bytesCount }
+    var bytesCount: UInt32 {
+        1 + 1 + 1 + 1 + 1 + 2 + 4 + UInt32(queue.shortBytesCount) + arguments.bytesCount
+    }
 }
 
 extension AMQP.Queue.DeclareOk: AMQPCodable {
@@ -1024,7 +1055,10 @@ extension AMQP.Queue.Bind: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 1 + 2 + 4 + UInt32(exchange.shortBytesCount) + UInt32(queue.shortBytesCount) + UInt32(routingKey.shortBytesCount) + arguments.bytesCount }
+    var bytesCount: UInt32 {
+        1 + 2 + 4 + UInt32(exchange.shortBytesCount) + UInt32(queue.shortBytesCount)
+            + UInt32(routingKey.shortBytesCount) + arguments.bytesCount
+    }
 }
 
 extension AMQP.Queue.BindOk: AMQPCodable {
@@ -1143,7 +1177,10 @@ extension AMQP.Queue.Unbind: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 2 + 4 + UInt32(exchange.shortBytesCount) + UInt32(queue.shortBytesCount) + UInt32(routingKey.shortBytesCount) + arguments.bytesCount }
+    var bytesCount: UInt32 {
+        2 + 4 + UInt32(exchange.shortBytesCount) + UInt32(queue.shortBytesCount)
+            + UInt32(routingKey.shortBytesCount) + arguments.bytesCount
+    }
 }
 
 extension AMQP.Queue.UnbindOk: AMQPCodable {
@@ -1319,7 +1356,8 @@ extension AMQP {
         case (90, 31): return AMQP.Tx.RollbackOk.init
         case (85, 10): return AMQP.Confirm.Select.init
         case (85, 11): return AMQP.Confirm.SelectOk.init
-        default: throw AMQPError.DecodingError.unknownClassAndMethod(class: classId, method: methodId)
+        default:
+            throw AMQPError.DecodingError.unknownClassAndMethod(class: classId, method: methodId)
         }
     }
 }
