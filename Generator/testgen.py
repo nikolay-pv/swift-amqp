@@ -37,7 +37,7 @@ def gen_swift_tests(spec: AmqpSpec):
             print(f"@Suite struct {struct_name(c.name)}Coding {{")
             for m in c.allMethods():
                 must_be_specified = [a for a in m.arguments if a.defaultvalue is None]
-                obj = f"AMQP.{struct_name(c.name)}.{struct_name(m.name)}"
+                obj = f"Spec.{struct_name(c.name)}.{struct_name(m.name)}"
                 print(f"    @Test(\"{obj} default encoding/decoding roundtrip\")")
                 print(f"    func amqp{struct_name(c.name)}{struct_name(m.name)}Coding() async throws {{")
                 if not len(must_be_specified):
@@ -80,15 +80,15 @@ def gen_swift_verify_tests(spec: AmqpSpec):
             for m in c.allMethods():
                 must_be_specified = [a for a in m.arguments if a.defaultvalue is None]
                 obj = f"{struct_name(c.name)}.{struct_name(m.name)}"
-                print(f"    @Test(\"AMQP.{obj} verify decode bytes\")")
+                print(f"    @Test(\"Spec.{obj} verify decode bytes\")")
                 print(f"    func amqp{struct_name(c.name)}{struct_name(m.name)}DecodeBytes() async throws {{")
                 print(f"        let input = try fixtureData(for: \"{obj}\")")
-                print(f"        let decoded = try FrameDecoder().decode(AMQP.{obj}.self, from: input)")
+                print(f"        let decoded = try FrameDecoder().decode(Spec.{obj}.self, from: input)")
                 if not len(must_be_specified):
-                    print(f"        let expected = AMQP.{obj}()")
+                    print(f"        let expected = Spec.{obj}()")
                 else:
                     args = [f"{variable_name(a.name)}: {generate_value(spec, a.domain)}" for a in must_be_specified]
-                    print(f"        let expected = AMQP.{obj}({', '.join(args)})")
+                    print(f"        let expected = Spec.{obj}({', '.join(args)})")
                 print(f"        #expect(decoded == expected)")
                 print("    }")
                 print()

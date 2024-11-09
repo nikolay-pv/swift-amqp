@@ -14,8 +14,8 @@ class FrameDecoder {
     }
 }
 
-extension AMQP.FieldValue {
-    fileprivate static let charToValue: [UInt8: AMQP.FieldValue] = {
+extension Spec.FieldValue {
+    fileprivate static let charToValue: [UInt8: Spec.FieldValue] = {
         return Self.allCases.reduce(into: [:]) { $0[$1.type] = $1 }
     }()
 
@@ -28,7 +28,7 @@ extension AMQP.FieldValue {
             return .decimal(scale, value)
         case .longstr(_): return .longstr(try decoder.decode(String.self, isLong: true))
         case .timestamp(_): return .timestamp(try decoder.decode(Date.self))
-        case .table(_): return .table(try decoder.decode(AMQP.Table.self))
+        case .table(_): return .table(try decoder.decode(Spec.Table.self))
         case .void:
             let _ = try decoder.decode(UInt8.self)
             return .void
@@ -166,20 +166,20 @@ private class _FrameDecoder: AMQPDecoder {
         return .init(decoding: data.subdata(in: _position..<_position + count), as: UTF8.self)
     }
 
-    func decode(_ type: [String: AMQP.FieldValue].Type) throws -> [String: AMQP.FieldValue] {
+    func decode(_ type: [String: Spec.FieldValue].Type) throws -> [String: Spec.FieldValue] {
         let count = Int(try decode(UInt32.self))
         defer { _position += count }
         return try (0..<count)
-            .reduce(into: [String: AMQP.FieldValue]()) { d, _ in
+            .reduce(into: [String: Spec.FieldValue]()) { d, _ in
                 let key = try decode(String.self, isLong: false)
-                let value = try decode(AMQP.FieldValue.self)
+                let value = try decode(Spec.FieldValue.self)
                 d[key] = value
             }
     }
 
-    func decode(_ type: AMQP.FieldValue.Type) throws -> AMQP.FieldValue {
+    func decode(_ type: Spec.FieldValue.Type) throws -> Spec.FieldValue {
         let type = try decode(UInt8.self)
-        guard let prototype = AMQP.FieldValue.charToValue[type] else {
+        guard let prototype = Spec.FieldValue.charToValue[type] else {
             fatalError("Unknown field value type in frame: \(type)")
         }
         return try prototype.decode(from: self)

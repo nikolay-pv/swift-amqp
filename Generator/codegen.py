@@ -126,7 +126,7 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
                 specific_properties(c)
 
     def amqp_spec():
-        print("public enum AMQP {")
+        print("public enum Spec {")
 
         FieldValueEnum()
         amqp_constants()
@@ -153,7 +153,7 @@ def gen_swift_impl(spec: AmqpSpec):
         print_file_header()
         print("import Foundation")
         print()
-        print("private typealias FieldValue = AMQP.FieldValue")
+        print("private typealias FieldValue = Spec.FieldValue")
 
     def pack_encode_bits(bits_to_pack):
         if len(bits_to_pack) == 0:
@@ -185,7 +185,7 @@ def gen_swift_impl(spec: AmqpSpec):
         for c in spec.allClasses():
             for m in c.allMethods():
                 print()
-                print(f"extension AMQP.{struct_name(c.name)}.{struct_name(m.name).strip()}: AMQPCodable {{")
+                print(f"extension Spec.{struct_name(c.name)}.{struct_name(m.name).strip()}: AMQPCodable {{")
                 print("    func encode(to encoder: AMQPEncoder) throws {")
                 bits_to_pack = []
                 for a in m.arguments:
@@ -237,13 +237,13 @@ def gen_swift_impl(spec: AmqpSpec):
                 print("}")
 
         print()
-        print("extension AMQP {")
+        print("extension Spec {")
         print("    typealias Factory = @Sendable (any AMQPDecoder) throws -> any AMQPCodable")
         print("    static func makeFactory(with classId: UInt16, and methodId: UInt16) throws -> Factory {")
         print("        switch (classId, methodId) {")
         for c in spec.allClasses():
             for m in c.allMethods():
-                print(f"        case ({c.index}, {m.index}): return AMQP.{struct_name(c.name)}.{struct_name(m.name)}.init")
+                print(f"        case ({c.index}, {m.index}): return Spec.{struct_name(c.name)}.{struct_name(m.name)}.init")
         print("        default: throw AMQPError.DecodingError.unknownClassAndMethod(class: classId, method: methodId)")
         print("        }")
         print("    }")

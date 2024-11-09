@@ -6,9 +6,9 @@
 
 import Foundation
 
-private typealias FieldValue = AMQP.FieldValue
+private typealias FieldValue = Spec.FieldValue
 
-extension AMQP.Basic.Qos: AMQPCodable {
+extension Spec.Basic.Qos: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(prefetchSize)
         try encoder.encode(prefetchCount)
@@ -29,7 +29,7 @@ extension AMQP.Basic.Qos: AMQPCodable {
     var bytesCount: UInt32 { 1 + 2 + 4 + 4 }
 }
 
-extension AMQP.Basic.QosOk: AMQPCodable {
+extension Spec.Basic.QosOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -40,7 +40,7 @@ extension AMQP.Basic.QosOk: AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Basic.Consume: AMQPCodable {
+extension Spec.Basic.Consume: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(queue, isLong: false)
@@ -82,7 +82,7 @@ extension AMQP.Basic.Consume: AMQPCodable {
     }
 }
 
-extension AMQP.Basic.ConsumeOk: AMQPCodable {
+extension Spec.Basic.ConsumeOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(consumerTag, isLong: false)
     }
@@ -97,7 +97,7 @@ extension AMQP.Basic.ConsumeOk: AMQPCodable {
     var bytesCount: UInt32 { 4 + UInt32(consumerTag.shortBytesCount) }
 }
 
-extension AMQP.Basic.Cancel: AMQPCodable {
+extension Spec.Basic.Cancel: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(consumerTag, isLong: false)
         try encoder.encode(nowait)
@@ -115,7 +115,7 @@ extension AMQP.Basic.Cancel: AMQPCodable {
     var bytesCount: UInt32 { 1 + 4 + UInt32(consumerTag.shortBytesCount) }
 }
 
-extension AMQP.Basic.CancelOk: AMQPCodable {
+extension Spec.Basic.CancelOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(consumerTag, isLong: false)
     }
@@ -130,7 +130,7 @@ extension AMQP.Basic.CancelOk: AMQPCodable {
     var bytesCount: UInt32 { 4 + UInt32(consumerTag.shortBytesCount) }
 }
 
-extension AMQP.Basic.Publish: AMQPCodable {
+extension Spec.Basic.Publish: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(exchange, isLong: false)
@@ -162,7 +162,7 @@ extension AMQP.Basic.Publish: AMQPCodable {
     }
 }
 
-extension AMQP.Basic.Return: AMQPCodable {
+extension Spec.Basic.Return: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(replyCode)
         try encoder.encode(replyText, isLong: false)
@@ -189,7 +189,7 @@ extension AMQP.Basic.Return: AMQPCodable {
     }
 }
 
-extension AMQP.Basic.Deliver: AMQPCodable {
+extension Spec.Basic.Deliver: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(consumerTag, isLong: false)
         try encoder.encode(deliveryTag)
@@ -219,7 +219,7 @@ extension AMQP.Basic.Deliver: AMQPCodable {
     }
 }
 
-extension AMQP.Basic.Get: AMQPCodable {
+extension Spec.Basic.Get: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(queue, isLong: false)
@@ -240,7 +240,7 @@ extension AMQP.Basic.Get: AMQPCodable {
     var bytesCount: UInt32 { 1 + 2 + 4 + UInt32(queue.shortBytesCount) }
 }
 
-extension AMQP.Basic.GetOk: AMQPCodable {
+extension Spec.Basic.GetOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(deliveryTag)
         try encoder.encode(redelivered)
@@ -269,7 +269,7 @@ extension AMQP.Basic.GetOk: AMQPCodable {
     }
 }
 
-extension AMQP.Basic.GetEmpty: AMQPCodable {
+extension Spec.Basic.GetEmpty: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(clusterId, isLong: false)
     }
@@ -284,7 +284,7 @@ extension AMQP.Basic.GetEmpty: AMQPCodable {
     var bytesCount: UInt32 { 4 + UInt32(clusterId.shortBytesCount) }
 }
 
-extension AMQP.Basic.Ack: AMQPCodable {
+extension Spec.Basic.Ack: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(deliveryTag)
         try encoder.encode(multiple)
@@ -302,7 +302,7 @@ extension AMQP.Basic.Ack: AMQPCodable {
     var bytesCount: UInt32 { 1 + 4 + 8 }
 }
 
-extension AMQP.Basic.Reject: AMQPCodable {
+extension Spec.Basic.Reject: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(deliveryTag)
         try encoder.encode(requeue)
@@ -320,7 +320,7 @@ extension AMQP.Basic.Reject: AMQPCodable {
     var bytesCount: UInt32 { 1 + 4 + 8 }
 }
 
-extension AMQP.Basic.RecoverAsync: AMQPCodable {
+extension Spec.Basic.RecoverAsync: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(requeue)
     }
@@ -335,7 +335,7 @@ extension AMQP.Basic.RecoverAsync: AMQPCodable {
     var bytesCount: UInt32 { 1 + 4 }
 }
 
-extension AMQP.Basic.Recover: AMQPCodable {
+extension Spec.Basic.Recover: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(requeue)
     }
@@ -350,7 +350,7 @@ extension AMQP.Basic.Recover: AMQPCodable {
     var bytesCount: UInt32 { 1 + 4 }
 }
 
-extension AMQP.Basic.RecoverOk: AMQPCodable {
+extension Spec.Basic.RecoverOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -361,7 +361,7 @@ extension AMQP.Basic.RecoverOk: AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Basic.Nack: AMQPCodable {
+extension Spec.Basic.Nack: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(deliveryTag)
         var bitPack: UInt8 = 0
@@ -385,7 +385,7 @@ extension AMQP.Basic.Nack: AMQPCodable {
     var bytesCount: UInt32 { 1 + 1 + 4 + 8 }
 }
 
-extension AMQP.Connection.Start: AMQPCodable {
+extension Spec.Connection.Start: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(versionMajor)
         try encoder.encode(versionMinor)
@@ -414,7 +414,7 @@ extension AMQP.Connection.Start: AMQPCodable {
     }
 }
 
-extension AMQP.Connection.StartOk: AMQPCodable {
+extension Spec.Connection.StartOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(clientProperties)
         try encoder.encode(mechanism, isLong: false)
@@ -441,7 +441,7 @@ extension AMQP.Connection.StartOk: AMQPCodable {
     }
 }
 
-extension AMQP.Connection.Secure: AMQPCodable {
+extension Spec.Connection.Secure: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(challenge, isLong: true)
     }
@@ -456,7 +456,7 @@ extension AMQP.Connection.Secure: AMQPCodable {
     var bytesCount: UInt32 { 4 + challenge.longBytesCount }
 }
 
-extension AMQP.Connection.SecureOk: AMQPCodable {
+extension Spec.Connection.SecureOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(response, isLong: true)
     }
@@ -471,7 +471,7 @@ extension AMQP.Connection.SecureOk: AMQPCodable {
     var bytesCount: UInt32 { 4 + response.longBytesCount }
 }
 
-extension AMQP.Connection.Tune: AMQPCodable {
+extension Spec.Connection.Tune: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(channelMax)
         try encoder.encode(frameMax)
@@ -492,7 +492,7 @@ extension AMQP.Connection.Tune: AMQPCodable {
     var bytesCount: UInt32 { 2 + 2 + 4 + 4 }
 }
 
-extension AMQP.Connection.TuneOk: AMQPCodable {
+extension Spec.Connection.TuneOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(channelMax)
         try encoder.encode(frameMax)
@@ -513,7 +513,7 @@ extension AMQP.Connection.TuneOk: AMQPCodable {
     var bytesCount: UInt32 { 2 + 2 + 4 + 4 }
 }
 
-extension AMQP.Connection.Open: AMQPCodable {
+extension Spec.Connection.Open: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(virtualHost, isLong: false)
         try encoder.encode(capabilities, isLong: false)
@@ -536,7 +536,7 @@ extension AMQP.Connection.Open: AMQPCodable {
     }
 }
 
-extension AMQP.Connection.OpenOk: AMQPCodable {
+extension Spec.Connection.OpenOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(knownHosts, isLong: false)
     }
@@ -551,7 +551,7 @@ extension AMQP.Connection.OpenOk: AMQPCodable {
     var bytesCount: UInt32 { 4 + UInt32(knownHosts.shortBytesCount) }
 }
 
-extension AMQP.Connection.Close: AMQPCodable {
+extension Spec.Connection.Close: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(replyCode)
         try encoder.encode(replyText, isLong: false)
@@ -575,7 +575,7 @@ extension AMQP.Connection.Close: AMQPCodable {
     var bytesCount: UInt32 { 2 + 2 + 2 + 4 + UInt32(replyText.shortBytesCount) }
 }
 
-extension AMQP.Connection.CloseOk: AMQPCodable {
+extension Spec.Connection.CloseOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -586,7 +586,7 @@ extension AMQP.Connection.CloseOk: AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Connection.Blocked: AMQPCodable {
+extension Spec.Connection.Blocked: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(reason, isLong: false)
     }
@@ -601,7 +601,7 @@ extension AMQP.Connection.Blocked: AMQPCodable {
     var bytesCount: UInt32 { 4 + UInt32(reason.shortBytesCount) }
 }
 
-extension AMQP.Connection.Unblocked: AMQPCodable {
+extension Spec.Connection.Unblocked: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -612,7 +612,7 @@ extension AMQP.Connection.Unblocked: AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Connection.UpdateSecret: AMQPCodable {
+extension Spec.Connection.UpdateSecret: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(newSecret, isLong: true)
         try encoder.encode(reason, isLong: false)
@@ -630,7 +630,7 @@ extension AMQP.Connection.UpdateSecret: AMQPCodable {
     var bytesCount: UInt32 { 4 + UInt32(reason.shortBytesCount) + newSecret.longBytesCount }
 }
 
-extension AMQP.Connection.UpdateSecretOk: AMQPCodable {
+extension Spec.Connection.UpdateSecretOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -641,7 +641,7 @@ extension AMQP.Connection.UpdateSecretOk: AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Channel.Open: AMQPCodable {
+extension Spec.Channel.Open: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(outOfBand, isLong: false)
     }
@@ -656,7 +656,7 @@ extension AMQP.Channel.Open: AMQPCodable {
     var bytesCount: UInt32 { 4 + UInt32(outOfBand.shortBytesCount) }
 }
 
-extension AMQP.Channel.OpenOk: AMQPCodable {
+extension Spec.Channel.OpenOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(channelId, isLong: true)
     }
@@ -671,7 +671,7 @@ extension AMQP.Channel.OpenOk: AMQPCodable {
     var bytesCount: UInt32 { 4 + channelId.longBytesCount }
 }
 
-extension AMQP.Channel.Flow: AMQPCodable {
+extension Spec.Channel.Flow: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(active)
     }
@@ -686,7 +686,7 @@ extension AMQP.Channel.Flow: AMQPCodable {
     var bytesCount: UInt32 { 1 + 4 }
 }
 
-extension AMQP.Channel.FlowOk: AMQPCodable {
+extension Spec.Channel.FlowOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(active)
     }
@@ -701,7 +701,7 @@ extension AMQP.Channel.FlowOk: AMQPCodable {
     var bytesCount: UInt32 { 1 + 4 }
 }
 
-extension AMQP.Channel.Close: AMQPCodable {
+extension Spec.Channel.Close: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(replyCode)
         try encoder.encode(replyText, isLong: false)
@@ -725,7 +725,7 @@ extension AMQP.Channel.Close: AMQPCodable {
     var bytesCount: UInt32 { 2 + 2 + 2 + 4 + UInt32(replyText.shortBytesCount) }
 }
 
-extension AMQP.Channel.CloseOk: AMQPCodable {
+extension Spec.Channel.CloseOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -736,7 +736,7 @@ extension AMQP.Channel.CloseOk: AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Access.Request: AMQPCodable {
+extension Spec.Access.Request: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(realm, isLong: false)
         var bitPack: UInt8 = 0
@@ -769,7 +769,7 @@ extension AMQP.Access.Request: AMQPCodable {
     var bytesCount: UInt32 { 1 + 1 + 1 + 1 + 1 + 4 + UInt32(realm.shortBytesCount) }
 }
 
-extension AMQP.Access.RequestOk: AMQPCodable {
+extension Spec.Access.RequestOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
     }
@@ -784,7 +784,7 @@ extension AMQP.Access.RequestOk: AMQPCodable {
     var bytesCount: UInt32 { 2 + 4 }
 }
 
-extension AMQP.Exchange.Declare: AMQPCodable {
+extension Spec.Exchange.Declare: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(exchange, isLong: false)
@@ -829,7 +829,7 @@ extension AMQP.Exchange.Declare: AMQPCodable {
     }
 }
 
-extension AMQP.Exchange.DeclareOk: AMQPCodable {
+extension Spec.Exchange.DeclareOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -840,7 +840,7 @@ extension AMQP.Exchange.DeclareOk: AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Exchange.Delete: AMQPCodable {
+extension Spec.Exchange.Delete: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(exchange, isLong: false)
@@ -867,7 +867,7 @@ extension AMQP.Exchange.Delete: AMQPCodable {
     var bytesCount: UInt32 { 1 + 1 + 2 + 4 + UInt32(exchange.shortBytesCount) }
 }
 
-extension AMQP.Exchange.DeleteOk: AMQPCodable {
+extension Spec.Exchange.DeleteOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -878,7 +878,7 @@ extension AMQP.Exchange.DeleteOk: AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Exchange.Bind: AMQPCodable {
+extension Spec.Exchange.Bind: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(destination, isLong: false)
@@ -911,7 +911,7 @@ extension AMQP.Exchange.Bind: AMQPCodable {
     }
 }
 
-extension AMQP.Exchange.BindOk: AMQPCodable {
+extension Spec.Exchange.BindOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -922,7 +922,7 @@ extension AMQP.Exchange.BindOk: AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Exchange.Unbind: AMQPCodable {
+extension Spec.Exchange.Unbind: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(destination, isLong: false)
@@ -955,7 +955,7 @@ extension AMQP.Exchange.Unbind: AMQPCodable {
     }
 }
 
-extension AMQP.Exchange.UnbindOk: AMQPCodable {
+extension Spec.Exchange.UnbindOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -966,7 +966,7 @@ extension AMQP.Exchange.UnbindOk: AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Queue.Declare: AMQPCodable {
+extension Spec.Queue.Declare: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(queue, isLong: false)
@@ -1007,7 +1007,7 @@ extension AMQP.Queue.Declare: AMQPCodable {
     }
 }
 
-extension AMQP.Queue.DeclareOk: AMQPCodable {
+extension Spec.Queue.DeclareOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(queue, isLong: false)
         try encoder.encode(messageCount)
@@ -1028,7 +1028,7 @@ extension AMQP.Queue.DeclareOk: AMQPCodable {
     var bytesCount: UInt32 { 4 + 4 + 4 + UInt32(queue.shortBytesCount) }
 }
 
-extension AMQP.Queue.Bind: AMQPCodable {
+extension Spec.Queue.Bind: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(queue, isLong: false)
@@ -1061,7 +1061,7 @@ extension AMQP.Queue.Bind: AMQPCodable {
     }
 }
 
-extension AMQP.Queue.BindOk: AMQPCodable {
+extension Spec.Queue.BindOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -1072,7 +1072,7 @@ extension AMQP.Queue.BindOk: AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Queue.Purge: AMQPCodable {
+extension Spec.Queue.Purge: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(queue, isLong: false)
@@ -1093,7 +1093,7 @@ extension AMQP.Queue.Purge: AMQPCodable {
     var bytesCount: UInt32 { 1 + 2 + 4 + UInt32(queue.shortBytesCount) }
 }
 
-extension AMQP.Queue.PurgeOk: AMQPCodable {
+extension Spec.Queue.PurgeOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(messageCount)
     }
@@ -1108,7 +1108,7 @@ extension AMQP.Queue.PurgeOk: AMQPCodable {
     var bytesCount: UInt32 { 4 + 4 }
 }
 
-extension AMQP.Queue.Delete: AMQPCodable {
+extension Spec.Queue.Delete: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(queue, isLong: false)
@@ -1138,7 +1138,7 @@ extension AMQP.Queue.Delete: AMQPCodable {
     var bytesCount: UInt32 { 1 + 1 + 1 + 2 + 4 + UInt32(queue.shortBytesCount) }
 }
 
-extension AMQP.Queue.DeleteOk: AMQPCodable {
+extension Spec.Queue.DeleteOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(messageCount)
     }
@@ -1153,7 +1153,7 @@ extension AMQP.Queue.DeleteOk: AMQPCodable {
     var bytesCount: UInt32 { 4 + 4 }
 }
 
-extension AMQP.Queue.Unbind: AMQPCodable {
+extension Spec.Queue.Unbind: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(ticket)
         try encoder.encode(queue, isLong: false)
@@ -1183,7 +1183,7 @@ extension AMQP.Queue.Unbind: AMQPCodable {
     }
 }
 
-extension AMQP.Queue.UnbindOk: AMQPCodable {
+extension Spec.Queue.UnbindOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -1194,7 +1194,7 @@ extension AMQP.Queue.UnbindOk: AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Tx.Select: AMQPCodable {
+extension Spec.Tx.Select: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -1205,7 +1205,7 @@ extension AMQP.Tx.Select: AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Tx.SelectOk: AMQPCodable {
+extension Spec.Tx.SelectOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -1216,7 +1216,7 @@ extension AMQP.Tx.SelectOk: AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Tx.Commit: AMQPCodable {
+extension Spec.Tx.Commit: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -1227,7 +1227,7 @@ extension AMQP.Tx.Commit: AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Tx.CommitOk: AMQPCodable {
+extension Spec.Tx.CommitOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -1238,7 +1238,7 @@ extension AMQP.Tx.CommitOk: AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Tx.Rollback: AMQPCodable {
+extension Spec.Tx.Rollback: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -1249,7 +1249,7 @@ extension AMQP.Tx.Rollback: AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Tx.RollbackOk: AMQPCodable {
+extension Spec.Tx.RollbackOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -1260,7 +1260,7 @@ extension AMQP.Tx.RollbackOk: AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP.Confirm.Select: AMQPCodable {
+extension Spec.Confirm.Select: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
         try encoder.encode(nowait)
     }
@@ -1275,7 +1275,7 @@ extension AMQP.Confirm.Select: AMQPCodable {
     var bytesCount: UInt32 { 1 + 4 }
 }
 
-extension AMQP.Confirm.SelectOk: AMQPCodable {
+extension Spec.Confirm.SelectOk: AMQPCodable {
     func encode(to encoder: AMQPEncoder) throws {
     }
 
@@ -1286,76 +1286,76 @@ extension AMQP.Confirm.SelectOk: AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension AMQP {
+extension Spec {
     typealias Factory = @Sendable (any AMQPDecoder) throws -> any AMQPCodable
     static func makeFactory(with classId: UInt16, and methodId: UInt16) throws -> Factory {
         switch (classId, methodId) {
-        case (60, 10): return AMQP.Basic.Qos.init
-        case (60, 11): return AMQP.Basic.QosOk.init
-        case (60, 20): return AMQP.Basic.Consume.init
-        case (60, 21): return AMQP.Basic.ConsumeOk.init
-        case (60, 30): return AMQP.Basic.Cancel.init
-        case (60, 31): return AMQP.Basic.CancelOk.init
-        case (60, 40): return AMQP.Basic.Publish.init
-        case (60, 50): return AMQP.Basic.Return.init
-        case (60, 60): return AMQP.Basic.Deliver.init
-        case (60, 70): return AMQP.Basic.Get.init
-        case (60, 71): return AMQP.Basic.GetOk.init
-        case (60, 72): return AMQP.Basic.GetEmpty.init
-        case (60, 80): return AMQP.Basic.Ack.init
-        case (60, 90): return AMQP.Basic.Reject.init
-        case (60, 100): return AMQP.Basic.RecoverAsync.init
-        case (60, 110): return AMQP.Basic.Recover.init
-        case (60, 111): return AMQP.Basic.RecoverOk.init
-        case (60, 120): return AMQP.Basic.Nack.init
-        case (10, 10): return AMQP.Connection.Start.init
-        case (10, 11): return AMQP.Connection.StartOk.init
-        case (10, 20): return AMQP.Connection.Secure.init
-        case (10, 21): return AMQP.Connection.SecureOk.init
-        case (10, 30): return AMQP.Connection.Tune.init
-        case (10, 31): return AMQP.Connection.TuneOk.init
-        case (10, 40): return AMQP.Connection.Open.init
-        case (10, 41): return AMQP.Connection.OpenOk.init
-        case (10, 50): return AMQP.Connection.Close.init
-        case (10, 51): return AMQP.Connection.CloseOk.init
-        case (10, 60): return AMQP.Connection.Blocked.init
-        case (10, 61): return AMQP.Connection.Unblocked.init
-        case (10, 70): return AMQP.Connection.UpdateSecret.init
-        case (10, 71): return AMQP.Connection.UpdateSecretOk.init
-        case (20, 10): return AMQP.Channel.Open.init
-        case (20, 11): return AMQP.Channel.OpenOk.init
-        case (20, 20): return AMQP.Channel.Flow.init
-        case (20, 21): return AMQP.Channel.FlowOk.init
-        case (20, 40): return AMQP.Channel.Close.init
-        case (20, 41): return AMQP.Channel.CloseOk.init
-        case (30, 10): return AMQP.Access.Request.init
-        case (30, 11): return AMQP.Access.RequestOk.init
-        case (40, 10): return AMQP.Exchange.Declare.init
-        case (40, 11): return AMQP.Exchange.DeclareOk.init
-        case (40, 20): return AMQP.Exchange.Delete.init
-        case (40, 21): return AMQP.Exchange.DeleteOk.init
-        case (40, 30): return AMQP.Exchange.Bind.init
-        case (40, 31): return AMQP.Exchange.BindOk.init
-        case (40, 40): return AMQP.Exchange.Unbind.init
-        case (40, 51): return AMQP.Exchange.UnbindOk.init
-        case (50, 10): return AMQP.Queue.Declare.init
-        case (50, 11): return AMQP.Queue.DeclareOk.init
-        case (50, 20): return AMQP.Queue.Bind.init
-        case (50, 21): return AMQP.Queue.BindOk.init
-        case (50, 30): return AMQP.Queue.Purge.init
-        case (50, 31): return AMQP.Queue.PurgeOk.init
-        case (50, 40): return AMQP.Queue.Delete.init
-        case (50, 41): return AMQP.Queue.DeleteOk.init
-        case (50, 50): return AMQP.Queue.Unbind.init
-        case (50, 51): return AMQP.Queue.UnbindOk.init
-        case (90, 10): return AMQP.Tx.Select.init
-        case (90, 11): return AMQP.Tx.SelectOk.init
-        case (90, 20): return AMQP.Tx.Commit.init
-        case (90, 21): return AMQP.Tx.CommitOk.init
-        case (90, 30): return AMQP.Tx.Rollback.init
-        case (90, 31): return AMQP.Tx.RollbackOk.init
-        case (85, 10): return AMQP.Confirm.Select.init
-        case (85, 11): return AMQP.Confirm.SelectOk.init
+        case (60, 10): return Spec.Basic.Qos.init
+        case (60, 11): return Spec.Basic.QosOk.init
+        case (60, 20): return Spec.Basic.Consume.init
+        case (60, 21): return Spec.Basic.ConsumeOk.init
+        case (60, 30): return Spec.Basic.Cancel.init
+        case (60, 31): return Spec.Basic.CancelOk.init
+        case (60, 40): return Spec.Basic.Publish.init
+        case (60, 50): return Spec.Basic.Return.init
+        case (60, 60): return Spec.Basic.Deliver.init
+        case (60, 70): return Spec.Basic.Get.init
+        case (60, 71): return Spec.Basic.GetOk.init
+        case (60, 72): return Spec.Basic.GetEmpty.init
+        case (60, 80): return Spec.Basic.Ack.init
+        case (60, 90): return Spec.Basic.Reject.init
+        case (60, 100): return Spec.Basic.RecoverAsync.init
+        case (60, 110): return Spec.Basic.Recover.init
+        case (60, 111): return Spec.Basic.RecoverOk.init
+        case (60, 120): return Spec.Basic.Nack.init
+        case (10, 10): return Spec.Connection.Start.init
+        case (10, 11): return Spec.Connection.StartOk.init
+        case (10, 20): return Spec.Connection.Secure.init
+        case (10, 21): return Spec.Connection.SecureOk.init
+        case (10, 30): return Spec.Connection.Tune.init
+        case (10, 31): return Spec.Connection.TuneOk.init
+        case (10, 40): return Spec.Connection.Open.init
+        case (10, 41): return Spec.Connection.OpenOk.init
+        case (10, 50): return Spec.Connection.Close.init
+        case (10, 51): return Spec.Connection.CloseOk.init
+        case (10, 60): return Spec.Connection.Blocked.init
+        case (10, 61): return Spec.Connection.Unblocked.init
+        case (10, 70): return Spec.Connection.UpdateSecret.init
+        case (10, 71): return Spec.Connection.UpdateSecretOk.init
+        case (20, 10): return Spec.Channel.Open.init
+        case (20, 11): return Spec.Channel.OpenOk.init
+        case (20, 20): return Spec.Channel.Flow.init
+        case (20, 21): return Spec.Channel.FlowOk.init
+        case (20, 40): return Spec.Channel.Close.init
+        case (20, 41): return Spec.Channel.CloseOk.init
+        case (30, 10): return Spec.Access.Request.init
+        case (30, 11): return Spec.Access.RequestOk.init
+        case (40, 10): return Spec.Exchange.Declare.init
+        case (40, 11): return Spec.Exchange.DeclareOk.init
+        case (40, 20): return Spec.Exchange.Delete.init
+        case (40, 21): return Spec.Exchange.DeleteOk.init
+        case (40, 30): return Spec.Exchange.Bind.init
+        case (40, 31): return Spec.Exchange.BindOk.init
+        case (40, 40): return Spec.Exchange.Unbind.init
+        case (40, 51): return Spec.Exchange.UnbindOk.init
+        case (50, 10): return Spec.Queue.Declare.init
+        case (50, 11): return Spec.Queue.DeclareOk.init
+        case (50, 20): return Spec.Queue.Bind.init
+        case (50, 21): return Spec.Queue.BindOk.init
+        case (50, 30): return Spec.Queue.Purge.init
+        case (50, 31): return Spec.Queue.PurgeOk.init
+        case (50, 40): return Spec.Queue.Delete.init
+        case (50, 41): return Spec.Queue.DeleteOk.init
+        case (50, 50): return Spec.Queue.Unbind.init
+        case (50, 51): return Spec.Queue.UnbindOk.init
+        case (90, 10): return Spec.Tx.Select.init
+        case (90, 11): return Spec.Tx.SelectOk.init
+        case (90, 20): return Spec.Tx.Commit.init
+        case (90, 21): return Spec.Tx.CommitOk.init
+        case (90, 30): return Spec.Tx.Rollback.init
+        case (90, 31): return Spec.Tx.RollbackOk.init
+        case (85, 10): return Spec.Confirm.Select.init
+        case (85, 11): return Spec.Confirm.SelectOk.init
         default:
             throw AMQPError.DecodingError.unknownClassAndMethod(class: classId, method: methodId)
         }

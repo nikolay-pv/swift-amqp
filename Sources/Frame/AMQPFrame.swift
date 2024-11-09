@@ -12,7 +12,7 @@ struct AMQPFrame {
     var channelId: UInt16 = 0
     var size: UInt32 { payload.bytesCount }
     var payload: any AMQPCodable
-    let frameEnd: UInt8 = UInt8(AMQP.FrameEnd)
+    let frameEnd: UInt8 = UInt8(Spec.FrameEnd)
 }
 
 extension AMQPFrame: AMQPCodable {
@@ -21,12 +21,12 @@ extension AMQPFrame: AMQPCodable {
         channelId = try decoder.decode(UInt16.self)
         let expectedSize = try decoder.decode(UInt32.self)
         switch type {
-        case AMQP.FrameMethod:
+        case Spec.FrameMethod:
             let classId = try decoder.decode(UInt16.self)
             let methodId = try decoder.decode(UInt16.self)
-            let factory = try AMQP.makeFactory(with: classId, and: methodId)
+            let factory = try Spec.makeFactory(with: classId, and: methodId)
             payload = try factory(decoder)
-        case AMQP.FrameHeader, AMQP.FrameBody, AMQP.FrameHeartbeat:
+        case Spec.FrameHeader, Spec.FrameBody, Spec.FrameHeartbeat:
             fatalError("Not implemented yet")
         default: throw AMQPError.DecodingError.unknownFrameType(type)
         }

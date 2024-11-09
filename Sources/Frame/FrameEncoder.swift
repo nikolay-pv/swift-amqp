@@ -49,7 +49,7 @@ extension Data {
     }
 }
 
-extension AMQP.FieldValue {
+extension Spec.FieldValue {
     fileprivate func encode(to data: inout Data) throws {
         data.append(self.type)
         self.asWrappedValue.encode(to: &data)
@@ -83,7 +83,7 @@ private class _FrameEncoder: AMQPEncoder {
         case double(Double)
         case bool(Bool)
         case timestamp(Date)
-        case dictionary(AMQP.Table)
+        case dictionary(Spec.Table)
         case void(UInt8)  // only for field values
         case decimal(UInt8, Int32)  // only for field values
 
@@ -199,7 +199,7 @@ private class _FrameEncoder: AMQPEncoder {
         storage.append(isLong ? .longstring(value) : .shortstring(value))
     }
 
-    func encode(_ value: [String: AMQP.FieldValue]) throws {
+    func encode(_ value: [String: Spec.FieldValue]) throws {
         storage.append(.dictionary(value))
     }
 }

@@ -21,7 +21,7 @@ protocol AMQPDecoder {
     func decode(_ type: Double.Type) throws -> Double
     func decode(_ type: Date.Type) throws -> Date
     func decode(_ type: String.Type, isLong: Bool) throws -> String
-    func decode(_ type: [String: AMQP.FieldValue].Type) throws -> [String: AMQP.FieldValue]
+    func decode(_ type: [String: Spec.FieldValue].Type) throws -> [String: Spec.FieldValue]
 }
 
 protocol AMQPDecodable {
@@ -42,7 +42,7 @@ protocol AMQPEncoder {
     func encode(_ value: Double) throws
     func encode(_ value: Date) throws
     func encode(_ value: String, isLong: Bool) throws
-    func encode(_ value: [String: AMQP.FieldValue]) throws
+    func encode(_ value: [String: Spec.FieldValue]) throws
 }
 
 protocol AMQPEncodable {

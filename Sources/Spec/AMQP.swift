@@ -20,7 +20,7 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
     var amqpMethodId: UInt16 { get }
 }
 
-public enum AMQP {
+public enum Spec {
     public typealias Table = [String: FieldValue]
 
     public enum FieldValue: Equatable, Hashable, CaseIterable, Sendable {
