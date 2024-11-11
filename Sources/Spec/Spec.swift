@@ -6,7 +6,7 @@
 
 import Foundation
 
-protocol AMQPObjectProtocol: Equatable {
+protocol AMQPObjectProtocol: Equatable, Sendable {
     var amqpName: String { get }
 }
 
