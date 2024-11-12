@@ -7,8 +7,7 @@
 
 // TODO: improve this (& +messaging + internal / external split)
 enum AMQPError {
-    enum DecodingError: Error {
-        case invalidFrameType
+    enum CodingError: Error {
         case unknownClassAndMethod(class: UInt16, method: UInt16)
         case unknownFrameType(_ type: UInt8)
     }

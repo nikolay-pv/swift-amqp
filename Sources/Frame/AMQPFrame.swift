@@ -27,8 +27,9 @@ extension AMQPFrame: AMQPCodable {
             let factory = try Spec.makeFactory(with: classId, and: methodId)
             payload = try factory(decoder)
         case Spec.FrameHeader, Spec.FrameBody, Spec.FrameHeartbeat:
+            // TODO implement these
             fatalError("Not implemented yet")
-        default: throw AMQPError.DecodingError.unknownFrameType(type)
+        default: throw AMQPError.CodingError.unknownFrameType(type)
         }
         precondition(payload.bytesCount == expectedSize)
         let end = try decoder.decode(UInt8.self)
@@ -36,12 +37,28 @@ extension AMQPFrame: AMQPCodable {
     }
 
     func encode(to encoder: any AMQPEncoder) throws {
-        try encoder.encode(type)
-        try encoder.encode(channelId)
-        try encoder.encode(size)
-        try payload.encode(to: encoder)
-        try encoder.encode(frameEnd)
+        switch type {
+        case Spec.FrameMethod:
+            try encoder.encode(type)
+            try encoder.encode(channelId)
+            try encoder.encode(size)
+            try payload.encode(to: encoder)
+            try encoder.encode(frameEnd)
+        case Spec.FrameHeader, Spec.FrameBody, Spec.FrameHeartbeat:
+            // TODO implement these
+            fatalError("Not implemented yet")
+        default: throw AMQPError.CodingError.unknownFrameType(type)
+        }
     }
 
-    var bytesCount: UInt32 { 7 + 1 + size }
+    var bytesCount: UInt32 {
+        switch type {
+        case Spec.FrameMethod: return 7 + 1 + size
+        case Spec.FrameHeader, Spec.FrameBody, Spec.FrameHeartbeat:
+            // TODO implement these
+            fatalError("Not implemented yet")
+        default:
+            fatalError("Reached an unreachable code")
+        }
+    }
 }

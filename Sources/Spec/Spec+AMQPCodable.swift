@@ -1357,7 +1357,7 @@ extension Spec {
         case (85, 10): return Spec.Confirm.Select.init
         case (85, 11): return Spec.Confirm.SelectOk.init
         default:
-            throw AMQPError.DecodingError.unknownClassAndMethod(class: classId, method: methodId)
+            throw AMQPError.CodingError.unknownClassAndMethod(class: classId, method: methodId)
         }
     }
 }
