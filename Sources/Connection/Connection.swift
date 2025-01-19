@@ -19,7 +19,8 @@ import Collections
 //}
 
 enum AMQPConnectionError: Error {
-    case unexpectedState(actual: AMQPConnection.State, expected: AMQPConnection.State)
+    case unexpectedState(actual: Connection.State, expected: Connection.State)
+    case handshakeFailed(reason: String)
 }
 
 enum AMQPChannelError: Error {
@@ -67,13 +68,18 @@ struct ChannelIDs {
     }
 }
 
-public actor AMQPConnection {
+public actor Connection {
     // MARK: - init
-    public init(with configuration: AMQPConfiguration = .default) {
+    public init(with configuration: AMQPConfiguration = .default) async {
         transport = FakeAMQPTransport()
         channel0 = AMQPChannel(id: 0)
+        // todo: fix the force unwrap
+        try! await start()
     }
 
+    deinit {
+        // TODO: close here
+    }
 
     // MARK: - state management
     public enum State: String, Sendable {
