@@ -14,9 +14,11 @@ class AMQPNegotiationHandler: ChannelInboundHandler, RemovableChannelHandler {
     public typealias OutboundOut = NIOAny
 
     private let completionHandler: (AMQPNegotiationResult, Channel) -> EventLoopFuture<Void>
-    // private var stateMachine = TODO
+    // private var stateMachine = TODO(@nikolay-pv):
 
-    public init( completionHandler: @escaping ( AMQPNegotiationResult,
+    public init(
+        completionHandler: @escaping (
+            AMQPNegotiationResult,
             Channel
         ) -> EventLoopFuture<Void>
     ) {
@@ -35,11 +37,19 @@ class AMQPNegotiationHandler: ChannelInboundHandler, RemovableChannelHandler {
 }
 
 public actor AsyncConnection {
+
+    // MARK: - AMQP
+    private(set) var configuration: AMQPConfiguration
+    private var channel0: AMQPChannel
+    // MARK: - NIO stack
+    private var eventLoopGroup: MultiThreadedEventLoopGroup
+    private var nioChannel: NIOAsyncChannel<ByteBuffer, ByteBuffer>
+
     // MARK: - init
     public init(with configuration: AMQPConfiguration = .default) async throws {
         self.configuration = configuration
         channel0 = AMQPChannel(id: 0)
-        // TODO: should be in config? What will higher number achieve here?
+        // TODO(@nikolay-pv): should be in config? What will higher number achieve here?
         eventLoopGroup = .init(numberOfThreads: 1)
         // .channelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
         let bootstrap = ClientBootstrap(group: eventLoopGroup)
@@ -52,15 +62,34 @@ public actor AsyncConnection {
                 channel.eventLoop.makeCompletedFuture(
                     withResultOf: {
                         // 2.2.4 from AMQP spec
-                        // TODO? install the handler here to decode the frames
-                        let handler = AMQPNegotiationHandler() { _, channel in
-                                // TODO
-                                return channel.eventLoop.makeSucceededVoidFuture()
-                            }
+                        // TODO(@nikolay-pv): install the handler here to decode the frames
+                        let handler = AMQPNegotiationHandler { _, channel in
+                            // TODO(@nikolay-pv): setup the channel here on success
+                            return channel.eventLoop.makeSucceededVoidFuture()
+                        }
                         try! channel.pipeline.syncOperations.addHandler(handler)
                         let header = try! AMQPProtocolHeader.specHeader.asFrame()
-                        channel.pipeline.syncOperations.writeAndFlush(NIOAny(ByteBuffer(bytes: header)), promise: nil)
+                        channel.pipeline.syncOperations.writeAndFlush(
+                            NIOAny(ByteBuffer(bytes: header)),
+                            promise: nil
+                        )
                         print("Sent header!")
+                        // if socket closes here then it means misconfig or wrong header TODO: raise an exception?
+                        // get Start method
+                        // let buffer = channel.read()
+                        // let start = try FrameDecoder.decode(AMQP.Start.self, from: buffer)
+                        // send Start-Ok method with selected security mechanism
+                        // repeat below two
+                        // SASL, challenge-response model = get Secure method
+                        // send Secure-Ok method
+                        // get Tune method to set capabilities
+                        // send Tune-Ok method
+                        // get Open method with virtual host
+                        // sent Open-Ok method
+                        // ready!
+                        // TODO(@nikolay-pv): add handlers
+                        // done setting up hanlders
+
                         let asyncChannel = try NIOAsyncChannel(
                             wrappingChannelSynchronously: channel,
                             configuration: NIOAsyncChannel.Configuration(
@@ -81,21 +110,20 @@ public actor AsyncConnection {
         }
     }
 
-    private(set) var configuration: AMQPConfiguration
-    private var eventLoopGroup: MultiThreadedEventLoopGroup
-    private var nioChannel: NIOAsyncChannel<ByteBuffer, ByteBuffer>
+    deinit {
+        // blockingClose()
+        try? eventLoopGroup.syncShutdownGracefully()
+    }
 
+    // MARK: - channel management
     func start() async throws {
     }
 
     func close() {}
     func blockingClose() {}
-
-    // MARK: - channel management
-    private var channel0: AMQPChannel
 }
 
 @Test func exampleTest() async throws {
     let connection = try await AsyncConnection()
-    sleep(10*60)
+    sleep(10 * 60)
 }
