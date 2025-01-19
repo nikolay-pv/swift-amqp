@@ -7,12 +7,65 @@
 
 import Foundation
 
+// 4.2.2 AMQP
+struct AMQPProtocolHeader {
+    static let protocolNameLength: UInt32 = 4
+    var protocolName: [UInt8] = Array("AMQP".utf8)
+    var majorVersion: UInt8
+    var minorVersion: UInt8
+    var revision: UInt8
+
+    init(majorVersion: UInt8, minorVersion: UInt8, revision: UInt8) {
+        self.majorVersion = majorVersion
+        self.minorVersion = minorVersion
+        self.revision = revision
+    }
+
+    static let specHeader = AMQPProtocolHeader(
+        majorVersion: Spec.ProtocolLevel.MAJOR,
+        minorVersion: Spec.ProtocolLevel.MINOR,
+        revision: Spec.ProtocolLevel.REVISION
+    )
+}
+
+extension AMQPProtocolHeader: AMQPCodable {
+    func encode(to encoder: any AMQPEncoder) throws {
+        for byte in protocolName {
+            try encoder.encode(byte)
+        }
+        try encoder.encode(UInt8(0))
+        try encoder.encode(majorVersion)
+        try encoder.encode(minorVersion)
+        try encoder.encode(revision)
+    }
+
+    init(from decoder: any AMQPDecoder) throws {
+        protocolName = try (0..<Self.protocolNameLength)
+            .reduce(into: [UInt8]()) { partialResult, _ in
+                partialResult.append(try decoder.decode(UInt8.self))
+            }
+        _ = try decoder.decode(UInt8.self)
+        majorVersion = try decoder.decode(UInt8.self)
+        minorVersion = try decoder.decode(UInt8.self)
+        revision = try decoder.decode(UInt8.self)
+    }
+
+    var bytesCount: UInt32 { 8 }
+}
+
 struct AMQPFrame {
-    var type: UInt8
+    var type: UInt8 = Kind.method
     var channelId: UInt16 = 0
     var size: UInt32 { payload.bytesCount }
     var payload: any AMQPCodable
     let frameEnd: UInt8 = UInt8(Spec.FrameEnd)
+
+    enum Kind {
+        static let method = Spec.FrameMethod
+        static let header = Spec.FrameHeader
+        static let heartbeat = Spec.FrameHeartbeat
+        static let body = Spec.FrameBody
+    }
 }
 
 extension AMQPFrame: AMQPCodable {
