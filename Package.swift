@@ -24,6 +24,7 @@ let package = Package(
             dependencies: [
                 .product(name: "NIOCore", package: "swift-nio"),
                 .product(name: "NIOPosix", package: "swift-nio"),
+                .product(name: "NIOFoundationCompat", package: "swift-nio"),
                 .product(name: "Collections", package: "swift-collections"),
             ]
         ),
