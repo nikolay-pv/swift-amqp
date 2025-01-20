@@ -9,7 +9,7 @@ from rabbitmq_codegen.amqp_codegen import *
 def gen_swift_api(spec: AmqpSpec):
     def protocols():
         print(
-            """protocol AMQPObjectProtocol: Equatable {
+            """protocol AMQPObjectProtocol: Equatable, Sendable {
     var amqpName: String { get }
 }
 
@@ -244,7 +244,7 @@ def gen_swift_impl(spec: AmqpSpec):
         for c in spec.allClasses():
             for m in c.allMethods():
                 print(f"        case ({c.index}, {m.index}): return Spec.{struct_name(c.name)}.{struct_name(m.name)}.init")
-        print("        default: throw AMQPError.DecodingError.unknownClassAndMethod(class: classId, method: methodId)")
+        print("        default: throw AMQPError.CodingError.unknownClassAndMethod(class: classId, method: methodId)")
         print("        }")
         print("    }")
         print("}")
