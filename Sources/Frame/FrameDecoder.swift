@@ -21,17 +21,30 @@ extension Spec.FieldValue {
 
     fileprivate func decode(from decoder: AMQPDecoder) throws -> Self {
         switch self {
-        case .long(_): return .long(try decoder.decode(Int32.self))
-        case .decimal(_, _):
+        case .int32: return .int32(try decoder.decode(Int32.self))
+        case .decimal:
             let scale = try decoder.decode(UInt8.self)
             let value = try decoder.decode(Int32.self)
             return .decimal(scale, value)
-        case .longstr(_): return .longstr(try decoder.decode(String.self, isLong: true))
-        case .timestamp(_): return .timestamp(try decoder.decode(Date.self))
-        case .table(_): return .table(try decoder.decode(Spec.Table.self))
+        case .longstr: return .longstr(try decoder.decode(String.self, isLong: true))
+        case .timestamp: return .timestamp(try decoder.decode(Date.self))
+        case .table: return .table(try decoder.decode(Spec.Table.self))
         case .void:
             let _ = try decoder.decode(UInt8.self)
             return .void
+        case .bool: return .bool(try decoder.decode(Bool.self))
+        case .int8: return .int8(try decoder.decode(Int8.self))
+        case .uint8: return .uint8(try decoder.decode(UInt8.self))
+        case .int16: return .int16(try decoder.decode(Int16.self))
+        case .uint16: return .uint16(try decoder.decode(UInt16.self))
+        case .uint32: return .uint32(try decoder.decode(UInt32.self))
+        case .int64: return .int64(try decoder.decode(Int64.self))
+        // case .uint64: return .uint64(try decoder.decode(UInt64.self))
+        case .f32: return .f32(try decoder.decode(Float.self))
+        case .f64: return .f64(try decoder.decode(Double.self))
+        // case .shortstr: return .shortstr(try decoder.decode(String.self, isLong: false))
+        case .array: return .array(try decoder.decode([Spec.FieldValue].self))
+        case .bytes: return .bytes(try decoder.decode(Data.self))
         }
     }
 }
@@ -175,6 +188,21 @@ private class _FrameDecoder: AMQPDecoder {
                 let value = try decode(Spec.FieldValue.self)
                 d[key] = value
             }
+    }
+
+    func decode(_ type: [Spec.FieldValue].Type) throws -> [Spec.FieldValue] {
+        let count = Int(try decode(UInt32.self))
+        return try (0..<count)
+            .reduce(into: [Spec.FieldValue]()) { a, _ in
+                a.append(try decode(Spec.FieldValue.self))
+            }
+    }
+
+    func decode(_ type: Data.Type) throws -> Data {
+        let length = Int(try decode(UInt32.self))
+        precondition(_position + length <= data.count)
+        defer { _position += length }
+        return data.subdata(in: _position..<_position + length)
     }
 
     func decode(_ type: Spec.FieldValue.Type) throws -> Spec.FieldValue {

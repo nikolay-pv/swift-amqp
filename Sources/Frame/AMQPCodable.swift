@@ -22,6 +22,8 @@ protocol AMQPDecoder {
     func decode(_ type: Date.Type) throws -> Date
     func decode(_ type: String.Type, isLong: Bool) throws -> String
     func decode(_ type: [String: Spec.FieldValue].Type) throws -> [String: Spec.FieldValue]
+    func decode(_ type: [Spec.FieldValue].Type) throws -> [Spec.FieldValue]
+    func decode(_ type: Data.Type) throws -> Data
 }
 
 protocol AMQPDecodable {

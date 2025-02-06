@@ -57,12 +57,26 @@ extension Spec.FieldValue {
 
     fileprivate var asWrappedValue: _FrameEncoder.WrappedValue {
         return switch self {
-        case .long(let value): .int32(value)
+        case .int32(let value): .int32(value)
         case .decimal(let scale, let value): .decimal(scale, value)
         case .longstr(let value): .longstring(value)
         case .timestamp(let value): .timestamp(value)
         case .table(let value): .dictionary(value)
         case .void: .void(self.type)
+        case .bool(let value): .bool(value)
+        case .int8(let value): .int8(value)
+        case .uint8(let value): .uint8(value)
+        case .int16(let value): .int16(value)
+        case .uint16(let value): .uint16(value)
+        case .uint32(let value): .uint32(value)
+        case .int64(let value): .int64(value)
+        // case .uint64(let value): .uint64(value)
+        case .f32(let value): .float(value)
+        case .f64(let value): .double(value)
+        // case .shortstr(let value): .shortstring(value)
+        case .array(let value): .array(value.map(\.asWrappedValue))
+        case .bytes(let value): .data(value)
+
         }
     }
 }
@@ -86,6 +100,8 @@ private class _FrameEncoder: AMQPEncoder {
         case dictionary(Spec.Table)
         case void(UInt8)  // only for field values
         case decimal(UInt8, Int32)  // only for field values
+        case array([WrappedValue])  // only for field values
+        case data(Data)  // only for field values
 
         func encode(to data: inout Data) {
             switch self {
@@ -120,6 +136,12 @@ private class _FrameEncoder: AMQPEncoder {
             case .decimal(let scale, let value):
                 data.append(scale.bigEndian)
                 data.append(value.bigEndian)
+            case .array(let value):
+                data.append(UInt32(value.count))
+                value.forEach { $0.encode(to: &data) }
+            case .data(let value):
+                data.append(UInt32(value.count))
+                data.append(value)
             }
         }
 
@@ -133,6 +155,8 @@ private class _FrameEncoder: AMQPEncoder {
             case .decimal: 5
             case .int64, .uint64, .timestamp, .double: 8
             case .dictionary(let value): Int(value.bytesCount) + 2
+            case .array(let value): Int(value.reduce(into: 0) { $0 += $1.bytesCount }) + 4  // UInt32 for length
+            case .data(let value): Int(value.count) + 4  // UInt32 for length
             }
         }
     }

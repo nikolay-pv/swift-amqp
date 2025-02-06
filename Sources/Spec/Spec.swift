@@ -25,39 +25,83 @@ public enum Spec {
 
     public enum FieldValue: Equatable, Hashable, CaseIterable, Sendable {
         public static let allCases: [Self] = [
-            .long(0),
+            .bool(Bool.init()),
+            .int8(Int8.init()),
+            .uint8(UInt8.init()),
+            .int16(Int16.init()),
+            .uint16(UInt16.init()),
+            .int32(Int32.init()),
+            .uint32(UInt32.init()),
+            .int64(Int64.init()),
+            .f32(Float.init()),
+            .f64(Double.init()),
             .decimal(0, 0),
-            .longstr(""),
+            .longstr(String.init()),
+            .array([FieldValue].init()),
             .timestamp(Date.distantPast),
             .table([:]),
+            .bytes(Data.init()),
             .void,
         ]
 
-        case long(Int32),
-            decimal(UInt8, Int32),
-            longstr(String),
-            timestamp(Date),
-            table(Table),
-            void
+        case bool(Bool)
+        case int8(Int8)
+        case uint8(UInt8)
+        case int16(Int16)
+        case uint16(UInt16)
+        case int32(Int32)
+        case uint32(UInt32)
+        case int64(Int64)
+        case f32(Float)
+        case f64(Double)
+        case decimal(UInt8, Int32)
+        case longstr(String)
+        case array([FieldValue])
+        case timestamp(Date)
+        case table(Table)
+        case bytes(Data)
+        case void
 
         var type: UInt8 {
             switch self {
-            case .long: return Character("I").asciiValue!
+            case .bool: return Character("t").asciiValue!
+            case .int8: return Character("b").asciiValue!
+            case .uint8: return Character("B").asciiValue!
+            case .int16: return Character("s").asciiValue!
+            case .uint16: return Character("u").asciiValue!
+            case .int32: return Character("I").asciiValue!
+            case .uint32: return Character("i").asciiValue!
+            case .int64: return Character("l").asciiValue!
+            case .f32: return Character("f").asciiValue!
+            case .f64: return Character("d").asciiValue!
             case .decimal: return Character("D").asciiValue!
             case .longstr: return Character("S").asciiValue!
+            case .array: return Character("A").asciiValue!
             case .timestamp: return Character("T").asciiValue!
             case .table: return Character("F").asciiValue!
+            case .bytes: return Character("x").asciiValue!
             case .void: return Character("V").asciiValue!
             }
         }
 
         var bytesCount: UInt32 {
             switch self {
-            case .long: return 4
+            case .bool: return 1
+            case .int8: return 1
+            case .uint8: return 1
+            case .int16: return 2
+            case .uint16: return 2
+            case .int32: return 4
+            case .uint32: return 4
+            case .int64: return 8
+            case .f32: return 4
+            case .f64: return 8
             case .decimal: return 5
             case .longstr(let value): return value.longBytesCount
+            case .array(let value): return value.reduce(into: 0) { $0 += $1.bytesCount }
             case .timestamp: return 8
             case .table(let value): return value.bytesCount
+            case .bytes(let value): return UInt32(value.count)
             case .void: return 1
             }
         }

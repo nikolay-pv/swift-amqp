@@ -25,44 +25,72 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
         )
 
     def FieldValueEnum():
+        # based on the first column from here: https://www.rabbitmq.com/amqp-0-9-1-errata#section_3
+        # enum case, native Swift type, kind, size
+        field_values_definitions = [
+            ("bool", "Bool", "t", "1"), # stored as Int8
+            ("int8", "Int8", "b", "1"),
+            ("uint8", "UInt8", "B", "1"),
+            # conflicting in spec and implementation, fallback to implementation
+            ("int16", "Int16", "s", "2"),
+            ("uint16", "UInt16", "u", "2"),
+            ("int32", "Int32", "I", "4"),
+            ("uint32", "UInt32", "i", "4"),
+            # conflicting in spec and implementation, fallback to implementation
+            ("int64", "Int64", "l", "8"),
+            # ("uint64", "UInt64", "l", "8"),
+            ("f32", "Float", "f", "4"),
+            ("f64", "Double", "d", "8"),
+            ("decimal", "UInt8, Int32", "D", "5"),
+            # ("shortstr", "String", "s", "UInt32(value.shortBytesCount)"),
+            ("longstr", "String", "S", "value.longBytesCount"),
+            ("array", "[FieldValue]", "A", "value.reduce(into: 0) { $0 += $1.bytesCount }"),
+            ("timestamp", "Date", "T", "8"), # stored as uint64
+            ("table", "Table", "F", "value.bytesCount"),
+            ("bytes", "Data", "x", "UInt32(value.count)"),
+            ("void", "", "V", "1"),
+        ]
+
+        def get_init_value(case: str, type: str) -> str:
+            if case == "decimal":
+                return f"0,0"
+            elif case == "timestamp":
+                return "Date.distantPast"
+            elif case == "table":
+                return "[:]"
+            return f"{type}.init()"
+
         print("    public typealias Table = [String: FieldValue]")
         print("")
         print("    public enum FieldValue: Equatable, Hashable, CaseIterable, Sendable {")
         print("        public static let allCases: [Self] = [")
-        print("            .long(0),")
-        print("            .decimal(0, 0),")
-        print('            .longstr(""),')
-        print("            .timestamp(Date.distantPast),")
-        print("            .table([:]),")
-        print("            .void,")
+        for case, type, _, _ in field_values_definitions:
+            if len(type):
+                print(f"            .{case}({get_init_value(case, type)}),")
+            else:
+                print(f"            .{case},")
         print("        ]")
         print()
-        print("        case long(Int32),")
-        print("            decimal(UInt8, Int32),")
-        print("            longstr(String),")
-        print("            timestamp(Date),")
-        print("            table(Table),")
-        print("            void")
+        for case, type, _, _ in field_values_definitions:
+            if len(type):
+                print(f"        case {case}({type})")
+            else:
+                print(f"        case {case}")
         print("")
         print("        var type: UInt8 {")
         print("            switch self {")
-        print('            case .long: return Character("I").asciiValue!')
-        print('            case .decimal: return Character("D").asciiValue!')
-        print('            case .longstr: return Character("S").asciiValue!')
-        print('            case .timestamp: return Character("T").asciiValue!')
-        print('            case .table: return Character("F").asciiValue!')
-        print('            case .void: return Character("V").asciiValue!')
+        for case, _, kind, _ in field_values_definitions:
+            print(f'            case .{case}: return Character("{kind}").asciiValue!')
         print("            }")
         print("        }")
         print("")
         print("        var bytesCount: UInt32 {")
         print("            switch self {")
-        print("            case .long: return 4")
-        print("            case .decimal: return 5")
-        print("            case .longstr(let value): return value.longBytesCount")
-        print("            case .timestamp: return 8")
-        print("            case .table(let value): return value.bytesCount")
-        print("            case .void: return 1")
+        for case, _, kind, size in field_values_definitions:
+            if "value" in size:
+                print(f'            case .{case}(let value): return {size}')
+            else:
+                print(f'            case .{case}: return {size}')
         print("            }")
         print("        }")
         print("    }")
