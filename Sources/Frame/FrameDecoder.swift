@@ -181,7 +181,6 @@ private class _FrameDecoder: AMQPDecoder {
 
     func decode(_ type: [String: Spec.FieldValue].Type) throws -> [String: Spec.FieldValue] {
         let count = Int(try decode(UInt32.self))
-        defer { _position += count }
         return try (0..<count)
             .reduce(into: [String: Spec.FieldValue]()) { d, _ in
                 let key = try decode(String.self, isLong: false)
