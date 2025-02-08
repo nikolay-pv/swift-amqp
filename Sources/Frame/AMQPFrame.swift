@@ -53,7 +53,7 @@ extension AMQPProtocolHeader: AMQPCodable {
     var bytesCount: UInt32 { 8 }
 }
 
-struct AMQPFrame {
+struct AMQPFrame: Sendable {
     var type: UInt8 = Kind.method
     var channelId: UInt16 = 0
     var size: UInt32 { payload.bytesCount }

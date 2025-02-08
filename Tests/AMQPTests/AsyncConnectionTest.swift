@@ -5,11 +5,11 @@ import Testing
 @testable import AMQP
 
 enum AMQPNegotiationResult: Sendable {
-    case success(NIOAsyncChannel<ByteBuffer, ByteBuffer>)
+    case success(NIOAsyncChannel<AMQPFrame, AMQPFrame>)
     case failure(String)
 }
 
-class AMQPNegotiationHandler: ChannelInboundHandler, RemovableChannelHandler {
+class AMQPNegotitionHandler: ChannelInboundHandler, RemovableChannelHandler {
     public typealias InboundIn = NIOAny
     public typealias OutboundOut = NIOAny
 
@@ -43,7 +43,7 @@ public actor AsyncConnection {
     private var channel0: AMQPChannel
     // MARK: - NIO stack
     private var eventLoopGroup: MultiThreadedEventLoopGroup
-    private var nioChannel: NIOAsyncChannel<ByteBuffer, ByteBuffer>
+    private var nioChannel: NIOAsyncChannel<AMQPFrame, AMQPFrame>
 
     // MARK: - init
     public init(with configuration: AMQPConfiguration = .default) async throws {
@@ -93,8 +93,8 @@ public actor AsyncConnection {
                         let asyncChannel = try NIOAsyncChannel(
                             wrappingChannelSynchronously: channel,
                             configuration: NIOAsyncChannel.Configuration(
-                                inboundType: ByteBuffer.self,
-                                outboundType: ByteBuffer.self
+                                inboundType: AMQPFrame.self,
+                                outboundType: AMQPFrame.self
                             )
                         )
                         return AMQPNegotiationResult.success(asyncChannel)
