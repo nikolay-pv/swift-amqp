@@ -106,10 +106,10 @@ private class _FrameEncoder: AMQPEncoder {
         func encode(to data: inout Data) {
             switch self {
             case .shortstring(let value):
-                data.append(value.shortBytesCount.bigEndian)
+                data.append(UInt8(value.count).bigEndian)
                 data.append(contentsOf: value.utf8)
             case .longstring(let value):
-                data.append(value.longBytesCount.bigEndian)
+                data.append(UInt32(value.count).bigEndian)
                 data.append(contentsOf: value.utf8)
             case .uint8(let value): data.append(value.bigEndian)
             case .int8(let value): data.append(value.bigEndian)
@@ -147,14 +147,14 @@ private class _FrameEncoder: AMQPEncoder {
 
         var bytesCount: Int {
             return switch self {
-            case .shortstring(let value): Int(value.shortBytesCount) + 1
-            case .longstring(let value): Int(value.longBytesCount) + 4
+            case .shortstring(let value): Int(value.shortBytesCount)
+            case .longstring(let value): Int(value.longBytesCount)
             case .bool, .int8, .uint8, .void: 1
             case .int16, .uint16: 2
             case .int32, .uint32, .float: 4
             case .decimal: 5
             case .int64, .uint64, .timestamp, .double: 8
-            case .dictionary(let value): Int(value.bytesCount) + 2
+            case .dictionary(let value): Int(value.bytesCount)
             case .array(let value): Int(value.reduce(into: 0) { $0 += $1.bytesCount }) + 4  // UInt32 for length
             case .data(let value): Int(value.count) + 4  // UInt32 for length
             }

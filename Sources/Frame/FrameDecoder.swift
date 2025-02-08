@@ -173,28 +173,32 @@ private class _FrameDecoder: AMQPDecoder {
     }
 
     func decode(_ type: String.Type, isLong: Bool) throws -> String {
-        let count = isLong ? Int(try decode(UInt32.self)) : Int(try decode(UInt8.self))
-        precondition(_position + count <= data.count)
-        defer { _position += count }
-        return .init(decoding: data.subdata(in: _position..<_position + count), as: UTF8.self)
+        let length = isLong ? Int(try decode(UInt32.self)) : Int(try decode(UInt8.self))
+        precondition(_position + length <= data.count)
+        defer { _position += length }
+        return .init(decoding: data.subdata(in: _position..<_position + length), as: UTF8.self)
     }
 
     func decode(_ type: [String: Spec.FieldValue].Type) throws -> [String: Spec.FieldValue] {
-        let count = Int(try decode(UInt32.self))
-        return try (0..<count)
-            .reduce(into: [String: Spec.FieldValue]()) { d, _ in
-                let key = try decode(String.self, isLong: false)
-                let value = try decode(Spec.FieldValue.self)
-                d[key] = value
-            }
+        let byteCount = Int(try decode(UInt32.self))
+        let endPosition = _position + byteCount
+        var result = [String: Spec.FieldValue]()
+        while _position < endPosition {
+            let key = try decode(String.self, isLong: false)
+            let value = try decode(Spec.FieldValue.self)
+            result[key] = value
+        }
+        return result
     }
 
     func decode(_ type: [Spec.FieldValue].Type) throws -> [Spec.FieldValue] {
-        let count = Int(try decode(UInt32.self))
-        return try (0..<count)
-            .reduce(into: [Spec.FieldValue]()) { a, _ in
-                a.append(try decode(Spec.FieldValue.self))
-            }
+        let byteCount = Int(try decode(UInt32.self))
+        let endPosition = _position + byteCount
+        var result = [Spec.FieldValue]()
+        while _position <= endPosition {
+            result.append(try decode(Spec.FieldValue.self))
+        }
+        return result
     }
 
     func decode(_ type: Data.Type) throws -> Data {

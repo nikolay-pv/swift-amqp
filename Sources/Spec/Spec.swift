@@ -85,24 +85,25 @@ public enum Spec {
         }
 
         var bytesCount: UInt32 {
+            // 1 extra byte to store the type info
             switch self {
-            case .bool: return 1
-            case .int8: return 1
-            case .uint8: return 1
-            case .int16: return 2
-            case .uint16: return 2
-            case .int32: return 4
-            case .uint32: return 4
-            case .int64: return 8
-            case .f32: return 4
-            case .f64: return 8
-            case .decimal: return 5
-            case .longstr(let value): return value.longBytesCount
-            case .array(let value): return value.reduce(into: 0) { $0 += $1.bytesCount }
-            case .timestamp: return 8
-            case .table(let value): return value.bytesCount
-            case .bytes(let value): return UInt32(value.count)
-            case .void: return 1
+            case .bool: return 1 + 1
+            case .int8: return 1 + 1
+            case .uint8: return 1 + 1
+            case .int16: return 2 + 1
+            case .uint16: return 2 + 1
+            case .int32: return 4 + 1
+            case .uint32: return 4 + 1
+            case .int64: return 8 + 1
+            case .f32: return 4 + 1
+            case .f64: return 8 + 1
+            case .decimal: return 5 + 1
+            case .longstr(let value): return value.longBytesCount + 1
+            case .array(let value): return value.reduce(into: 0) { $0 += $1.bytesCount } + 1 + 4  // 4 for length
+            case .timestamp: return 8 + 1
+            case .table(let value): return value.bytesCount + 1
+            case .bytes(let value): return UInt32(value.count) + 1 + 4  // 4 for length
+            case .void: return 1 + 1
             }
         }
     }

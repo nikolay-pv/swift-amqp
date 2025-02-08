@@ -16,6 +16,7 @@ def gen_swift_tests(spec: AmqpSpec):
         print("func tester<T>(_ object: T) throws where T: AMQPCodable & Equatable {")
         print("    let binary = try FrameEncoder().encode(object)")
         print("    let decoded = try FrameDecoder().decode(T.self, from: binary)")
+        print("    #expect(binary.count == object.bytesCount)")
         print("    #expect(decoded == object)")
         print("}")
     

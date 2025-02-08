@@ -85,12 +85,14 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
         print("        }")
         print("")
         print("        var bytesCount: UInt32 {")
+        print("            // 1 extra byte to store the type info")
         print("            switch self {")
         for case, _, kind, size in field_values_definitions:
             if "value" in size:
-                print(f'            case .{case}(let value): return {size}')
+                addition = "" if case not in ["array", "bytes"] else " + 4 // 4 for length"
+                print(f'            case .{case}(let value): return {size} + 1{addition}')
             else:
-                print(f'            case .{case}: return {size}')
+                print(f'            case .{case}: return {size} + 1')
         print("            }")
         print("        }")
         print("    }")
@@ -196,18 +198,21 @@ def gen_swift_impl(spec: AmqpSpec):
             print(f"        if {variable_name(a.name)} {{ bitPack |= 1 << {k} }}")
         print(f"        try encoder.encode(bitPack)")
 
-    def pack_decode_bits(bits_to_unpack):
+    def pack_decode_bits(bits_to_unpack) -> int:
+        """returns number of bytes it would need
+        """
         if len(bits_to_unpack) == 0:
-            return
+            return None
         if len(bits_to_unpack) == 1:
             a = bits_to_unpack[0]
             print(f"        let {variable_name(a.name, True)} = try decoder.decode({swift_type(spec, a.domain)}.self)")
-            return
+            return 1
         print(f"        let bitPack: UInt8 = try decoder.decode(UInt8.self)")
         if len(bits_to_unpack) > 8:
             raise RuntimeError("packing more than 8 bits is not implemented")
         for k, a in enumerate(bits_to_unpack):
             print(f"        let {variable_name(a.name, True)}: Bool = ((bitPack & (1 << {k})) != 0)")
+        return 1 # can't pack more than 8 bits for now
 
     def encode_extensions():
         for c in spec.allClasses():
@@ -234,24 +239,29 @@ def gen_swift_impl(spec: AmqpSpec):
                 print("    }")
                 print()
                 print("    init(from decoder: AMQPDecoder) throws {")
-                bytes_count = ["4"] # the class and frame ids
+                bytes_count = []
                 bits_to_unpack = []
                 for a in m.arguments:
-                    bytes_count.append(get_bytes_count(spec, a.name, a.domain))
                     t = spec.resolveDomain(a.domain)
                     if t == "bit":
                         bits_to_unpack.append(a)
                         continue
                     else:
-                        pack_decode_bits(bits_to_unpack)
+                        # not encoding bits, check if there are any bits to encode and do that
+                        serialized_size = pack_decode_bits(bits_to_unpack)
                         bits_to_unpack = []
+                        if serialized_size:
+                            bytes_count.append(str(serialized_size))
+                    bytes_count.append(get_bytes_count(spec, a.name, a.domain))
                     if t == "shortstr" or t == "longstr":
                         is_long = t == "longstr"
                         print(f"        let {variable_name(a.name, False)} = try decoder.decode({swift_type(spec, a.domain)}.self, isLong: {as_bool_literal(is_long)})")
                     else:
                         print(f"        let {variable_name(a.name, False)} = try decoder.decode({swift_type(spec, a.domain)}.self)")
-                pack_decode_bits(bits_to_unpack)
+                serialized_size = pack_decode_bits(bits_to_unpack)
                 bits_to_unpack = []
+                if serialized_size != None:
+                    bytes_count.append(str(serialized_size))
                 if not len(m.arguments):
                     print("        self.init()")
                 else:
@@ -261,7 +271,7 @@ def gen_swift_impl(spec: AmqpSpec):
                 print("    }")
                 print()
                 bc = " + ".join(sorted(bytes_count)) # optimization for compiler
-                print("    var bytesCount: UInt32 { " + bc + " }")
+                print("    var bytesCount: UInt32 { " + (bc if len(bc) else "0") + " }")
                 print("}")
 
         print()

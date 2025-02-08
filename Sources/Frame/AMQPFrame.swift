@@ -84,7 +84,7 @@ extension AMQPFrame: AMQPCodable {
             fatalError("Not implemented yet")
         default: throw AMQPError.CodingError.unknownFrameType(type)
         }
-        precondition(payload.bytesCount == expectedSize)
+        precondition(payload.bytesCount + 4 == expectedSize)
         let end = try decoder.decode(UInt8.self)
         precondition(end == frameEnd)
     }

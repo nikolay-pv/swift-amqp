@@ -26,7 +26,7 @@ extension Spec.Basic.Qos: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 1 + 2 + 4 + 4 }
+    var bytesCount: UInt32 { 1 + 2 + 4 }
 }
 
 extension Spec.Basic.QosOk: AMQPCodable {
@@ -37,7 +37,7 @@ extension Spec.Basic.QosOk: AMQPCodable {
         self.init()
     }
 
-    var bytesCount: UInt32 { 4 }
+    var bytesCount: UInt32 { 0 }
 }
 
 extension Spec.Basic.Consume: AMQPCodable {
@@ -77,7 +77,7 @@ extension Spec.Basic.Consume: AMQPCodable {
     }
 
     var bytesCount: UInt32 {
-        1 + 1 + 1 + 1 + 2 + 4 + UInt32(consumerTag.shortBytesCount) + UInt32(queue.shortBytesCount)
+        1 + 2 + UInt32(consumerTag.shortBytesCount) + UInt32(queue.shortBytesCount)
             + arguments.bytesCount
     }
 }
@@ -94,7 +94,7 @@ extension Spec.Basic.ConsumeOk: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 4 + UInt32(consumerTag.shortBytesCount) }
+    var bytesCount: UInt32 { UInt32(consumerTag.shortBytesCount) }
 }
 
 extension Spec.Basic.Cancel: AMQPCodable {
@@ -112,7 +112,7 @@ extension Spec.Basic.Cancel: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 1 + 4 + UInt32(consumerTag.shortBytesCount) }
+    var bytesCount: UInt32 { 1 + UInt32(consumerTag.shortBytesCount) }
 }
 
 extension Spec.Basic.CancelOk: AMQPCodable {
@@ -127,7 +127,7 @@ extension Spec.Basic.CancelOk: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 4 + UInt32(consumerTag.shortBytesCount) }
+    var bytesCount: UInt32 { UInt32(consumerTag.shortBytesCount) }
 }
 
 extension Spec.Basic.Publish: AMQPCodable {
@@ -158,7 +158,7 @@ extension Spec.Basic.Publish: AMQPCodable {
     }
 
     var bytesCount: UInt32 {
-        1 + 1 + 2 + 4 + UInt32(exchange.shortBytesCount) + UInt32(routingKey.shortBytesCount)
+        1 + 2 + UInt32(exchange.shortBytesCount) + UInt32(routingKey.shortBytesCount)
     }
 }
 
@@ -184,7 +184,7 @@ extension Spec.Basic.Return: AMQPCodable {
     }
 
     var bytesCount: UInt32 {
-        2 + 4 + UInt32(exchange.shortBytesCount) + UInt32(replyText.shortBytesCount)
+        2 + UInt32(exchange.shortBytesCount) + UInt32(replyText.shortBytesCount)
             + UInt32(routingKey.shortBytesCount)
     }
 }
@@ -214,7 +214,7 @@ extension Spec.Basic.Deliver: AMQPCodable {
     }
 
     var bytesCount: UInt32 {
-        1 + 4 + 8 + UInt32(consumerTag.shortBytesCount) + UInt32(exchange.shortBytesCount)
+        1 + 8 + UInt32(consumerTag.shortBytesCount) + UInt32(exchange.shortBytesCount)
             + UInt32(routingKey.shortBytesCount)
     }
 }
@@ -237,7 +237,7 @@ extension Spec.Basic.Get: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 1 + 2 + 4 + UInt32(queue.shortBytesCount) }
+    var bytesCount: UInt32 { 1 + 2 + UInt32(queue.shortBytesCount) }
 }
 
 extension Spec.Basic.GetOk: AMQPCodable {
@@ -265,7 +265,7 @@ extension Spec.Basic.GetOk: AMQPCodable {
     }
 
     var bytesCount: UInt32 {
-        1 + 4 + 4 + 8 + UInt32(exchange.shortBytesCount) + UInt32(routingKey.shortBytesCount)
+        1 + 4 + 8 + UInt32(exchange.shortBytesCount) + UInt32(routingKey.shortBytesCount)
     }
 }
 
@@ -281,7 +281,7 @@ extension Spec.Basic.GetEmpty: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 4 + UInt32(clusterId.shortBytesCount) }
+    var bytesCount: UInt32 { UInt32(clusterId.shortBytesCount) }
 }
 
 extension Spec.Basic.Ack: AMQPCodable {
@@ -299,7 +299,7 @@ extension Spec.Basic.Ack: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 1 + 4 + 8 }
+    var bytesCount: UInt32 { 1 + 8 }
 }
 
 extension Spec.Basic.Reject: AMQPCodable {
@@ -317,7 +317,7 @@ extension Spec.Basic.Reject: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 1 + 4 + 8 }
+    var bytesCount: UInt32 { 1 + 8 }
 }
 
 extension Spec.Basic.RecoverAsync: AMQPCodable {
@@ -332,7 +332,7 @@ extension Spec.Basic.RecoverAsync: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 1 + 4 }
+    var bytesCount: UInt32 { 1 }
 }
 
 extension Spec.Basic.Recover: AMQPCodable {
@@ -347,7 +347,7 @@ extension Spec.Basic.Recover: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 1 + 4 }
+    var bytesCount: UInt32 { 1 }
 }
 
 extension Spec.Basic.RecoverOk: AMQPCodable {
@@ -358,7 +358,7 @@ extension Spec.Basic.RecoverOk: AMQPCodable {
         self.init()
     }
 
-    var bytesCount: UInt32 { 4 }
+    var bytesCount: UInt32 { 0 }
 }
 
 extension Spec.Basic.Nack: AMQPCodable {
@@ -382,7 +382,7 @@ extension Spec.Basic.Nack: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 1 + 1 + 4 + 8 }
+    var bytesCount: UInt32 { 1 + 8 }
 }
 
 extension Spec.Connection.Start: AMQPCodable {
@@ -410,7 +410,7 @@ extension Spec.Connection.Start: AMQPCodable {
     }
 
     var bytesCount: UInt32 {
-        1 + 1 + 4 + locales.longBytesCount + mechanisms.longBytesCount + serverProperties.bytesCount
+        1 + 1 + locales.longBytesCount + mechanisms.longBytesCount + serverProperties.bytesCount
     }
 }
 
@@ -436,7 +436,7 @@ extension Spec.Connection.StartOk: AMQPCodable {
     }
 
     var bytesCount: UInt32 {
-        4 + UInt32(locale.shortBytesCount) + UInt32(mechanism.shortBytesCount)
+        UInt32(locale.shortBytesCount) + UInt32(mechanism.shortBytesCount)
             + clientProperties.bytesCount + response.longBytesCount
     }
 }
@@ -453,7 +453,7 @@ extension Spec.Connection.Secure: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 4 + challenge.longBytesCount }
+    var bytesCount: UInt32 { challenge.longBytesCount }
 }
 
 extension Spec.Connection.SecureOk: AMQPCodable {
@@ -468,7 +468,7 @@ extension Spec.Connection.SecureOk: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 4 + response.longBytesCount }
+    var bytesCount: UInt32 { response.longBytesCount }
 }
 
 extension Spec.Connection.Tune: AMQPCodable {
@@ -489,7 +489,7 @@ extension Spec.Connection.Tune: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 2 + 2 + 4 + 4 }
+    var bytesCount: UInt32 { 2 + 2 + 4 }
 }
 
 extension Spec.Connection.TuneOk: AMQPCodable {
@@ -510,7 +510,7 @@ extension Spec.Connection.TuneOk: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 2 + 2 + 4 + 4 }
+    var bytesCount: UInt32 { 2 + 2 + 4 }
 }
 
 extension Spec.Connection.Open: AMQPCodable {
@@ -532,7 +532,7 @@ extension Spec.Connection.Open: AMQPCodable {
     }
 
     var bytesCount: UInt32 {
-        1 + 4 + UInt32(capabilities.shortBytesCount) + UInt32(virtualHost.shortBytesCount)
+        1 + UInt32(capabilities.shortBytesCount) + UInt32(virtualHost.shortBytesCount)
     }
 }
 
@@ -548,7 +548,7 @@ extension Spec.Connection.OpenOk: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 4 + UInt32(knownHosts.shortBytesCount) }
+    var bytesCount: UInt32 { UInt32(knownHosts.shortBytesCount) }
 }
 
 extension Spec.Connection.Close: AMQPCodable {
@@ -572,7 +572,7 @@ extension Spec.Connection.Close: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 2 + 2 + 2 + 4 + UInt32(replyText.shortBytesCount) }
+    var bytesCount: UInt32 { 2 + 2 + 2 + UInt32(replyText.shortBytesCount) }
 }
 
 extension Spec.Connection.CloseOk: AMQPCodable {
@@ -583,7 +583,7 @@ extension Spec.Connection.CloseOk: AMQPCodable {
         self.init()
     }
 
-    var bytesCount: UInt32 { 4 }
+    var bytesCount: UInt32 { 0 }
 }
 
 extension Spec.Connection.Blocked: AMQPCodable {
@@ -598,7 +598,7 @@ extension Spec.Connection.Blocked: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 4 + UInt32(reason.shortBytesCount) }
+    var bytesCount: UInt32 { UInt32(reason.shortBytesCount) }
 }
 
 extension Spec.Connection.Unblocked: AMQPCodable {
@@ -609,7 +609,7 @@ extension Spec.Connection.Unblocked: AMQPCodable {
         self.init()
     }
 
-    var bytesCount: UInt32 { 4 }
+    var bytesCount: UInt32 { 0 }
 }
 
 extension Spec.Connection.UpdateSecret: AMQPCodable {
@@ -627,7 +627,7 @@ extension Spec.Connection.UpdateSecret: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 4 + UInt32(reason.shortBytesCount) + newSecret.longBytesCount }
+    var bytesCount: UInt32 { UInt32(reason.shortBytesCount) + newSecret.longBytesCount }
 }
 
 extension Spec.Connection.UpdateSecretOk: AMQPCodable {
@@ -638,7 +638,7 @@ extension Spec.Connection.UpdateSecretOk: AMQPCodable {
         self.init()
     }
 
-    var bytesCount: UInt32 { 4 }
+    var bytesCount: UInt32 { 0 }
 }
 
 extension Spec.Channel.Open: AMQPCodable {
@@ -653,7 +653,7 @@ extension Spec.Channel.Open: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 4 + UInt32(outOfBand.shortBytesCount) }
+    var bytesCount: UInt32 { UInt32(outOfBand.shortBytesCount) }
 }
 
 extension Spec.Channel.OpenOk: AMQPCodable {
@@ -668,7 +668,7 @@ extension Spec.Channel.OpenOk: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 4 + channelId.longBytesCount }
+    var bytesCount: UInt32 { channelId.longBytesCount }
 }
 
 extension Spec.Channel.Flow: AMQPCodable {
@@ -683,7 +683,7 @@ extension Spec.Channel.Flow: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 1 + 4 }
+    var bytesCount: UInt32 { 1 }
 }
 
 extension Spec.Channel.FlowOk: AMQPCodable {
@@ -698,7 +698,7 @@ extension Spec.Channel.FlowOk: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 1 + 4 }
+    var bytesCount: UInt32 { 1 }
 }
 
 extension Spec.Channel.Close: AMQPCodable {
@@ -722,7 +722,7 @@ extension Spec.Channel.Close: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 2 + 2 + 2 + 4 + UInt32(replyText.shortBytesCount) }
+    var bytesCount: UInt32 { 2 + 2 + 2 + UInt32(replyText.shortBytesCount) }
 }
 
 extension Spec.Channel.CloseOk: AMQPCodable {
@@ -733,7 +733,7 @@ extension Spec.Channel.CloseOk: AMQPCodable {
         self.init()
     }
 
-    var bytesCount: UInt32 { 4 }
+    var bytesCount: UInt32 { 0 }
 }
 
 extension Spec.Access.Request: AMQPCodable {
@@ -766,7 +766,7 @@ extension Spec.Access.Request: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 1 + 1 + 1 + 1 + 1 + 4 + UInt32(realm.shortBytesCount) }
+    var bytesCount: UInt32 { 1 + UInt32(realm.shortBytesCount) }
 }
 
 extension Spec.Access.RequestOk: AMQPCodable {
@@ -781,7 +781,7 @@ extension Spec.Access.RequestOk: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 2 + 4 }
+    var bytesCount: UInt32 { 2 }
 }
 
 extension Spec.Exchange.Declare: AMQPCodable {
@@ -824,7 +824,7 @@ extension Spec.Exchange.Declare: AMQPCodable {
     }
 
     var bytesCount: UInt32 {
-        1 + 1 + 1 + 1 + 1 + 2 + 4 + UInt32(exchange.shortBytesCount) + UInt32(type.shortBytesCount)
+        1 + 2 + UInt32(exchange.shortBytesCount) + UInt32(type.shortBytesCount)
             + arguments.bytesCount
     }
 }
@@ -837,7 +837,7 @@ extension Spec.Exchange.DeclareOk: AMQPCodable {
         self.init()
     }
 
-    var bytesCount: UInt32 { 4 }
+    var bytesCount: UInt32 { 0 }
 }
 
 extension Spec.Exchange.Delete: AMQPCodable {
@@ -864,7 +864,7 @@ extension Spec.Exchange.Delete: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 1 + 1 + 2 + 4 + UInt32(exchange.shortBytesCount) }
+    var bytesCount: UInt32 { 1 + 2 + UInt32(exchange.shortBytesCount) }
 }
 
 extension Spec.Exchange.DeleteOk: AMQPCodable {
@@ -875,7 +875,7 @@ extension Spec.Exchange.DeleteOk: AMQPCodable {
         self.init()
     }
 
-    var bytesCount: UInt32 { 4 }
+    var bytesCount: UInt32 { 0 }
 }
 
 extension Spec.Exchange.Bind: AMQPCodable {
@@ -906,7 +906,7 @@ extension Spec.Exchange.Bind: AMQPCodable {
     }
 
     var bytesCount: UInt32 {
-        1 + 2 + 4 + UInt32(destination.shortBytesCount) + UInt32(routingKey.shortBytesCount)
+        1 + 2 + UInt32(destination.shortBytesCount) + UInt32(routingKey.shortBytesCount)
             + UInt32(source.shortBytesCount) + arguments.bytesCount
     }
 }
@@ -919,7 +919,7 @@ extension Spec.Exchange.BindOk: AMQPCodable {
         self.init()
     }
 
-    var bytesCount: UInt32 { 4 }
+    var bytesCount: UInt32 { 0 }
 }
 
 extension Spec.Exchange.Unbind: AMQPCodable {
@@ -950,7 +950,7 @@ extension Spec.Exchange.Unbind: AMQPCodable {
     }
 
     var bytesCount: UInt32 {
-        1 + 2 + 4 + UInt32(destination.shortBytesCount) + UInt32(routingKey.shortBytesCount)
+        1 + 2 + UInt32(destination.shortBytesCount) + UInt32(routingKey.shortBytesCount)
             + UInt32(source.shortBytesCount) + arguments.bytesCount
     }
 }
@@ -963,7 +963,7 @@ extension Spec.Exchange.UnbindOk: AMQPCodable {
         self.init()
     }
 
-    var bytesCount: UInt32 { 4 }
+    var bytesCount: UInt32 { 0 }
 }
 
 extension Spec.Queue.Declare: AMQPCodable {
@@ -1002,9 +1002,7 @@ extension Spec.Queue.Declare: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 {
-        1 + 1 + 1 + 1 + 1 + 2 + 4 + UInt32(queue.shortBytesCount) + arguments.bytesCount
-    }
+    var bytesCount: UInt32 { 1 + 2 + UInt32(queue.shortBytesCount) + arguments.bytesCount }
 }
 
 extension Spec.Queue.DeclareOk: AMQPCodable {
@@ -1025,7 +1023,7 @@ extension Spec.Queue.DeclareOk: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 4 + 4 + 4 + UInt32(queue.shortBytesCount) }
+    var bytesCount: UInt32 { 4 + 4 + UInt32(queue.shortBytesCount) }
 }
 
 extension Spec.Queue.Bind: AMQPCodable {
@@ -1056,7 +1054,7 @@ extension Spec.Queue.Bind: AMQPCodable {
     }
 
     var bytesCount: UInt32 {
-        1 + 2 + 4 + UInt32(exchange.shortBytesCount) + UInt32(queue.shortBytesCount)
+        1 + 2 + UInt32(exchange.shortBytesCount) + UInt32(queue.shortBytesCount)
             + UInt32(routingKey.shortBytesCount) + arguments.bytesCount
     }
 }
@@ -1069,7 +1067,7 @@ extension Spec.Queue.BindOk: AMQPCodable {
         self.init()
     }
 
-    var bytesCount: UInt32 { 4 }
+    var bytesCount: UInt32 { 0 }
 }
 
 extension Spec.Queue.Purge: AMQPCodable {
@@ -1090,7 +1088,7 @@ extension Spec.Queue.Purge: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 1 + 2 + 4 + UInt32(queue.shortBytesCount) }
+    var bytesCount: UInt32 { 1 + 2 + UInt32(queue.shortBytesCount) }
 }
 
 extension Spec.Queue.PurgeOk: AMQPCodable {
@@ -1105,7 +1103,7 @@ extension Spec.Queue.PurgeOk: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 4 + 4 }
+    var bytesCount: UInt32 { 4 }
 }
 
 extension Spec.Queue.Delete: AMQPCodable {
@@ -1135,7 +1133,7 @@ extension Spec.Queue.Delete: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 1 + 1 + 1 + 2 + 4 + UInt32(queue.shortBytesCount) }
+    var bytesCount: UInt32 { 1 + 2 + UInt32(queue.shortBytesCount) }
 }
 
 extension Spec.Queue.DeleteOk: AMQPCodable {
@@ -1150,7 +1148,7 @@ extension Spec.Queue.DeleteOk: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 4 + 4 }
+    var bytesCount: UInt32 { 4 }
 }
 
 extension Spec.Queue.Unbind: AMQPCodable {
@@ -1178,7 +1176,7 @@ extension Spec.Queue.Unbind: AMQPCodable {
     }
 
     var bytesCount: UInt32 {
-        2 + 4 + UInt32(exchange.shortBytesCount) + UInt32(queue.shortBytesCount)
+        2 + UInt32(exchange.shortBytesCount) + UInt32(queue.shortBytesCount)
             + UInt32(routingKey.shortBytesCount) + arguments.bytesCount
     }
 }
@@ -1191,7 +1189,7 @@ extension Spec.Queue.UnbindOk: AMQPCodable {
         self.init()
     }
 
-    var bytesCount: UInt32 { 4 }
+    var bytesCount: UInt32 { 0 }
 }
 
 extension Spec.Tx.Select: AMQPCodable {
@@ -1202,7 +1200,7 @@ extension Spec.Tx.Select: AMQPCodable {
         self.init()
     }
 
-    var bytesCount: UInt32 { 4 }
+    var bytesCount: UInt32 { 0 }
 }
 
 extension Spec.Tx.SelectOk: AMQPCodable {
@@ -1213,7 +1211,7 @@ extension Spec.Tx.SelectOk: AMQPCodable {
         self.init()
     }
 
-    var bytesCount: UInt32 { 4 }
+    var bytesCount: UInt32 { 0 }
 }
 
 extension Spec.Tx.Commit: AMQPCodable {
@@ -1224,7 +1222,7 @@ extension Spec.Tx.Commit: AMQPCodable {
         self.init()
     }
 
-    var bytesCount: UInt32 { 4 }
+    var bytesCount: UInt32 { 0 }
 }
 
 extension Spec.Tx.CommitOk: AMQPCodable {
@@ -1235,7 +1233,7 @@ extension Spec.Tx.CommitOk: AMQPCodable {
         self.init()
     }
 
-    var bytesCount: UInt32 { 4 }
+    var bytesCount: UInt32 { 0 }
 }
 
 extension Spec.Tx.Rollback: AMQPCodable {
@@ -1246,7 +1244,7 @@ extension Spec.Tx.Rollback: AMQPCodable {
         self.init()
     }
 
-    var bytesCount: UInt32 { 4 }
+    var bytesCount: UInt32 { 0 }
 }
 
 extension Spec.Tx.RollbackOk: AMQPCodable {
@@ -1257,7 +1255,7 @@ extension Spec.Tx.RollbackOk: AMQPCodable {
         self.init()
     }
 
-    var bytesCount: UInt32 { 4 }
+    var bytesCount: UInt32 { 0 }
 }
 
 extension Spec.Confirm.Select: AMQPCodable {
@@ -1272,7 +1270,7 @@ extension Spec.Confirm.Select: AMQPCodable {
         )
     }
 
-    var bytesCount: UInt32 { 1 + 4 }
+    var bytesCount: UInt32 { 1 }
 }
 
 extension Spec.Confirm.SelectOk: AMQPCodable {
@@ -1283,7 +1281,7 @@ extension Spec.Confirm.SelectOk: AMQPCodable {
         self.init()
     }
 
-    var bytesCount: UInt32 { 4 }
+    var bytesCount: UInt32 { 0 }
 }
 
 extension Spec {

@@ -7,6 +7,10 @@
 
 extension Spec.Table {
     var bytesCount: UInt32 {
-        self.reduce(into: UInt32(0)) { $0 += UInt32($1.key.shortBytesCount) + $1.value.bytesCount }
+        // 4 for length
+        4
+            + self.reduce(into: UInt32(0)) {
+                $0 += UInt32($1.key.shortBytesCount) + $1.value.bytesCount
+            }
     }
 }

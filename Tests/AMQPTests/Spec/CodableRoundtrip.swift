@@ -5,6 +5,7 @@ import Testing
 func tester<T>(_ object: T) throws where T: AMQPCodable & Equatable {
     let binary = try FrameEncoder().encode(object)
     let decoded = try FrameDecoder().decode(T.self, from: binary)
+    #expect(binary.count == object.bytesCount)
     #expect(decoded == object)
 }
 
