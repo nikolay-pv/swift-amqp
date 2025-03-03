@@ -172,7 +172,12 @@ import Testing
     func amqpConnectionStartOkDecodeBytes() async throws {
         let input = try fixtureData(for: "Connection.StartOk")
         let decoded = try FrameDecoder().decode(Spec.Connection.StartOk.self, from: input)
-        let expected = Spec.Connection.StartOk(clientProperties: .init(), response: "FooBar")
+        let expected = Spec.Connection.StartOk(
+            clientProperties: ["product": Spec.FieldValue.longstr("test")],
+            mechanism: "PLAIN",
+            response: "\0test\0test",
+            locale: "en_US"
+        )
         #expect(decoded == expected)
     }
 

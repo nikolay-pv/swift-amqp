@@ -8,9 +8,30 @@
 public struct AMQPConfiguration: Sendable {
     public var host: String
     public var port: Int
-    public var username: String
-    public var password: String
+
+    public enum AuthType: Sendable {
+        case basic(username: String, password: String)
+
+        var mechanim: String {
+            switch self {
+            case .basic: "PLAIN"
+            }
+        }
+
+        /// returns response as requried by Connection.StartOk method for this type of AuthType
+        var response: String {
+            switch self {
+            case .basic(let username, let password): "\0\(username)\0\(password)"
+            }
+        }
+    }
+
+    public var credentials: AuthType
 
     public static let `default`: AMQPConfiguration =
-        .init(host: "localhost", port: 5672, username: "guest", password: "guest")
+        .init(
+            host: "localhost",
+            port: 5672,
+            credentials: .basic(username: "guest", password: "guest")
+        )
 }

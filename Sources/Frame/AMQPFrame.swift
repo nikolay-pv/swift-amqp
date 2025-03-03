@@ -94,7 +94,11 @@ extension AMQPFrame: AMQPCodable {
         case Spec.FrameMethod:
             try encoder.encode(type)
             try encoder.encode(channelId)
-            try encoder.encode(size)
+            let method = payload as! any AMQPMethodProtocol
+            // TODO: that's a hack, I couldn't implement the symmetrical decode encode because I need the class and method ids to decide which object to create
+            try encoder.encode(payload.bytesCount + 2 + 2)
+            try encoder.encode(method.amqpClassId)
+            try encoder.encode(method.amqpMethodId)
             try payload.encode(to: encoder)
             try encoder.encode(frameEnd)
         case Spec.FrameHeader, Spec.FrameBody, Spec.FrameHeartbeat:

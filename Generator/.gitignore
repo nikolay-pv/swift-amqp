@@ -8,5 +8,6 @@ DerivedData/
 .swiftpm/configuration/registries.json
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
+.python-version
 amqp-rabbitmq-0.9.1.json
 rabbitmq_codegen
