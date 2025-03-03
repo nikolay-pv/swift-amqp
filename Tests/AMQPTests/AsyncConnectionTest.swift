@@ -9,105 +9,194 @@ enum AMQPNegotiationResult: Sendable {
     case failure(String)
 }
 
-class AMQPNegotitionHandler: ChannelInboundHandler, RemovableChannelHandler {
-    public typealias InboundIn = NIOAny
-    public typealias OutboundOut = NIOAny
+class PrintAllHandler: ChannelDuplexHandler, RemovableChannelHandler {
+    public typealias InboundIn = Any
+    public typealias OutboundIn = Any
 
-    private let completionHandler: (AMQPNegotiationResult, Channel) -> EventLoopFuture<Void>
-    // private var stateMachine = TODO(@nikolay-pv):
-
-    public init(
-        completionHandler: @escaping (
-            AMQPNegotiationResult,
-            Channel
-        ) -> EventLoopFuture<Void>
-    ) {
-        self.completionHandler = completionHandler
+    func channelRead(context: ChannelHandlerContext, data: NIOAny) {
+        print("Receive data \n\(data)")
+        context.fireChannelRead(data)
     }
 
-    public func channelRegistered(context: ChannelHandlerContext) {
+    func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
+        print("Send data \n\(data)")
+        context.write(data, promise: promise)
+    }
+}
+
+class AMQPHeaderSender: ChannelInboundHandler, RemovableChannelHandler {
+    public typealias InboundIn = AMQPFrame
+
+    func channelActive(context: ChannelHandlerContext) {
+        // this will initiate the AMQP hanshake sequence within the handler
+        // TODO: handle the try!
         let header = try! AMQPProtocolHeader.specHeader.asFrame()
         _ = context.writeAndFlush(NIOAny(ByteBuffer(bytes: header)))
+            .flatMap {
+                print("Sent header!")
+                return context.pipeline.removeHandler(self)
+            }
+    }
+}
+
+class AMQPNegotitionHandler: ChannelInboundHandler, RemovableChannelHandler {
+    public typealias InboundIn = AMQPFrame
+    public typealias OutboundOut = AMQPFrame
+
+    enum State {
+        case waitingStart
+        case waitingSecure
+        case waitingTune
+        case waitingOpen
+        case complete
     }
 
+    private var state: State = .waitingStart
+    let config: AMQPConfiguration
+    let properties: Spec.Table
+
+    // since the channel initializer can be called multiple times, this method
+    // doesn't handle the initial send of the Protocol header, it is done
+    // outside
     public func channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        print("Got data")
-        print(data)
+        let frame = unwrapInboundIn(data)
+        switch state {
+        case .waitingStart:
+            // TODO: the below would need to be encapsulated somewhere
+            // expected to get Connection.Start
+            guard let method = frame.payload as? AMQP.Spec.Connection.Start else {
+                context.fireErrorCaught(AMQPError.ProtocolNegotiationError.unknown)
+                return
+            }
+            // check protocol versions mismatch
+            if method.versionMajor != Spec.ProtocolLevel.MAJOR
+                || method.versionMinor != Spec.ProtocolLevel.MINOR
+            {
+                let msg =
+                    "Server \(method.versionMajor).\(method.versionMinor), client \(Spec.ProtocolLevel.MAJOR).\(Spec.ProtocolLevel.MINOR)"
+                context.fireErrorCaught(AMQPError.ProtocolNegotiationError.versionMismatch(msg))
+                return
+            }
+            // save server information somehow
+            // self._set_server_information(method_frame)
+            // self._send_connection_start_ok(*self._get_credentials(method_frame))
+            if !method.mechanisms.contains(self.config.credentials.mechanim) {
+                let msg = "\(self.config.credentials.mechanim) is not supported by the server"
+                context.fireErrorCaught(AMQPError.ProtocolNegotiationError.authentication(msg))
+                return
+            }
+            // send Start-Ok method with selected security mechanism
+            let response = AMQP.Spec.Connection.StartOk(
+                // clientProperties: properties,
+                clientProperties: ["product": .longstr("pika")],
+                mechanism: self.config.credentials.mechanim,
+                response: self.config.credentials.response
+            )
+            // TODO: improve this constructor...
+            let startOkFrame = AMQPFrame(
+                type: AMQPFrame.Kind.method,
+                channelId: 0,
+                payload: response
+            )
+            // TODO: how to handle those promises in this context?
+            context.writeAndFlush(wrapOutboundOut(startOkFrame))
+                .whenSuccess {
+                    // TODO: this can be .waitingSecure if the SSL is enabled
+                    self.state = .waitingTune
+                }
+        case .waitingSecure:
+            // repeat below two
+            // SASL, challenge-response model = get Secure method
+            // send Secure-Ok method
+            // then wait on Tune
+            return
+        case .waitingTune:
+            // get Tune method to set capabilities
+            // send Tune-Ok method
+            // then wait on Open
+            return
+        case .waitingOpen:
+            // sent Open-Ok method
+            // ready!
+            return
+        case .complete:
+            fatalError("should have been removed from the channel's pipeline")
+        }
+    }
+
+    init(config: AMQPConfiguration, properties: Spec.Table) {
+        self.config = config
+        self.properties = properties
     }
 }
 
 public actor AsyncConnection {
 
     // MARK: - AMQP
+    // connection configuration as supplied by the user
     private(set) var configuration: AMQPConfiguration
+    // default channel used to communicate all the meta information
     private var channel0: AMQPChannel
+    // client properties
+    // TODO: consider giving ability to configure those -> maybe should be merged with configuration on init
+    private var properties: Spec.Table = [
+        "product": .longstr("swift-amqp"),
+        "platform": .longstr("swift"),  // TODO: version here or something
+        "capabilities": .table([
+            "authentication_failure_close": .bool(true),
+            "basic.nack": .bool(true),
+            "connection.blocked": .bool(true),
+            "consumer_cancel_notify": .bool(true),
+            "publisher_confirms": .bool(true),
+        ]),
+        "information": .longstr("website here"),
+        // TODO: "version":  of the library
+    ]
     // MARK: - NIO stack
+    private var bootstrap: ClientBootstrap
     private var eventLoopGroup: MultiThreadedEventLoopGroup
-    private var nioChannel: NIOAsyncChannel<AMQPFrame, AMQPFrame>
+    // private var nioChannel: NIOAsyncChannel<AMQPFrame, AMQPFrame>
+    private var nioChannel: Channel
 
     // MARK: - init
-    public init(with configuration: AMQPConfiguration = .default) async throws {
+    public init(with configuration: AMQPConfiguration = .default) throws {
         self.configuration = configuration
         channel0 = AMQPChannel(id: 0)
         // TODO(@nikolay-pv): should be in config? What will higher number achieve here?
         eventLoopGroup = .init(numberOfThreads: 1)
-        // .channelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
-        let bootstrap = ClientBootstrap(group: eventLoopGroup)
-        let res =
-            try await bootstrap
-            .connect(
-                host: configuration.host,
-                port: configuration.port
-            ) { channel in
-                channel.eventLoop.makeCompletedFuture(
-                    withResultOf: {
-                        // 2.2.4 from AMQP spec
-                        // TODO(@nikolay-pv): install the handler here to decode the frames
-                        let handler = AMQPNegotiationHandler { _, channel in
-                            // TODO(@nikolay-pv): setup the channel here on success
-                            return channel.eventLoop.makeSucceededVoidFuture()
-                        }
-                        try! channel.pipeline.syncOperations.addHandler(handler)
-                        let header = try! AMQPProtocolHeader.specHeader.asFrame()
-                        channel.pipeline.syncOperations.writeAndFlush(
-                            NIOAny(ByteBuffer(bytes: header)),
-                            promise: nil
+        let config = configuration
+        let props = properties
+        bootstrap = ClientBootstrap(group: eventLoopGroup)
+            // .channelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
+            .channelInitializer { channel in
+                return channel.pipeline.addHandler(ByteToMessageHandler(AMQPByteToMessageCoder()))
+                    .flatMap {
+                        return channel.pipeline.addHandler(AMQPHeaderSender())
+                    }
+                    .flatMap {
+                        return channel.pipeline.addHandler(
+                            MessageToByteHandler(AMQPByteToMessageCoder())
                         )
-                        print("Sent header!")
-                        // if socket closes here then it means misconfig or wrong header TODO: raise an exception?
-                        // get Start method
-                        // let buffer = channel.read()
-                        // let start = try FrameDecoder.decode(AMQP.Start.self, from: buffer)
-                        // send Start-Ok method with selected security mechanism
-                        // repeat below two
-                        // SASL, challenge-response model = get Secure method
-                        // send Secure-Ok method
-                        // get Tune method to set capabilities
-                        // send Tune-Ok method
-                        // get Open method with virtual host
-                        // sent Open-Ok method
-                        // ready!
-                        // TODO(@nikolay-pv): add handlers
-                        // done setting up hanlders
-
-                        let asyncChannel = try NIOAsyncChannel(
-                            wrappingChannelSynchronously: channel,
-                            configuration: NIOAsyncChannel.Configuration(
-                                inboundType: AMQPFrame.self,
-                                outboundType: AMQPFrame.self
-                            )
+                    }
+                    .flatMap {
+                        return channel.pipeline.addHandler(PrintAllHandler())
+                    }
+                    .flatMap {
+                        return channel.pipeline.addHandler(
+                            AMQPNegotitionHandler(config: config, properties: props)
                         )
-                        return AMQPNegotiationResult.success(asyncChannel)
-                    })
+                    }
             }
 
-        switch res {
-        case .success(let channel):
-            print("Connected to broker!")
-            nioChannel = channel
-        case .failure(let error):
-            throw AMQPConnectionError.handshakeFailed(reason: error)
+        let channel = try? bootstrap.connect(host: configuration.host, port: configuration.port)
+            .wait()
+
+        guard let channel else {
+            // TODO: not the handshake but just the connection
+            throw AMQPConnectionError.handshakeFailed(reason: "unknown")
         }
+
+        nioChannel = channel
     }
 
     deinit {
