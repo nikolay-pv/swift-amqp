@@ -39,6 +39,15 @@ class AMQPHeaderSender: ChannelInboundHandler, RemovableChannelHandler {
     }
 }
 
+enum Negotiator {
+    static func decide(server: Int, client: Int) -> Int {
+        if server == 0 || client == 0 {
+            return max(server, client)
+        }
+        return min(server, client)
+    }
+}
+
 class AMQPNegotitionHandler: ChannelInboundHandler, RemovableChannelHandler {
     public typealias InboundIn = AMQPFrame
     public typealias OutboundOut = AMQPFrame
@@ -47,12 +56,12 @@ class AMQPNegotitionHandler: ChannelInboundHandler, RemovableChannelHandler {
         case waitingStart
         case waitingSecure
         case waitingTune
-        case waitingOpen
+        case waitingOpenOk
         case complete
     }
 
     private var state: State = .waitingStart
-    let config: AMQPConfiguration
+    var config: AMQPConfiguration
     let properties: Spec.Table
 
     // since the channel initializer can be called multiple times, this method
@@ -105,20 +114,59 @@ class AMQPNegotitionHandler: ChannelInboundHandler, RemovableChannelHandler {
                     self.state = .waitingTune
                 }
         case .waitingSecure:
+            // TODO: implement secure
             // repeat below two
             // SASL, challenge-response model = get Secure method
             // send Secure-Ok method
             // then wait on Tune
             return
         case .waitingTune:
-            // get Tune method to set capabilities
-            // send Tune-Ok method
-            // then wait on Open
-            return
-        case .waitingOpen:
-            // sent Open-Ok method
-            // ready!
-            return
+            guard let method = frame.payload as? AMQP.Spec.Connection.Tune else {
+                context.fireErrorCaught(AMQPError.ProtocolNegotiationError.unknown)
+                return
+            }
+            // picking correct values
+            self.config.channelMax = Negotiator.decide(
+                server: Int(method.channelMax),
+                client: self.config.channelMax
+            )
+            self.config.frameMax = Negotiator.decide(
+                server: Int(method.frameMax),
+                client: self.config.frameMax
+            )
+            // TODO: setup hearbeat here
+            let response = AMQP.Spec.Connection.TuneOk(
+                channelMax: Int16(self.config.channelMax),
+                frameMax: Int32(self.config.frameMax),
+                heartbeat: 0
+            )
+            let frame = AMQPFrame(
+                type: AMQPFrame.Kind.method,
+                channelId: 0,
+                payload: response
+            )
+            // TODO: how to handle those promises in this context?
+            let connectData = wrapOutboundOut(
+                AMQPFrame(
+                    type: AMQPFrame.Kind.method,
+                    channelId: 0,
+                    payload: Spec.Connection.Open()  // TODO: config?
+                )
+            )
+            context.writeAndFlush(wrapOutboundOut(frame))
+                .flatMap {
+                    let data = connectData
+                    return context.writeAndFlush(data)
+                }
+                .whenSuccess {
+                    self.state = .waitingOpenOk
+                }
+        case .waitingOpenOk:
+            guard let method = frame.payload as? AMQP.Spec.Connection.OpenOk else {
+                context.fireErrorCaught(AMQPError.ProtocolNegotiationError.unknown)
+                return
+            }
+            context.pipeline.removeHandler(self, promise: nil)
         case .complete:
             fatalError("should have been removed from the channel's pipeline")
         }

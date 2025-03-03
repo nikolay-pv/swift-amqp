@@ -27,6 +27,12 @@ public struct AMQPConfiguration: Sendable {
     }
 
     public var credentials: AuthType
+    public var channelMax: Int = 0
+    public var frameMax: Int = 0
+
+    // public var bytesMax: Int {
+    //     return max(0, frameMax - AMQP.Spec.FrameHeaderSize - AMQP.Spec.FrameEndSize)
+    // }
 
     public static let `default`: AMQPConfiguration =
         .init(
