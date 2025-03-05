@@ -4,7 +4,7 @@ import NIOFoundationCompat
 
 struct AMQPByteToMessageCoder: ByteToMessageDecoder, MessageToByteEncoder {
     // MARK: - ByteToMessageDecoder
-    typealias InboundOut = AMQPFrame
+    typealias InboundOut = MethodFrame
 
     mutating func decode(context: ChannelHandlerContext, buffer: inout ByteBuffer) throws
         -> DecodingState
@@ -25,7 +25,7 @@ struct AMQPByteToMessageCoder: ByteToMessageDecoder, MessageToByteEncoder {
         }
         do {
             let data = buffer.readData(length: totalFrameSize) ?? Data()
-            let frame = try FrameDecoder().decode(AMQPFrame.self, from: data)
+            let frame = try FrameDecoder().decode(MethodFrame.self, from: data)
             context.fireChannelRead(self.wrapInboundOut(frame))
         } catch {
             context.fireErrorCaught(error)
@@ -42,7 +42,7 @@ struct AMQPByteToMessageCoder: ByteToMessageDecoder, MessageToByteEncoder {
     }
 
     // MARK: - MessageToByteEncoder
-    typealias OutboundIn = AMQPFrame
+    typealias OutboundIn = MethodFrame
 
     func encode(data: OutboundIn, out: inout NIOCore.ByteBuffer) throws {
         out = ByteBuffer(data: try data.asFrame())

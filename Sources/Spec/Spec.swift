@@ -792,22 +792,24 @@ public enum Spec {
     }
 
     public struct BasicProperties: AMQPPropertiesProtocol {
-        private(set) var contentType: String
-        private(set) var contentEncoding: String
-        private(set) var headers: [String: FieldValue]
-        private(set) var deliveryMode: Int8
-        private(set) var priority: Int8
-        private(set) var correlationId: String
-        private(set) var replyTo: String
-        private(set) var expiration: String
-        private(set) var messageId: String
-        private(set) var timestamp: Date
-        private(set) var type: String
-        private(set) var userId: String
-        private(set) var appId: String
-        private(set) var clusterId: String
+        // TODO: make those optional in gen
+        private(set) var contentType: String?
+        private(set) var contentEncoding: String?
+        private(set) var headers: [String: FieldValue]?
+        private(set) var deliveryMode: Int8?
+        private(set) var priority: Int8?
+        private(set) var correlationId: String?
+        private(set) var replyTo: String?
+        private(set) var expiration: String?
+        private(set) var messageId: String?
+        private(set) var timestamp: Date?
+        private(set) var type: String?
+        private(set) var userId: String?
+        private(set) var appId: String?
+        private(set) var clusterId: String?
 
-        public var amqpClassId: UInt16 { 60 }
+        // TODO: make static in generator
+        public static var amqpClassId: UInt16 { 60 }
         public var amqpName: String { "basic" }
     }
 }

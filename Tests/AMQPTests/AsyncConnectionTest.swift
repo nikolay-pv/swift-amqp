@@ -5,7 +5,7 @@ import Testing
 @testable import AMQP
 
 enum AMQPNegotiationResult: Sendable {
-    case success(NIOAsyncChannel<AMQPFrame, AMQPFrame>)
+    case success(NIOAsyncChannel<MethodFrame, MethodFrame>)
     case failure(String)
 }
 
@@ -25,12 +25,12 @@ class PrintAllHandler: ChannelDuplexHandler, RemovableChannelHandler {
 }
 
 class AMQPHeaderSender: ChannelInboundHandler, RemovableChannelHandler {
-    public typealias InboundIn = AMQPFrame
+    public typealias InboundIn = MethodFrame
 
     func channelActive(context: ChannelHandlerContext) {
         // this will initiate the AMQP hanshake sequence within the handler
         // TODO: handle the try!
-        let header = try! AMQPProtocolHeader.specHeader.asFrame()
+        let header = try! ProtocolHeaderFrame.specHeader.asFrame()
         _ = context.writeAndFlush(NIOAny(ByteBuffer(bytes: header)))
             .flatMap {
                 print("Sent header!")
@@ -49,8 +49,8 @@ enum Negotiator {
 }
 
 class AMQPNegotitionHandler: ChannelInboundHandler, RemovableChannelHandler {
-    public typealias InboundIn = AMQPFrame
-    public typealias OutboundOut = AMQPFrame
+    public typealias InboundIn = MethodFrame
+    public typealias OutboundOut = MethodFrame
 
     enum State {
         case waitingStart
@@ -102,8 +102,7 @@ class AMQPNegotitionHandler: ChannelInboundHandler, RemovableChannelHandler {
                 response: self.config.credentials.response
             )
             // TODO: improve this constructor...
-            let startOkFrame = AMQPFrame(
-                type: AMQPFrame.Kind.method,
+            let startOkFrame = MethodFrame(
                 channelId: 0,
                 payload: response
             )
@@ -140,15 +139,13 @@ class AMQPNegotitionHandler: ChannelInboundHandler, RemovableChannelHandler {
                 frameMax: Int32(self.config.frameMax),
                 heartbeat: 0
             )
-            let frame = AMQPFrame(
-                type: AMQPFrame.Kind.method,
+            let frame = MethodFrame(
                 channelId: 0,
                 payload: response
             )
             // TODO: how to handle those promises in this context?
             let connectData = wrapOutboundOut(
-                AMQPFrame(
-                    type: AMQPFrame.Kind.method,
+                MethodFrame(
                     channelId: 0,
                     payload: Spec.Connection.Open()  // TODO: config?
                 )
