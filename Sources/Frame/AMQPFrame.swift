@@ -14,8 +14,8 @@ protocol Frame: Sendable, AMQPCodable {
 
 // 4.2.2 Protocol Header
 struct ProtocolHeaderFrame {
-    let type: UInt8 = .max
-    let channelId: UInt16 = 0
+    var type: UInt8 { .max }
+    var channelId: UInt16 { 0 }
 
     static let protocolNameLength: UInt32 = 4
     var protocolName: [UInt8] = Array("AMQP".utf8)
@@ -64,17 +64,15 @@ extension ProtocolHeaderFrame: Frame {
 // 2.3.5.1 Method Frames
 // 4.2.3 General Frame Format
 struct MethodFrame {
-    var type: UInt8 = Spec.FrameMethod
-    var channelId: UInt16 = 0
+    var type: UInt8 { Spec.FrameMethod }
+    var channelId: UInt16
     var payload: any AMQPCodable
-    let frameEnd: UInt8 = UInt8(Spec.FrameEnd)
+    var frameEnd: UInt8 { UInt8(Spec.FrameEnd) }
 }
 
 extension MethodFrame: Frame {
+    // note: type is not decoded
     init(from decoder: any AMQPDecoder) throws {
-        type = try decoder.decode(UInt8.self)
-        precondition(type == Spec.FrameMethod)
-
         channelId = try decoder.decode(UInt16.self)
         let expectedSize = try decoder.decode(UInt32.self)
         let classId = try decoder.decode(UInt16.self)
@@ -87,8 +85,8 @@ extension MethodFrame: Frame {
         precondition(end == frameEnd)
     }
 
+    // note: type is not encoded
     func encode(to encoder: any AMQPEncoder) throws {
-        try encoder.encode(type)
         try encoder.encode(channelId)
         let method = payload as! any AMQPMethodProtocol
         // accounting for class and method IDs
@@ -105,15 +103,14 @@ extension MethodFrame: Frame {
 // 4.2.3 General Frame Format
 // 4.2.7 Heartbeat Frames
 struct HeartbeatFrame {
-    let type: UInt8 = Spec.FrameHeartbeat
-    let channelId: UInt16 = 0
-    let frameEnd: UInt8 = UInt8(Spec.FrameEnd)
+    var type: UInt8 { Spec.FrameHeartbeat }
+    var channelId: UInt16 { 0 }
+    var frameEnd: UInt8 { UInt8(Spec.FrameEnd) }
 }
 
 extension HeartbeatFrame {
+    // note: type is not decoded
     init(from decoder: any AMQPDecoder) throws {
-        let wireType = try decoder.decode(UInt8.self)
-        precondition(wireType == type)
         let wireChannelId = try decoder.decode(UInt16.self)
         precondition(wireChannelId == 0)
         let expectedSize = try decoder.decode(UInt32.self)
@@ -122,8 +119,8 @@ extension HeartbeatFrame {
         precondition(end == frameEnd)
     }
 
+    // note: type is not encoded
     func encode(to encoder: any AMQPEncoder) throws {
-        try encoder.encode(type)
         try encoder.encode(channelId)
         try encoder.encode(UInt32(0))
         try encoder.encode(frameEnd)
@@ -135,19 +132,18 @@ extension HeartbeatFrame {
 // 4.2.3 General Frame Format
 // 2.3.5.2 Content Frames
 struct ContentHeaderFrame {
-    let type: UInt8 = Spec.FrameHeader
-    var channelId: UInt16 = 0
+    var type: UInt8 { Spec.FrameHeader }
+    var channelId: UInt16
     var bodySize: UInt64
     var properties: Spec.BasicProperties
-    let frameEnd: UInt8 = UInt8()
+    var frameEnd: UInt8 { UInt8(Spec.FrameEnd) }
 }
 
 extension ContentHeaderFrame: Frame {
+    // note: type is not decoded
     init(from decoder: any AMQPDecoder) throws {
-        let wireType = try decoder.decode(UInt8.self)
-        precondition(wireType == type)
         channelId = try decoder.decode(UInt16.self)
-        let expectedSize = try decoder.decode(UInt32.self)
+        _ = try decoder.decode(UInt32.self)
 
         let classId = try decoder.decode(UInt16.self)
         precondition(classId == Spec.BasicProperties.amqpClassId)
@@ -157,8 +153,8 @@ extension ContentHeaderFrame: Frame {
         precondition(end == frameEnd)
     }
 
+    // note: type is not encoded
     func encode(to encoder: any AMQPEncoder) throws {
-        try encoder.encode(type)
         try encoder.encode(channelId)
         try encoder.encode(UInt32(2 + 8 + properties.bytesCount + 1))
         try encoder.encode(bodySize)
@@ -170,10 +166,33 @@ extension ContentHeaderFrame: Frame {
 }
 
 // 2.3.5.2 Content Frames
-// TODO: implement this
-// struct ContentBodyFrame {
-//     var type: UInt8 = Spec.FrameBody
-//     var channelId: UInt16 = 0
-//     var payload: any AMQPCodable
-//     let frameEnd: UInt8 = UInt8(Spec.FrameEnd)
-// }
+struct ContentBodyFrame {
+    var type: UInt8 { Spec.FrameBody }
+    var channelId: UInt16
+    var fragment: [UInt8]  // max size is UInt32.max
+    var frameEnd: UInt8 { UInt8(Spec.FrameEnd) }
+}
+
+extension ContentBodyFrame: Frame {
+    // don't decode type the same was as classId and methodId in Methods are not decoded
+    init(from decoder: any AMQPDecoder) throws {
+        channelId = try decoder.decode(UInt16.self)
+        let expectedSize = try decoder.decode(UInt32.self)
+        fragment = [UInt8](repeating: 0, count: Int(expectedSize))
+        for i in 0..<fragment.count {
+            fragment[i] = try decoder.decode(UInt8.self)
+        }
+        let end = try decoder.decode(UInt8.self)
+        precondition(end == frameEnd)
+    }
+
+    // don't encode type the same way as classId and methodId in Methods are not encoded
+    func encode(to encoder: any AMQPEncoder) throws {
+        try encoder.encode(channelId)
+        try encoder.encode(UInt32(fragment.count))
+        try fragment.forEach { try encoder.encode($0) }
+        try encoder.encode(frameEnd)
+    }
+
+    var bytesCount: UInt32 { 1 + 2 + 4 + UInt32(fragment.count) + 1 }
+}
