@@ -71,7 +71,7 @@ struct ChannelIDs {
 public actor Connection {
     // MARK: - init
     public init(with configuration: AMQPConfiguration = .default) async {
-        transport = FakeAMQPTransport()
+        // transport = FakeAMQPTransport()
         channel0 = AMQPChannel(id: 0)
         // todo: fix the force unwrap
         try! await start()
@@ -95,7 +95,7 @@ public actor Connection {
     public private(set) var state: State = .closed
 
     // MARK: - connection management
-    var transport: AMQPTransportProtocol
+    // var transport: AMQPTransportProtocol
 
     public var isOpen: Bool { return state == .open }
 
@@ -103,7 +103,7 @@ public actor Connection {
         guard state.isClosed else {
             throw AMQPConnectionError.unexpectedState(actual: state, expected: .closed)
         }
-        try transport.connect()
+        // try transport.connect()
         // do a sequence here
         state = .handshake
         // start
