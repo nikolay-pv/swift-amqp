@@ -19,7 +19,7 @@ struct AMQPByteToMessageCoder: ByteToMessageDecoder, MessageToByteEncoder {
         // 8 is standard overhead for frame = size(type) + size(channelId) + size(expectedSize) + size(endFrame)
         let frameSizeOverhead: Int = 8
         let totalFrameSize = Int(expectedSize) + frameSizeOverhead
-        if buffer.readableBytes <= totalFrameSize {
+        if buffer.readableBytes < totalFrameSize {
             return .needMoreData
         }
         do {
@@ -45,7 +45,7 @@ struct AMQPByteToMessageCoder: ByteToMessageDecoder, MessageToByteEncoder {
     typealias OutboundIn = Frame
 
     func encode(data: OutboundIn, out: inout NIOCore.ByteBuffer) throws {
-        out = ByteBuffer(data: try data.asFrame())
+        out = ByteBuffer(data: try data.asData())
     }
 
     // MARK: - init

@@ -5,37 +5,24 @@ import Testing
 @testable import AMQP
 
 enum AMQPNegotiationResult: Sendable {
-    case success(NIOAsyncChannel<MethodFrame, MethodFrame>)
+    case success(NIOAsyncChannel<Frame, Frame>)
     case failure(String)
 }
 
 class PrintAllHandler: ChannelDuplexHandler, RemovableChannelHandler {
+    public typealias InboundOut = Any
     public typealias InboundIn = Any
     public typealias OutboundIn = Any
+    public typealias OutboundOut = Any
 
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        print("Receive data \n\(data)")
+        print("Receive data: \(data)")
         context.fireChannelRead(data)
     }
 
     func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
-        print("Send data \n\(data)")
+        print("Send data: \(data)")
         context.write(data, promise: promise)
-    }
-}
-
-class AMQPHeaderSender: ChannelInboundHandler, RemovableChannelHandler {
-    public typealias InboundIn = MethodFrame
-
-    func channelActive(context: ChannelHandlerContext) {
-        // this will initiate the AMQP hanshake sequence within the handler
-        // TODO: handle the try!
-        let header = try! ProtocolHeaderFrame.specHeader.asFrame()
-        _ = context.writeAndFlush(NIOAny(ByteBuffer(bytes: header)))
-            .flatMap {
-                print("Sent header!")
-                return context.pipeline.removeHandler(self)
-            }
     }
 }
 
@@ -49,8 +36,8 @@ enum Negotiator {
 }
 
 class AMQPNegotitionHandler: ChannelInboundHandler, RemovableChannelHandler {
-    public typealias InboundIn = MethodFrame
-    public typealias OutboundOut = MethodFrame
+    public typealias InboundIn = Frame
+    public typealias OutboundOut = Frame
 
     enum State {
         case waitingStart
@@ -68,7 +55,7 @@ class AMQPNegotitionHandler: ChannelInboundHandler, RemovableChannelHandler {
     // doesn't handle the initial send of the Protocol header, it is done
     // outside
     public func channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        let frame = unwrapInboundIn(data)
+        let frame = unwrapInboundIn(data) as! MethodFrame
         switch state {
         case .waitingStart:
             // TODO: the below would need to be encapsulated somewhere
@@ -216,9 +203,6 @@ public actor AsyncConnection {
             .channelInitializer { channel in
                 return channel.pipeline.addHandler(ByteToMessageHandler(AMQPByteToMessageCoder()))
                     .flatMap {
-                        return channel.pipeline.addHandler(AMQPHeaderSender())
-                    }
-                    .flatMap {
                         return channel.pipeline.addHandler(
                             MessageToByteHandler(AMQPByteToMessageCoder())
                         )
@@ -240,6 +224,9 @@ public actor AsyncConnection {
             // TODO: not the handshake but just the connection
             throw AMQPConnectionError.handshakeFailed(reason: "unknown")
         }
+
+        let header: Frame = ProtocolHeaderFrame.specHeader
+        try channel.writeAndFlush(header).wait()  // this will kick in negotiation
 
         nioChannel = channel
     }

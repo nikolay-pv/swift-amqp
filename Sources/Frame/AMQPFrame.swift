@@ -10,6 +10,15 @@ import Foundation
 protocol Frame: Sendable, AMQPCodable {
     var type: UInt8 { get }
     var channelId: UInt16 { get }
+    func asData() throws -> Data
+}
+
+extension Frame {
+    // Convert the encodable object to an AMQP frame data.
+    func asData() throws -> Data {
+        let encoder = FrameEncoder()
+        return try encoder.encode(self)
+    }
 }
 
 func decodeFrame(type: UInt8, from data: Data) throws -> Frame {
