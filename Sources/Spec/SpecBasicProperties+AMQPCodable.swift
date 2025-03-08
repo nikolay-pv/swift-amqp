@@ -205,11 +205,11 @@ extension Spec.BasicProperties: AMQPCodable {
             flags |= PropertyFlags.Headers.rawValue
             size += headers.bytesCount
         }
-        if let deliveryMode {
+        if deliveryMode != nil {
             flags |= PropertyFlags.DeliveryMode.rawValue
             size += 1
         }
-        if let priority {
+        if priority != nil {
             flags |= PropertyFlags.Priority.rawValue
             size += 1
         }
