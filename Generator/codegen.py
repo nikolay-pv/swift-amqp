@@ -28,7 +28,7 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
         # based on the first column from here: https://www.rabbitmq.com/amqp-0-9-1-errata#section_3
         # enum case, native Swift type, kind, size
         field_values_definitions = [
-            ("bool", "Bool", "t", "1"), # stored as Int8
+            ("bool", "Bool", "t", "1"),  # stored as Int8
             ("int8", "Int8", "b", "1"),
             ("uint8", "UInt8", "B", "1"),
             # conflicting in spec and implementation, fallback to implementation
@@ -44,8 +44,13 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
             ("decimal", "UInt8, Int32", "D", "5"),
             # ("shortstr", "String", "s", "UInt32(value.shortBytesCount)"),
             ("longstr", "String", "S", "value.longBytesCount"),
-            ("array", "[FieldValue]", "A", "value.reduce(into: 0) { $0 += $1.bytesCount }"),
-            ("timestamp", "Date", "T", "8"), # stored as uint64
+            (
+                "array",
+                "[FieldValue]",
+                "A",
+                "value.reduce(into: 0) { $0 += $1.bytesCount }",
+            ),
+            ("timestamp", "Date", "T", "8"),  # stored as uint64
             ("table", "Table", "F", "value.bytesCount"),
             ("bytes", "Data", "x", "UInt32(value.count)"),
             ("void", "", "V", "1"),
@@ -62,7 +67,9 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
 
         print("    public typealias Table = [String: FieldValue]")
         print("")
-        print("    public enum FieldValue: Equatable, Hashable, CaseIterable, Sendable {")
+        print(
+            "    public enum FieldValue: Equatable, Hashable, CaseIterable, Sendable {"
+        )
         print("        public static let allCases: [Self] = [")
         for case, type, _, _ in field_values_definitions:
             if len(type):
@@ -89,10 +96,14 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
         print("            switch self {")
         for case, _, kind, size in field_values_definitions:
             if "value" in size:
-                addition = "" if case not in ["array", "bytes"] else " + 4 // 4 for length"
-                print(f'            case .{case}(let value): return {size} + 1{addition}')
+                addition = (
+                    "" if case not in ["array", "bytes"] else " + 4 // 4 for length"
+                )
+                print(
+                    f"            case .{case}(let value): return {size} + 1{addition}"
+                )
             else:
-                print(f'            case .{case}: return {size} + 1')
+                print(f"            case .{case}: return {size} + 1")
         print("            }")
         print("        }")
         print("    }")
@@ -112,7 +123,13 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
         print()
         for c, v, _ in spec.constants:
             c = constant_name(c)
-            if c in ["FrameMethod", "FrameHeader", "FrameBody", "FrameHeartbeat", "FrameEnd"]:
+            if c in [
+                "FrameMethod",
+                "FrameHeader",
+                "FrameBody",
+                "FrameHeartbeat",
+                "FrameEnd",
+            ]:
                 c += ": UInt8"
             print(f"    static let {c} = {v}")
 
@@ -124,16 +141,24 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
             print(f'        public var amqpName: String {{ "{c.name}" }}')
             for m in c.allMethods():
                 print()
-                print(f"        public struct {struct_name(m.name)}: AMQPMethodProtocol {{")
+                print(
+                    f"        public struct {struct_name(m.name)}: AMQPMethodProtocol {{"
+                )
                 for a in m.arguments:
                     if a.defaultvalue is None:
-                        print(f"            private(set) var {variable_name(a.name)}: {swift_type(spec, a.domain)}")
+                        print(
+                            f"            private(set) var {variable_name(a.name)}: {swift_type(spec, a.domain)}"
+                        )
                     else:
-                        print(f"            private(set) var {variable_name(a.name)}: {swift_type(spec, a.domain)} = {default_value(spec, a.domain, a.defaultvalue)}")
+                        print(
+                            f"            private(set) var {variable_name(a.name)}: {swift_type(spec, a.domain)} = {default_value(spec, a.domain, a.defaultvalue)}"
+                        )
                 print()
                 print(f"            public var amqpClassId: UInt16 {{ {c.index} }}")
                 print(f"            public var amqpMethodId: UInt16 {{ {m.index} }}")
-                print(f'            public var amqpName: String {{ "{c.name}.{m.name}" }}')
+                print(
+                    f'            public var amqpName: String {{ "{c.name}.{m.name}" }}'
+                )
                 print("        }")
             print("    }")
 
@@ -143,7 +168,9 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
         print()
         print(f"    public struct {structName}Properties: AMQPPropertiesProtocol {{")
         for f in c.fields:
-            print(f"        private(set) var {variable_name(f.name)}: {swift_type(spec, f.domain)}")
+            print(
+                f"        private(set) var {variable_name(f.name)}: {swift_type(spec, f.domain)}"
+            )
 
         print()
         print(f"        public var amqpClassId: UInt16 {{ {c.index} }}")
@@ -174,8 +201,10 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
 
 # --------------------------------------------------------------------------------
 
+
 def as_bool_literal(val: bool):
     return "true" if val else "false"
+
 
 def gen_swift_impl(spec: AmqpSpec):
 
@@ -199,26 +228,31 @@ def gen_swift_impl(spec: AmqpSpec):
         print(f"        try encoder.encode(bitPack)")
 
     def pack_decode_bits(bits_to_unpack) -> int:
-        """returns number of bytes it would need
-        """
+        """returns number of bytes it would need"""
         if len(bits_to_unpack) == 0:
             return None
         if len(bits_to_unpack) == 1:
             a = bits_to_unpack[0]
-            print(f"        let {variable_name(a.name, True)} = try decoder.decode({swift_type(spec, a.domain)}.self)")
+            print(
+                f"        let {variable_name(a.name, True)} = try decoder.decode({swift_type(spec, a.domain)}.self)"
+            )
             return 1
         print(f"        let bitPack: UInt8 = try decoder.decode(UInt8.self)")
         if len(bits_to_unpack) > 8:
             raise RuntimeError("packing more than 8 bits is not implemented")
         for k, a in enumerate(bits_to_unpack):
-            print(f"        let {variable_name(a.name, True)}: Bool = ((bitPack & (1 << {k})) != 0)")
-        return 1 # can't pack more than 8 bits for now
+            print(
+                f"        let {variable_name(a.name, True)}: Bool = ((bitPack & (1 << {k})) != 0)"
+            )
+        return 1  # can't pack more than 8 bits for now
 
     def encode_extensions():
         for c in spec.allClasses():
             for m in c.allMethods():
                 print()
-                print(f"extension Spec.{struct_name(c.name)}.{struct_name(m.name).strip()}: AMQPCodable {{")
+                print(
+                    f"extension Spec.{struct_name(c.name)}.{struct_name(m.name).strip()}: AMQPCodable {{"
+                )
                 print("    func encode(to encoder: AMQPEncoder) throws {")
                 bits_to_pack = []
                 for a in m.arguments:
@@ -231,7 +265,9 @@ def gen_swift_impl(spec: AmqpSpec):
                         bits_to_pack = []
                     if t == "shortstr" or t == "longstr":
                         is_long = t == "longstr"
-                        print(f"        try encoder.encode({variable_name(a.name)}, isLong: {as_bool_literal(is_long)})")
+                        print(
+                            f"        try encoder.encode({variable_name(a.name)}, isLong: {as_bool_literal(is_long)})"
+                        )
                     else:
                         print(f"        try encoder.encode({variable_name(a.name)})")
                 pack_encode_bits(bits_to_pack)
@@ -255,9 +291,13 @@ def gen_swift_impl(spec: AmqpSpec):
                     bytes_count.append(get_bytes_count(spec, a.name, a.domain))
                     if t == "shortstr" or t == "longstr":
                         is_long = t == "longstr"
-                        print(f"        let {variable_name(a.name, False)} = try decoder.decode({swift_type(spec, a.domain)}.self, isLong: {as_bool_literal(is_long)})")
+                        print(
+                            f"        let {variable_name(a.name, False)} = try decoder.decode({swift_type(spec, a.domain)}.self, isLong: {as_bool_literal(is_long)})"
+                        )
                     else:
-                        print(f"        let {variable_name(a.name, False)} = try decoder.decode({swift_type(spec, a.domain)}.self)")
+                        print(
+                            f"        let {variable_name(a.name, False)} = try decoder.decode({swift_type(spec, a.domain)}.self)"
+                        )
                 serialized_size = pack_decode_bits(bits_to_unpack)
                 bits_to_unpack = []
                 if serialized_size != None:
@@ -266,23 +306,38 @@ def gen_swift_impl(spec: AmqpSpec):
                     print("        self.init()")
                 else:
                     print(f"        self.init(")
-                    print(",\n".join([f"            {variable_name(a.name, False)}: {variable_name(a.name, True)}" for a in m.arguments]))
+                    print(
+                        ",\n".join(
+                            [
+                                f"            {variable_name(a.name, False)}: {variable_name(a.name, True)}"
+                                for a in m.arguments
+                            ]
+                        )
+                    )
                     print(f"        )")
                 print("    }")
                 print()
-                bc = " + ".join(sorted(bytes_count)) # optimization for compiler
+                bc = " + ".join(sorted(bytes_count))  # optimization for compiler
                 print("    var bytesCount: UInt32 { " + (bc if len(bc) else "0") + " }")
                 print("}")
 
         print()
         print("extension Spec {")
-        print("    typealias Factory = @Sendable (any AMQPDecoder) throws -> any AMQPCodable")
-        print("    static func makeFactory(with classId: UInt16, and methodId: UInt16) throws -> Factory {")
+        print(
+            "    typealias Factory = @Sendable (any AMQPDecoder) throws -> any AMQPCodable"
+        )
+        print(
+            "    static func makeFactory(with classId: UInt16, and methodId: UInt16) throws -> Factory {"
+        )
         print("        switch (classId, methodId) {")
         for c in spec.allClasses():
             for m in c.allMethods():
-                print(f"        case ({c.index}, {m.index}): return Spec.{struct_name(c.name)}.{struct_name(m.name)}.init")
-        print("        default: throw AMQPError.CodingError.unknownClassAndMethod(class: classId, method: methodId)")
+                print(
+                    f"        case ({c.index}, {m.index}): return Spec.{struct_name(c.name)}.{struct_name(m.name)}.init"
+                )
+        print(
+            "        default: throw AMQPError.CodingError.unknownClassAndMethod(class: classId, method: methodId)"
+        )
         print("        }")
         print("    }")
         print("}")
