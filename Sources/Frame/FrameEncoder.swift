@@ -127,7 +127,7 @@ private class _FrameEncoder: AMQPEncoder {
                 data.append(milliseconds.bigEndian)
             case .dictionary(let table):
                 precondition(table.count <= UInt16.max)
-                // TODO: this is a hacky way to subtract bytes needed for the length
+                // 4 bytes are needed to store the size of the Table
                 data.append((table.bytesCount - 4).bigEndian)
                 for (key, value) in table {
                     WrappedValue.shortstring(key).encode(to: &data)
