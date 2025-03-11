@@ -792,7 +792,6 @@ public enum Spec {
     }
 
     public struct BasicProperties: AMQPPropertiesProtocol {
-        // TODO: make those optional in gen
         private(set) var contentType: String?
         private(set) var contentEncoding: String?
         private(set) var headers: [String: FieldValue]?
@@ -808,8 +807,7 @@ public enum Spec {
         private(set) var appId: String?
         private(set) var clusterId: String?
 
-        // TODO: make static in generator
-        public static var amqpClassId: UInt16 { 60 }
+        public var amqpClassId: UInt16 { 60 }
         public var amqpName: String { "basic" }
     }
 }

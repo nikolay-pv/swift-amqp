@@ -169,7 +169,7 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
         print(f"    public struct {structName}Properties: AMQPPropertiesProtocol {{")
         for f in c.fields:
             print(
-                f"        private(set) var {variable_name(f.name)}: {swift_type(spec, f.domain)}"
+                f"        private(set) var {variable_name(f.name)}: {swift_type(spec, f.domain)}?"
             )
 
         print()
