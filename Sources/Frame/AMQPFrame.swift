@@ -1,10 +1,3 @@
-//
-//  AMQPFrame.swift
-//  swift-amqp
-//
-//  Created by Nikolay Petrov on 28.09.2024.
-//
-
 import Foundation
 
 protocol Frame: Sendable, AMQPCodable {

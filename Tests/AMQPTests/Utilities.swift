@@ -1,10 +1,3 @@
-//
-//  Utilities.swift
-//  swift-amqp
-//
-//  Created by Nikolay Petrov on 31.10.2024.
-//
-
 import Foundation
 
 func fixtureData(for fixture: String) throws -> Data {

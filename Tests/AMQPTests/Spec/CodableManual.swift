@@ -1,10 +1,3 @@
-//
-//  CodableManual.swift
-//  swift-amqp
-//
-//  Created by Nikolay Petrov on 11.11.2024.
-//
-
 import Foundation
 import Testing
 

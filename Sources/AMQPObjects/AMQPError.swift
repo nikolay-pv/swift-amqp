@@ -1,10 +1,3 @@
-//
-//  AMQPError.swift
-//  swift-amqp
-//
-//  Created by Nikolay Petrov on 28.09.2024.
-//
-
 // TODO: improve this (& +messaging + internal / external split)
 enum AMQPError {
     enum CodingError: Error {

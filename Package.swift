@@ -1,3 +1,15 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the swift-amqp open source project
+//
+// Copyright (c) 2024-2025 swift-amqp project authors
+// Licensed under Apache License 2.0
+//
+// See LICENSE for license information
+//
+// SPDX-License-Identifier: Apache-2.0
+//
+//===----------------------------------------------------------------------===//
 // swift-tools-version: 6.0
 
 import PackageDescription

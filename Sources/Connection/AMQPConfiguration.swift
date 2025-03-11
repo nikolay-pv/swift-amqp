@@ -1,10 +1,3 @@
-//
-//  AMQPConfiguration.swift
-//  swift-amqp
-//
-//  Created by Nikolay Petrov on 28.09.2024.
-//
-
 public struct AMQPConfiguration: Sendable {
     public var host: String
     public var port: Int

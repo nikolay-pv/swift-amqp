@@ -1,10 +1,3 @@
-//
-//  AMQP+Extensions.swift
-//  swift-amqp
-//
-//  Created by Nikolay Petrov on 15.10.2024.
-//
-
 extension Spec.Table {
     /// Returns number of bytes this object will need when serializes according to AMQP specification.
     /// The number of bites needed is a sum of:
