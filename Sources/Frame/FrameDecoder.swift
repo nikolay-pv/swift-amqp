@@ -50,112 +50,103 @@ extension Spec.FieldValue {
 }
 
 private class _FrameDecoder: AMQPDecoder {
-    // TODO: any better way?
-    private var _data: Data?
-    var data: Data {
-        get { return _data ?? Data() }
-        set {
-            _data = newValue
-            _position = 0
-        }
-    }
-
+    private var _data = Data()
     private var _position: Int = 0
 
     private func _reset() {
         _position = 0
-        _data = nil
+        _data = Data()
     }
 
     func with<T>(data: Data, closure: (AMQPDecoder) throws -> T) throws -> T
     where T: AMQPDecodable {
-        self.data = data
+        self._data = data
         defer { self._reset() }
         return try closure(self)
     }
 
     func decode(_ type: Bool.Type) throws -> Bool {
-        precondition(_position + 1 <= data.count)
+        precondition(_position + 1 <= _data.count)
         defer { _position += 1 }
-        return data[_position] != 0
+        return _data[_position] != 0
     }
 
     func decode(_ type: Int8.Type) throws -> Int8 {
         let offset = 1
-        precondition(_position + offset <= data.count)
+        precondition(_position + offset <= _data.count)
         defer { _position += offset }
         return .init(
-            bigEndian: data.subdata(in: _position..<_position + offset)
+            bigEndian: _data.subdata(in: _position..<_position + offset)
                 .withUnsafeBytes { $0.load(as: type) }
         )
     }
 
     func decode(_ type: Int16.Type) throws -> Int16 {
         let offset = 2
-        precondition(_position + offset <= data.count)
+        precondition(_position + offset <= _data.count)
         defer { _position += offset }
         return .init(
-            bigEndian: data.subdata(in: _position..<_position + offset)
+            bigEndian: _data.subdata(in: _position..<_position + offset)
                 .withUnsafeBytes { $0.load(as: type) }
         )
     }
 
     func decode(_ type: Int32.Type) throws -> Int32 {
         let offset = 4
-        precondition(_position + offset <= data.count)
+        precondition(_position + offset <= _data.count)
         defer { _position += offset }
         return .init(
-            bigEndian: data.subdata(in: _position..<_position + offset)
+            bigEndian: _data.subdata(in: _position..<_position + offset)
                 .withUnsafeBytes { $0.load(as: type) }
         )
     }
 
     func decode(_ type: Int64.Type) throws -> Int64 {
         let offset = 8
-        precondition(_position + offset <= data.count)
+        precondition(_position + offset <= _data.count)
         defer { _position += offset }
         return .init(
-            bigEndian: data.subdata(in: _position..<_position + offset)
+            bigEndian: _data.subdata(in: _position..<_position + offset)
                 .withUnsafeBytes { $0.load(as: type) }
         )
     }
 
     func decode(_ type: UInt8.Type) throws -> UInt8 {
         let offset = 1
-        precondition(_position + offset <= data.count)
+        precondition(_position + offset <= _data.count)
         defer { _position += offset }
         return .init(
-            bigEndian: data.subdata(in: _position..<_position + offset)
+            bigEndian: _data.subdata(in: _position..<_position + offset)
                 .withUnsafeBytes { $0.load(as: type) }
         )
     }
 
     func decode(_ type: UInt16.Type) throws -> UInt16 {
         let offset = 2
-        precondition(_position + offset <= data.count)
+        precondition(_position + offset <= _data.count)
         defer { _position += offset }
         return .init(
-            bigEndian: data.subdata(in: _position..<_position + offset)
+            bigEndian: _data.subdata(in: _position..<_position + offset)
                 .withUnsafeBytes { $0.load(as: type) }
         )
     }
 
     func decode(_ type: UInt32.Type) throws -> UInt32 {
         let offset = 4
-        precondition(_position + offset <= data.count)
+        precondition(_position + offset <= _data.count)
         defer { _position += offset }
         return .init(
-            bigEndian: data.subdata(in: _position..<_position + offset)
+            bigEndian: _data.subdata(in: _position..<_position + offset)
                 .withUnsafeBytes { $0.load(as: type) }
         )
     }
 
     func decode(_ type: UInt64.Type) throws -> UInt64 {
         let offset = 8
-        precondition(_position + offset <= data.count)
+        precondition(_position + offset <= _data.count)
         defer { _position += offset }
         return .init(
-            bigEndian: data.subdata(in: _position..<_position + offset)
+            bigEndian: _data.subdata(in: _position..<_position + offset)
                 .withUnsafeBytes { $0.load(as: type) }
         )
     }
@@ -174,9 +165,9 @@ private class _FrameDecoder: AMQPDecoder {
 
     func decode(_ type: String.Type, isLong: Bool) throws -> String {
         let length = isLong ? Int(try decode(UInt32.self)) : Int(try decode(UInt8.self))
-        precondition(_position + length <= data.count)
+        precondition(_position + length <= _data.count)
         defer { _position += length }
-        return .init(decoding: data.subdata(in: _position..<_position + length), as: UTF8.self)
+        return .init(decoding: _data.subdata(in: _position..<_position + length), as: UTF8.self)
     }
 
     func decode(_ type: [String: Spec.FieldValue].Type) throws -> [String: Spec.FieldValue] {
@@ -203,9 +194,9 @@ private class _FrameDecoder: AMQPDecoder {
 
     func decode(_ type: Data.Type) throws -> Data {
         let length = Int(try decode(UInt32.self))
-        precondition(_position + length <= data.count)
+        precondition(_position + length <= _data.count)
         defer { _position += length }
-        return data.subdata(in: _position..<_position + length)
+        return _data.subdata(in: _position..<_position + length)
     }
 
     func decode(_ type: Spec.FieldValue.Type) throws -> Spec.FieldValue {
