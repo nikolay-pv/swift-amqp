@@ -129,24 +129,30 @@ public enum Spec {
     static let FrameMinSize = 4096
     static let FrameEnd: UInt8 = 206
     static let ReplySuccess = 200
-    static let ContentTooLarge = 311
-    static let NoRoute = 312
-    static let NoConsumers = 313
-    static let AccessRefused = 403
-    static let NotFound = 404
-    static let ResourceLocked = 405
-    static let PreconditionFailed = 406
-    static let ConnectionForced = 320
-    static let InvalidPath = 402
-    static let FrameError = 501
-    static let SyntaxError = 502
-    static let CommandInvalid = 503
-    static let ChannelError = 504
-    static let UnexpectedFrame = 505
-    static let ResourceError = 506
-    static let NotAllowed = 530
-    static let NotImplemented = 540
-    static let InternalError = 541
+
+    enum SoftError: Int, Error {
+        case ContentTooLarge = 311
+        case NoRoute = 312
+        case NoConsumers = 313
+        case AccessRefused = 403
+        case NotFound = 404
+        case ResourceLocked = 405
+        case PreconditionFailed = 406
+    }
+
+    enum HardError: Int, Error {
+        case ConnectionForced = 320
+        case InvalidPath = 402
+        case FrameError = 501
+        case SyntaxError = 502
+        case CommandInvalid = 503
+        case ChannelError = 504
+        case UnexpectedFrame = 505
+        case ResourceError = 506
+        case NotAllowed = 530
+        case NotImplemented = 540
+        case InternalError = 541
+    }
 
     public struct Basic: AMQPClassProtocol {
         public var amqpClassId: UInt16 { 60 }

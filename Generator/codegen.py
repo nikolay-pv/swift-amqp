@@ -121,7 +121,9 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
         print(f"        static let PORT = {spec.port}")
         print("    }")
         print()
-        for c, v, _ in spec.constants:
+        for c, v, constant_class in spec.constants:
+            if "error" in constant_class:
+                continue
             c = constant_name(c)
             if c in [
                 "FrameMethod",
@@ -132,6 +134,19 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
             ]:
                 c += ": UInt8"
             print(f"    static let {c} = {v}")
+
+        print("\n    enum SoftError: Int, Error {")
+        for c, v, constant_class in spec.constants:
+            if "soft-error" in constant_class:
+                c = constant_name(c)
+                print(f"    case {c} = {v}")
+        print("    }")
+        print("\n    enum HardError: Int, Error {")
+        for c, v, constant_class in spec.constants:
+            if "hard-error" in constant_class:
+                c = constant_name(c)
+                print(f"    case {c} = {v}")
+        print("    }")
 
     def amqp_classes_and_methods():
         for c in spec.classes:
