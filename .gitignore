@@ -9,3 +9,5 @@ DerivedData/
 .netrc
 aux-documentation
 Aux
+
+.python-version
