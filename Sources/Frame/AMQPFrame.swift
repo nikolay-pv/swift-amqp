@@ -7,7 +7,7 @@ protocol Frame: Sendable, AMQPCodable {
 }
 
 extension Frame {
-    // Convert the encodable object to an AMQP frame data.
+    /// serializes this object to be sent over the wire
     func asData() throws -> Data {
         let encoder = FrameEncoder()
         return try encoder.encode(self)
@@ -15,6 +15,10 @@ extension Frame {
 }
 
 func decodeFrame(type: UInt8, from data: Data) throws -> Frame {
+    // for errors see 4.2.3 General Frame Format
+    if data.last != Spec.FrameEnd {
+        throw FramingError.Fatal("Frame doesn't end with the frame-end octet")
+    }
     let decoder: FrameDecoder = .init()
     switch type {
     case Spec.FrameHeader:
@@ -23,8 +27,10 @@ func decodeFrame(type: UInt8, from data: Data) throws -> Frame {
         return try decoder.decode(ContentBodyFrame.self, from: data)
     case Spec.FrameMethod:
         return try decoder.decode(MethodFrame.self, from: data)
+    case Spec.FrameHeartbeat:
+        return try decoder.decode(HeartbeatFrame.self, from: data)
     default:
-        fatalError("Unknown type \(type) to decode")
+        throw FramingError.Fatal("Unknown frame type \(type) to decode")
     }
 }
 
@@ -125,12 +131,14 @@ struct HeartbeatFrame {
     var channelId: UInt16 { 0 }
 }
 
-extension HeartbeatFrame {
+extension HeartbeatFrame: Frame {
     init(from decoder: any AMQPDecoder) throws {
         let wireType = try decoder.decode(UInt8.self)
         precondition(wireType == Spec.FrameHeartbeat)
         let wireChannelId = try decoder.decode(UInt16.self)
-        precondition(wireChannelId == 0)
+        if wireChannelId != 0 {
+            throw Spec.HardError.FrameError
+        }
         let expectedSize = try decoder.decode(UInt32.self)
         precondition(expectedSize == 0)
         let end = try decoder.decode(UInt8.self)
@@ -163,8 +171,9 @@ extension ContentHeaderFrame: Frame {
         let wireType = try decoder.decode(UInt8.self)
         precondition(wireType == Spec.FrameHeader)
         channelId = try decoder.decode(UInt16.self)
-        // TODO: this should raise an error
-        precondition(channelId != 0)
+        if channelId == 0 {
+            throw Spec.HardError.ChannelError
+        }
         _ = try decoder.decode(UInt32.self)
         classId = try decoder.decode(UInt16.self)
         let wireWeight = try decoder.decode(UInt16.self)

@@ -61,16 +61,19 @@ class AMQPNegotitionHandler: ChannelInboundHandler, RemovableChannelHandler {
             // TODO: the below would need to be encapsulated somewhere
             // expected to get Connection.Start
             guard let method = frame.payload as? AMQP.Spec.Connection.Start else {
-                context.fireErrorCaught(AMQPError.ProtocolNegotiationError.unknown)
+                context.fireErrorCaught(ConnectionError.Unknown)
                 return
             }
             // check protocol versions mismatch
             if method.versionMajor != Spec.ProtocolLevel.MAJOR
                 || method.versionMinor != Spec.ProtocolLevel.MINOR
             {
-                let msg =
-                    "Server \(method.versionMajor).\(method.versionMinor), client \(Spec.ProtocolLevel.MAJOR).\(Spec.ProtocolLevel.MINOR)"
-                context.fireErrorCaught(AMQPError.ProtocolNegotiationError.versionMismatch(msg))
+                context.fireErrorCaught(
+                    ConnectionError.ProtocolVersionMismatch(
+                        server: "\(method.versionMajor).\(method.versionMinor)",
+                        client: "\(Spec.ProtocolLevel.MAJOR).\(Spec.ProtocolLevel.MINOR)"
+                    )
+                )
                 return
             }
             // save server information somehow
@@ -78,7 +81,7 @@ class AMQPNegotitionHandler: ChannelInboundHandler, RemovableChannelHandler {
             // self._send_connection_start_ok(*self._get_credentials(method_frame))
             if !method.mechanisms.contains(self.config.credentials.mechanim) {
                 let msg = "\(self.config.credentials.mechanim) is not supported by the server"
-                context.fireErrorCaught(AMQPError.ProtocolNegotiationError.authentication(msg))
+                context.fireErrorCaught(ConnectionError.UnsupportedAuthMechanism(msg))
                 return
             }
             // send Start-Ok method with selected security mechanism
@@ -108,7 +111,7 @@ class AMQPNegotitionHandler: ChannelInboundHandler, RemovableChannelHandler {
             return
         case .waitingTune:
             guard let method = frame.payload as? AMQP.Spec.Connection.Tune else {
-                context.fireErrorCaught(AMQPError.ProtocolNegotiationError.unknown)
+                context.fireErrorCaught(ConnectionError.Unknown)
                 return
             }
             // picking correct values
@@ -147,7 +150,7 @@ class AMQPNegotitionHandler: ChannelInboundHandler, RemovableChannelHandler {
                 }
         case .waitingOpenOk:
             guard let method = frame.payload as? AMQP.Spec.Connection.OpenOk else {
-                context.fireErrorCaught(AMQPError.ProtocolNegotiationError.unknown)
+                context.fireErrorCaught(ConnectionError.Unknown)
                 return
             }
             context.pipeline.removeHandler(self, promise: nil)
@@ -221,8 +224,7 @@ public actor AsyncConnection {
             .wait()
 
         guard let channel else {
-            // TODO: not the handshake but just the connection
-            throw AMQPConnectionError.handshakeFailed(reason: "unknown")
+            throw ConnectionError.Unknown
         }
 
         let header: Frame = ProtocolHeaderFrame.specHeader

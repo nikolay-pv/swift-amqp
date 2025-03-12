@@ -351,7 +351,7 @@ def gen_swift_impl(spec: AmqpSpec):
                     f"        case ({c.index}, {m.index}): return Spec.{struct_name(c.name)}.{struct_name(m.name)}.init"
                 )
         print(
-            "        default: throw AMQPError.CodingError.unknownClassAndMethod(class: classId, method: methodId)"
+            "        default: throw FramingError.UnknownClassAndMethod(class: classId, method: methodId)"
         )
         print("        }")
         print("    }")
