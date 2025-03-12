@@ -11,6 +11,18 @@ import Collections
 //    func connectionDidUnblock(_ connection: AMQPConnection) async
 //}
 
+public actor AMQPChannel {
+    init(id: Int) {
+        self.id = id
+    }
+
+    private(set) var id: Int
+
+    func open() async throws {
+
+    }
+}
+
 enum AMQPConnectionError: Error {
     case unexpectedState(actual: Connection.State, expected: Connection.State)
     case handshakeFailed(reason: String)
