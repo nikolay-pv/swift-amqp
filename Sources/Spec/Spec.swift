@@ -131,27 +131,27 @@ public enum Spec {
     static let ReplySuccess = 200
 
     enum SoftError: Int, Error {
-        case ContentTooLarge = 311
-        case NoRoute = 312
-        case NoConsumers = 313
-        case AccessRefused = 403
-        case NotFound = 404
-        case ResourceLocked = 405
-        case PreconditionFailed = 406
+        case contentTooLarge = 311
+        case noRoute = 312
+        case noConsumers = 313
+        case accessRefused = 403
+        case notFound = 404
+        case resourceLocked = 405
+        case preconditionFailed = 406
     }
 
     enum HardError: Int, Error {
-        case ConnectionForced = 320
-        case InvalidPath = 402
-        case FrameError = 501
-        case SyntaxError = 502
-        case CommandInvalid = 503
-        case ChannelError = 504
-        case UnexpectedFrame = 505
-        case ResourceError = 506
-        case NotAllowed = 530
-        case NotImplemented = 540
-        case InternalError = 541
+        case connectionForced = 320
+        case invalidPath = 402
+        case frameError = 501
+        case syntaxError = 502
+        case commandInvalid = 503
+        case channelError = 504
+        case unexpectedFrame = 505
+        case resourceError = 506
+        case notAllowed = 530
+        case notImplemented = 540
+        case internalError = 541
     }
 
     public struct Basic: AMQPClassProtocol {

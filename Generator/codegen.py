@@ -138,13 +138,13 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
         print("\n    enum SoftError: Int, Error {")
         for c, v, constant_class in spec.constants:
             if "soft-error" in constant_class:
-                c = constant_name(c)
+                c = as_camel_case(False, c)
                 print(f"    case {c} = {v}")
         print("    }")
         print("\n    enum HardError: Int, Error {")
         for c, v, constant_class in spec.constants:
             if "hard-error" in constant_class:
-                c = constant_name(c)
+                c = as_camel_case(False, c)
                 print(f"    case {c} = {v}")
         print("    }")
 
@@ -351,7 +351,7 @@ def gen_swift_impl(spec: AmqpSpec):
                     f"        case ({c.index}, {m.index}): return Spec.{struct_name(c.name)}.{struct_name(m.name)}.init"
                 )
         print(
-            "        default: throw FramingError.UnknownClassAndMethod(class: classId, method: methodId)"
+            "        default: throw FramingError.unknownClassAndMethod(class: classId, method: methodId)"
         )
         print("        }")
         print("    }")

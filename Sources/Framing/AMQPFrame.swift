@@ -17,7 +17,7 @@ extension Frame {
 func decodeFrame(type: UInt8, from data: Data) throws -> Frame {
     // for errors see 4.2.3 General Frame Format
     if data.last != Spec.FrameEnd {
-        throw FramingError.Fatal("Frame doesn't end with the frame-end octet")
+        throw FramingError.fatal("Frame doesn't end with the frame-end octet")
     }
     let decoder: FrameDecoder = .init()
     switch type {
@@ -30,7 +30,7 @@ func decodeFrame(type: UInt8, from data: Data) throws -> Frame {
     case Spec.FrameHeartbeat:
         return try decoder.decode(HeartbeatFrame.self, from: data)
     default:
-        throw FramingError.Fatal("Unknown frame type \(type) to decode")
+        throw FramingError.fatal("Unknown frame type \(type) to decode")
     }
 }
 
@@ -137,7 +137,7 @@ extension HeartbeatFrame: Frame {
         precondition(wireType == Spec.FrameHeartbeat)
         let wireChannelId = try decoder.decode(UInt16.self)
         if wireChannelId != 0 {
-            throw Spec.HardError.FrameError
+            throw Spec.HardError.frameError
         }
         let expectedSize = try decoder.decode(UInt32.self)
         precondition(expectedSize == 0)
@@ -172,7 +172,7 @@ extension ContentHeaderFrame: Frame {
         precondition(wireType == Spec.FrameHeader)
         channelId = try decoder.decode(UInt16.self)
         if channelId == 0 {
-            throw Spec.HardError.ChannelError
+            throw Spec.HardError.channelError
         }
         _ = try decoder.decode(UInt32.self)
         classId = try decoder.decode(UInt16.self)

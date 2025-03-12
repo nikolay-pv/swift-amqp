@@ -1361,7 +1361,7 @@ extension Spec {
         case (90, 31): return Spec.Tx.RollbackOk.init
         case (85, 10): return Spec.Confirm.Select.init
         case (85, 11): return Spec.Confirm.SelectOk.init
-        default: throw FramingError.UnknownClassAndMethod(class: classId, method: methodId)
+        default: throw FramingError.unknownClassAndMethod(class: classId, method: methodId)
         }
     }
 }
