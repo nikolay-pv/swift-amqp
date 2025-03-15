@@ -59,6 +59,8 @@ struct ProtocolHeaderFrame {
     )
 }
 
+extension ProtocolHeaderFrame: Equatable {}
+
 extension ProtocolHeaderFrame: Frame {
     func encode(to encoder: any AMQPEncoder) throws {
         for byte in protocolName {
@@ -131,6 +133,8 @@ struct HeartbeatFrame {
     var channelId: UInt16 { 0 }
 }
 
+extension HeartbeatFrame: Equatable {}
+
 extension HeartbeatFrame: Frame {
     init(from decoder: any AMQPDecoder) throws {
         let wireType = try decoder.decode(UInt8.self)
@@ -166,6 +170,8 @@ struct ContentHeaderFrame {
     var properties: Spec.BasicProperties
 }
 
+extension ContentHeaderFrame: Equatable {}
+
 extension ContentHeaderFrame: Frame {
     init(from decoder: any AMQPDecoder) throws {
         let wireType = try decoder.decode(UInt8.self)
@@ -197,7 +203,7 @@ extension ContentHeaderFrame: Frame {
         try encoder.encode(Spec.FrameEnd)
     }
 
-    var bytesCount: UInt32 { 1 + 2 + 4 + 8 + properties.bytesCount + 1 }
+    var bytesCount: UInt32 { 1 + 2 + 4 + 2 + 2 + 8 + properties.bytesCount + 1 }
 }
 
 // 2.3.5.2 Content Frames
@@ -207,21 +213,28 @@ struct ContentBodyFrame {
     var fragment: [UInt8]  // max size is UInt32.max
 }
 
+extension ContentBodyFrame: Equatable {}
+
 extension ContentBodyFrame: Frame {
     // don't decode type the same was as classId and methodId in Methods are not decoded
     init(from decoder: any AMQPDecoder) throws {
+        let wireType = try decoder.decode(UInt8.self)
+        precondition(wireType == Spec.FrameBody)
         channelId = try decoder.decode(UInt16.self)
         let expectedSize = try decoder.decode(UInt32.self)
-        fragment = [UInt8](repeating: 0, count: Int(expectedSize))
-        for i in 0..<fragment.count {
-            fragment[i] = try decoder.decode(UInt8.self)
+        var wireFragment = [UInt8]()
+        wireFragment.reserveCapacity(Int(expectedSize))
+        for _ in 0..<expectedSize {
+            wireFragment.append(try decoder.decode(UInt8.self))
         }
+        fragment = consume wireFragment
         let end = try decoder.decode(UInt8.self)
         precondition(end == Spec.FrameEnd)
     }
 
     // don't encode type the same way as classId and methodId in Methods are not encoded
     func encode(to encoder: any AMQPEncoder) throws {
+        try encoder.encode(type)
         try encoder.encode(channelId)
         try encoder.encode(UInt32(fragment.count))
         try fragment.forEach { try encoder.encode($0) }

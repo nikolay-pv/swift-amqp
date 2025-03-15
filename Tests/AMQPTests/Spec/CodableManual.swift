@@ -5,7 +5,7 @@ import Testing
 
 @Suite struct BoolPackCoding {
     @Test(
-        "Sequential Bools are packed into one byte",
+        "Sequential Bool members are packed into one byte",
         arguments: zip(
             [
                 Spec.Basic.Consume(noLocal: true, noAck: true, exclusive: true, nowait: true),
@@ -20,5 +20,62 @@ import Testing
         var expected = [UInt8].init(repeating: UInt8.zero, count: 9)
         expected[4] = expectedByte
         #expect(encoded == Data(expected))
+    }
+}
+
+@Suite struct AMQPFrameCodingTests {
+    @Test("ProtocolHeaderFrame default encoding/decoding roundtrip")
+    func protocolHeaderFrameCoding() async throws {
+        let object = ProtocolHeaderFrame(majorVersion: 0, minorVersion: 9, revision: 1)
+        let binary = try FrameEncoder().encode(object)
+        let decoded = try FrameDecoder().decode(ProtocolHeaderFrame.self, from: binary)
+        #expect(binary.count == object.bytesCount)
+        #expect(decoded == object)
+    }
+
+    @Test("MethodFrame default encoding/decoding roundtrip")
+    func methodFrameCoding() async throws {
+        let method = Spec.Basic.Ack()
+        // MethodFrame doesn't conform to Equatable due to non conformant AMQPCodabale
+        let object = MethodFrame(channelId: 3, payload: method)
+        let binary = try FrameEncoder().encode(object)
+        let decoded = try FrameDecoder().decode(MethodFrame.self, from: binary)
+        #expect(binary.count == object.bytesCount)
+        #expect(decoded.channelId == object.channelId)
+        let decodedMethod = decoded.payload as? Spec.Basic.Ack
+        #expect(decodedMethod != nil)
+        #expect(decodedMethod! == method)
+    }
+
+    @Test("HeartbeatFrame default encoding/decoding roundtrip")
+    func heartbeatFrameCoding() async throws {
+        let object = HeartbeatFrame()
+        let binary = try FrameEncoder().encode(object)
+        let decoded = try FrameDecoder().decode(HeartbeatFrame.self, from: binary)
+        #expect(binary.count == object.bytesCount)
+        #expect(decoded == object)
+    }
+
+    @Test("ContentHeaderFrame default encoding/decoding roundtrip")
+    func contentHeaderFrameCoding() async throws {
+        let object = ContentHeaderFrame(
+            channelId: 3,
+            classId: Spec.Basic.Publish().amqpClassId,
+            bodySize: 10,
+            properties: .init()
+        )
+        let binary = try FrameEncoder().encode(object)
+        let decoded = try FrameDecoder().decode(ContentHeaderFrame.self, from: binary)
+        #expect(binary.count == object.bytesCount)
+        #expect(decoded == object)
+    }
+
+    @Test("ContentBodyFrame default encoding/decoding roundtrip")
+    func contentBodyFrameCoding() async throws {
+        let object = ContentBodyFrame(channelId: 3, fragment: [0, 1, 2, 3, 4, 5])
+        let binary = try FrameEncoder().encode(object)
+        let decoded = try FrameDecoder().decode(ContentBodyFrame.self, from: binary)
+        #expect(binary.count == object.bytesCount)
+        #expect(decoded == object)
     }
 }
