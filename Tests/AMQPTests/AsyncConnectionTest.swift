@@ -1,4 +1,5 @@
 import NIOCore
+import NIOExtras
 import NIOPosix
 import Testing
 
@@ -7,23 +8,6 @@ import Testing
 enum AMQPNegotiationResult: Sendable {
     case success(NIOAsyncChannel<Frame, Frame>)
     case failure(String)
-}
-
-class PrintAllHandler: ChannelDuplexHandler, RemovableChannelHandler {
-    public typealias InboundOut = Any
-    public typealias InboundIn = Any
-    public typealias OutboundIn = Any
-    public typealias OutboundOut = Any
-
-    func channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        print("Receive data: \(data)")
-        context.fireChannelRead(data)
-    }
-
-    func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
-        print("Send data: \(data)")
-        context.write(data, promise: promise)
-    }
 }
 
 enum Negotiator {
@@ -211,7 +195,14 @@ public actor AsyncConnection {
                         )
                     }
                     .flatMap {
-                        return channel.pipeline.addHandler(PrintAllHandler())
+                        return channel.pipeline.addHandler(
+                            DebugOutboundEventsHandler { print("\($0)") }
+                        )
+                    }
+                    .flatMap {
+                        return channel.pipeline.addHandler(
+                            DebugInboundEventsHandler { print("\($0)") }
+                        )
                     }
                     .flatMap {
                         return channel.pipeline.addHandler(

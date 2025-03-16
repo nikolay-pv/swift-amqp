@@ -26,6 +26,10 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/apple/swift-nio.git", .upToNextMajor(from: "2.67.0")),
         .package(
+            url: "https://github.com/apple/swift-nio-extras.git",
+            .upToNextMajor(from: "1.25.0")
+        ),
+        .package(
             url: "https://github.com/apple/swift-collections.git",
             .upToNextMajor(from: "1.1.0")
         ),
@@ -42,7 +46,10 @@ let package = Package(
         ),
         .testTarget(
             name: "AMQPTests",
-            dependencies: ["AMQP"]
+            dependencies: [
+                "AMQP",
+                .product(name: "NIOExtras", package: "swift-nio-extras"),
+            ]
         ),
     ]
 )
