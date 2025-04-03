@@ -1,6 +1,8 @@
 enum ConnectionError: Error {
     case protocolVersionMismatch(server: String, client: String)
     case unsupportedAuthMechanism(String)
+    /// throws when protocol negotiation is somehow waited on different method from the broker
+    case unexpectedMethod
     case unknown
 }
 

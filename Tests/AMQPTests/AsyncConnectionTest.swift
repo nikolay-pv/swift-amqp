@@ -45,7 +45,7 @@ class AMQPNegotitionHandler: ChannelInboundHandler, RemovableChannelHandler {
             // TODO: the below would need to be encapsulated somewhere
             // expected to get Connection.Start
             guard let method = frame.payload as? AMQP.Spec.Connection.Start else {
-                context.fireErrorCaught(ConnectionError.unknown)
+                context.fireErrorCaught(ConnectionError.unexpectedMethod)
                 return
             }
             // check protocol versions mismatch
@@ -95,7 +95,7 @@ class AMQPNegotitionHandler: ChannelInboundHandler, RemovableChannelHandler {
             return
         case .waitingTune:
             guard let method = frame.payload as? AMQP.Spec.Connection.Tune else {
-                context.fireErrorCaught(ConnectionError.unknown)
+                context.fireErrorCaught(ConnectionError.unexpectedMethod)
                 return
             }
             // picking correct values
@@ -134,7 +134,7 @@ class AMQPNegotitionHandler: ChannelInboundHandler, RemovableChannelHandler {
                 }
         case .waitingOpenOk:
             guard let method = frame.payload as? AMQP.Spec.Connection.OpenOk else {
-                context.fireErrorCaught(ConnectionError.unknown)
+                context.fireErrorCaught(ConnectionError.unexpectedMethod)
                 return
             }
             context.pipeline.removeHandler(self, promise: nil)
