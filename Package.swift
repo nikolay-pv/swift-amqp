@@ -40,6 +40,8 @@ let package = Package(
             dependencies: [
                 .product(name: "NIOCore", package: "swift-nio"),
                 .product(name: "NIOPosix", package: "swift-nio"),
+                // TODO: use traits when they will be here, for now just enable it for all
+                .product(name: "NIOExtras", package: "swift-nio-extras"),
                 .product(name: "NIOFoundationCompat", package: "swift-nio"),
                 .product(name: "Collections", package: "swift-collections"),
             ]
