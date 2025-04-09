@@ -2,7 +2,7 @@ import Foundation
 import NIOCore
 import NIOFoundationCompat
 
-struct AMQPByteToMessageCoder: ByteToMessageDecoder, MessageToByteEncoder {
+struct ByteToMessageCoderHandler: ByteToMessageDecoder, MessageToByteEncoder {
     // MARK: - ByteToMessageDecoder
     typealias InboundOut = Frame
 

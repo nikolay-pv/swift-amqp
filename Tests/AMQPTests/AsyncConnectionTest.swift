@@ -10,145 +10,6 @@ enum AMQPNegotiationResult: Sendable {
     case failure(String)
 }
 
-enum Negotiator {
-    static func decide(server: Int, client: Int) -> Int {
-        if server == 0 || client == 0 {
-            return max(server, client)
-        }
-        return min(server, client)
-    }
-}
-
-class AMQPNegotitionHandler: ChannelInboundHandler, RemovableChannelHandler {
-    public typealias InboundIn = Frame
-    public typealias OutboundOut = Frame
-
-    enum State {
-        case waitingStart
-        case waitingSecure
-        case waitingTune
-        case waitingOpenOk
-        case complete
-    }
-
-    private var state: State = .waitingStart
-    var config: AMQPConfiguration
-    let properties: Spec.Table
-
-    // since the channel initializer can be called multiple times, this method
-    // doesn't handle the initial send of the Protocol header, it is done
-    // outside
-    public func channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        let frame = unwrapInboundIn(data) as! MethodFrame
-        switch state {
-        case .waitingStart:
-            // TODO: the below would need to be encapsulated somewhere
-            // expected to get Connection.Start
-            guard let method = frame.payload as? AMQP.Spec.Connection.Start else {
-                context.fireErrorCaught(ConnectionError.unexpectedMethod)
-                return
-            }
-            // check protocol versions mismatch
-            if method.versionMajor != Spec.ProtocolLevel.MAJOR
-                || method.versionMinor != Spec.ProtocolLevel.MINOR
-            {
-                context.fireErrorCaught(
-                    ConnectionError.protocolVersionMismatch(
-                        server: "\(method.versionMajor).\(method.versionMinor)",
-                        client: "\(Spec.ProtocolLevel.MAJOR).\(Spec.ProtocolLevel.MINOR)"
-                    )
-                )
-                return
-            }
-            // save server information somehow
-            // self._set_server_information(method_frame)
-            // self._send_connection_start_ok(*self._get_credentials(method_frame))
-            if !method.mechanisms.contains(self.config.credentials.mechanim) {
-                let msg = "\(self.config.credentials.mechanim) is not supported by the server"
-                context.fireErrorCaught(ConnectionError.unsupportedAuthMechanism(msg))
-                return
-            }
-            // send Start-Ok method with selected security mechanism
-            let response = AMQP.Spec.Connection.StartOk(
-                // clientProperties: properties,
-                clientProperties: ["product": .longstr("pika")],
-                mechanism: self.config.credentials.mechanim,
-                response: self.config.credentials.response
-            )
-            // TODO: improve this constructor...
-            let startOkFrame = MethodFrame(
-                channelId: 0,
-                payload: response
-            )
-            // TODO: how to handle those promises in this context?
-            context.writeAndFlush(wrapOutboundOut(startOkFrame))
-                .whenSuccess {
-                    // TODO: this can be .waitingSecure if the SSL is enabled
-                    self.state = .waitingTune
-                }
-        case .waitingSecure:
-            // TODO: implement secure
-            // repeat below two
-            // SASL, challenge-response model = get Secure method
-            // send Secure-Ok method
-            // then wait on Tune
-            return
-        case .waitingTune:
-            guard let method = frame.payload as? AMQP.Spec.Connection.Tune else {
-                context.fireErrorCaught(ConnectionError.unexpectedMethod)
-                return
-            }
-            // picking correct values
-            self.config.channelMax = Negotiator.decide(
-                server: Int(method.channelMax),
-                client: self.config.channelMax
-            )
-            self.config.frameMax = Negotiator.decide(
-                server: Int(method.frameMax),
-                client: self.config.frameMax
-            )
-            // TODO: setup hearbeat here
-            let response = AMQP.Spec.Connection.TuneOk(
-                channelMax: Int16(self.config.channelMax),
-                frameMax: Int32(self.config.frameMax),
-                heartbeat: 0
-            )
-            let frame = MethodFrame(
-                channelId: 0,
-                payload: response
-            )
-            // TODO: how to handle those promises in this context?
-            let connectData = wrapOutboundOut(
-                MethodFrame(
-                    channelId: 0,
-                    payload: Spec.Connection.Open()  // TODO: config?
-                )
-            )
-            context.writeAndFlush(wrapOutboundOut(frame))
-                .flatMap {
-                    let data = connectData
-                    return context.writeAndFlush(data)
-                }
-                .whenSuccess {
-                    self.state = .waitingOpenOk
-                }
-        case .waitingOpenOk:
-            guard let method = frame.payload as? AMQP.Spec.Connection.OpenOk else {
-                context.fireErrorCaught(ConnectionError.unexpectedMethod)
-                return
-            }
-            context.pipeline.removeHandler(self, promise: nil)
-        case .complete:
-            fatalError("should have been removed from the channel's pipeline")
-        }
-    }
-
-    init(config: AMQPConfiguration, properties: Spec.Table) {
-        self.config = config
-        self.properties = properties
-    }
-}
-
 public actor AsyncConnection {
 
     // MARK: - AMQP
@@ -188,25 +49,28 @@ public actor AsyncConnection {
         bootstrap = ClientBootstrap(group: eventLoopGroup)
             // .channelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
             .channelInitializer { channel in
-                return channel.pipeline.addHandler(ByteToMessageHandler(AMQPByteToMessageCoder()))
+                return channel.pipeline
+                    .addHandler(ByteToMessageHandler(ByteToMessageCoderHandler()))
                     .flatMap {
                         return channel.pipeline.addHandler(
-                            MessageToByteHandler(AMQPByteToMessageCoder())
+                            MessageToByteHandler(ByteToMessageCoderHandler())
                         )
                     }
                     .flatMap {
                         return channel.pipeline.addHandler(
-                            DebugOutboundEventsHandler { print("\($0)") }
+                            DebugOutboundEventsHandler { event, _ in print("\(event)") }
                         )
                     }
                     .flatMap {
                         return channel.pipeline.addHandler(
-                            DebugInboundEventsHandler { print("\($0)") }
+                            DebugInboundEventsHandler { event, _ in print("\(event)") }
                         )
                     }
                     .flatMap {
                         return channel.pipeline.addHandler(
-                            AMQPNegotitionHandler(config: config, properties: props)
+                            AMQPNegotitionHandler(
+                                negotiator: Spec.AMQPNegotiator(config: config, properties: props)
+                            )
                         )
                     }
             }
@@ -217,9 +81,6 @@ public actor AsyncConnection {
         guard let channel else {
             throw ConnectionError.unknown
         }
-
-        let header: Frame = ProtocolHeaderFrame.specHeader
-        try channel.writeAndFlush(header).wait()  // this will kick in negotiation
 
         nioChannel = channel
     }
