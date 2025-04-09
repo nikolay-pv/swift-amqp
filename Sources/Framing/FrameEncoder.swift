@@ -1,7 +1,7 @@
 import Foundation
 
 class FrameEncoder {
-    func encode<T>(_ value: T) throws -> Data where T: AMQPEncodable {
+    func encode<T>(_ value: T) throws -> Data where T: FrameEncodable {
         let encoder = _FrameEncoder()
         try value.encode(to: encoder)
         return encoder.complete()
@@ -74,7 +74,7 @@ extension Spec.FieldValue {
     }
 }
 
-private class _FrameEncoder: AMQPEncoder {
+private class _FrameEncoder: FrameEncoderProtocol {
     enum WrappedValue: Equatable {
         case shortstring(String)
         case longstring(String)

@@ -15,14 +15,14 @@ import Foundation
 
 private typealias FieldValue = Spec.FieldValue
 
-extension Spec.Basic.Qos: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Basic.Qos: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(prefetchSize)
         try encoder.encode(prefetchCount)
         try encoder.encode(global)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let prefetchSize = try decoder.decode(Int32.self)
         let prefetchCount = try decoder.decode(Int16.self)
         let global = try decoder.decode(Bool.self)
@@ -36,19 +36,19 @@ extension Spec.Basic.Qos: AMQPCodable {
     var bytesCount: UInt32 { 1 + 2 + 4 }
 }
 
-extension Spec.Basic.QosOk: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Basic.QosOk: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         self.init()
     }
 
     var bytesCount: UInt32 { 0 }
 }
 
-extension Spec.Basic.Consume: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Basic.Consume: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(ticket)
         try encoder.encode(queue, isLong: false)
         try encoder.encode(consumerTag, isLong: false)
@@ -61,7 +61,7 @@ extension Spec.Basic.Consume: AMQPCodable {
         try encoder.encode(arguments)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let ticket = try decoder.decode(Int16.self)
         let queue = try decoder.decode(String.self, isLong: false)
         let consumerTag = try decoder.decode(String.self, isLong: false)
@@ -89,12 +89,12 @@ extension Spec.Basic.Consume: AMQPCodable {
     }
 }
 
-extension Spec.Basic.ConsumeOk: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Basic.ConsumeOk: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(consumerTag, isLong: false)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let consumerTag = try decoder.decode(String.self, isLong: false)
         self.init(
             consumerTag: consumerTag
@@ -104,13 +104,13 @@ extension Spec.Basic.ConsumeOk: AMQPCodable {
     var bytesCount: UInt32 { UInt32(consumerTag.shortBytesCount) }
 }
 
-extension Spec.Basic.Cancel: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Basic.Cancel: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(consumerTag, isLong: false)
         try encoder.encode(nowait)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let consumerTag = try decoder.decode(String.self, isLong: false)
         let nowait = try decoder.decode(Bool.self)
         self.init(
@@ -122,12 +122,12 @@ extension Spec.Basic.Cancel: AMQPCodable {
     var bytesCount: UInt32 { 1 + UInt32(consumerTag.shortBytesCount) }
 }
 
-extension Spec.Basic.CancelOk: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Basic.CancelOk: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(consumerTag, isLong: false)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let consumerTag = try decoder.decode(String.self, isLong: false)
         self.init(
             consumerTag: consumerTag
@@ -137,8 +137,8 @@ extension Spec.Basic.CancelOk: AMQPCodable {
     var bytesCount: UInt32 { UInt32(consumerTag.shortBytesCount) }
 }
 
-extension Spec.Basic.Publish: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Basic.Publish: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(ticket)
         try encoder.encode(exchange, isLong: false)
         try encoder.encode(routingKey, isLong: false)
@@ -148,7 +148,7 @@ extension Spec.Basic.Publish: AMQPCodable {
         try encoder.encode(bitPack)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let ticket = try decoder.decode(Int16.self)
         let exchange = try decoder.decode(String.self, isLong: false)
         let routingKey = try decoder.decode(String.self, isLong: false)
@@ -169,15 +169,15 @@ extension Spec.Basic.Publish: AMQPCodable {
     }
 }
 
-extension Spec.Basic.Return: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Basic.Return: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(replyCode)
         try encoder.encode(replyText, isLong: false)
         try encoder.encode(exchange, isLong: false)
         try encoder.encode(routingKey, isLong: false)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let replyCode = try decoder.decode(Int16.self)
         let replyText = try decoder.decode(String.self, isLong: false)
         let exchange = try decoder.decode(String.self, isLong: false)
@@ -196,8 +196,8 @@ extension Spec.Basic.Return: AMQPCodable {
     }
 }
 
-extension Spec.Basic.Deliver: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Basic.Deliver: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(consumerTag, isLong: false)
         try encoder.encode(deliveryTag)
         try encoder.encode(redelivered)
@@ -205,7 +205,7 @@ extension Spec.Basic.Deliver: AMQPCodable {
         try encoder.encode(routingKey, isLong: false)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let consumerTag = try decoder.decode(String.self, isLong: false)
         let deliveryTag = try decoder.decode(Int64.self)
         let redelivered = try decoder.decode(Bool.self)
@@ -226,14 +226,14 @@ extension Spec.Basic.Deliver: AMQPCodable {
     }
 }
 
-extension Spec.Basic.Get: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Basic.Get: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(ticket)
         try encoder.encode(queue, isLong: false)
         try encoder.encode(noAck)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let ticket = try decoder.decode(Int16.self)
         let queue = try decoder.decode(String.self, isLong: false)
         let noAck = try decoder.decode(Bool.self)
@@ -247,8 +247,8 @@ extension Spec.Basic.Get: AMQPCodable {
     var bytesCount: UInt32 { 1 + 2 + UInt32(queue.shortBytesCount) }
 }
 
-extension Spec.Basic.GetOk: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Basic.GetOk: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(deliveryTag)
         try encoder.encode(redelivered)
         try encoder.encode(exchange, isLong: false)
@@ -256,7 +256,7 @@ extension Spec.Basic.GetOk: AMQPCodable {
         try encoder.encode(messageCount)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let deliveryTag = try decoder.decode(Int64.self)
         let redelivered = try decoder.decode(Bool.self)
         let exchange = try decoder.decode(String.self, isLong: false)
@@ -276,12 +276,12 @@ extension Spec.Basic.GetOk: AMQPCodable {
     }
 }
 
-extension Spec.Basic.GetEmpty: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Basic.GetEmpty: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(clusterId, isLong: false)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let clusterId = try decoder.decode(String.self, isLong: false)
         self.init(
             clusterId: clusterId
@@ -291,13 +291,13 @@ extension Spec.Basic.GetEmpty: AMQPCodable {
     var bytesCount: UInt32 { UInt32(clusterId.shortBytesCount) }
 }
 
-extension Spec.Basic.Ack: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Basic.Ack: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(deliveryTag)
         try encoder.encode(multiple)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let deliveryTag = try decoder.decode(Int64.self)
         let multiple = try decoder.decode(Bool.self)
         self.init(
@@ -309,13 +309,13 @@ extension Spec.Basic.Ack: AMQPCodable {
     var bytesCount: UInt32 { 1 + 8 }
 }
 
-extension Spec.Basic.Reject: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Basic.Reject: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(deliveryTag)
         try encoder.encode(requeue)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let deliveryTag = try decoder.decode(Int64.self)
         let requeue = try decoder.decode(Bool.self)
         self.init(
@@ -327,12 +327,12 @@ extension Spec.Basic.Reject: AMQPCodable {
     var bytesCount: UInt32 { 1 + 8 }
 }
 
-extension Spec.Basic.RecoverAsync: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Basic.RecoverAsync: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(requeue)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let requeue = try decoder.decode(Bool.self)
         self.init(
             requeue: requeue
@@ -342,12 +342,12 @@ extension Spec.Basic.RecoverAsync: AMQPCodable {
     var bytesCount: UInt32 { 1 }
 }
 
-extension Spec.Basic.Recover: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Basic.Recover: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(requeue)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let requeue = try decoder.decode(Bool.self)
         self.init(
             requeue: requeue
@@ -357,19 +357,19 @@ extension Spec.Basic.Recover: AMQPCodable {
     var bytesCount: UInt32 { 1 }
 }
 
-extension Spec.Basic.RecoverOk: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Basic.RecoverOk: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         self.init()
     }
 
     var bytesCount: UInt32 { 0 }
 }
 
-extension Spec.Basic.Nack: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Basic.Nack: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(deliveryTag)
         var bitPack: UInt8 = 0
         if multiple { bitPack |= 1 << 0 }
@@ -377,7 +377,7 @@ extension Spec.Basic.Nack: AMQPCodable {
         try encoder.encode(bitPack)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let deliveryTag = try decoder.decode(Int64.self)
         let bitPack: UInt8 = try decoder.decode(UInt8.self)
         let multiple: Bool = ((bitPack & (1 << 0)) != 0)
@@ -392,8 +392,8 @@ extension Spec.Basic.Nack: AMQPCodable {
     var bytesCount: UInt32 { 1 + 8 }
 }
 
-extension Spec.Connection.Start: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Connection.Start: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(versionMajor)
         try encoder.encode(versionMinor)
         try encoder.encode(serverProperties)
@@ -401,7 +401,7 @@ extension Spec.Connection.Start: AMQPCodable {
         try encoder.encode(locales, isLong: true)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let versionMajor = try decoder.decode(Int8.self)
         let versionMinor = try decoder.decode(Int8.self)
         let serverProperties = try decoder.decode([String: FieldValue].self)
@@ -421,15 +421,15 @@ extension Spec.Connection.Start: AMQPCodable {
     }
 }
 
-extension Spec.Connection.StartOk: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Connection.StartOk: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(clientProperties)
         try encoder.encode(mechanism, isLong: false)
         try encoder.encode(response, isLong: true)
         try encoder.encode(locale, isLong: false)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let clientProperties = try decoder.decode([String: FieldValue].self)
         let mechanism = try decoder.decode(String.self, isLong: false)
         let response = try decoder.decode(String.self, isLong: true)
@@ -448,12 +448,12 @@ extension Spec.Connection.StartOk: AMQPCodable {
     }
 }
 
-extension Spec.Connection.Secure: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Connection.Secure: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(challenge, isLong: true)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let challenge = try decoder.decode(String.self, isLong: true)
         self.init(
             challenge: challenge
@@ -463,12 +463,12 @@ extension Spec.Connection.Secure: AMQPCodable {
     var bytesCount: UInt32 { challenge.longBytesCount }
 }
 
-extension Spec.Connection.SecureOk: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Connection.SecureOk: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(response, isLong: true)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let response = try decoder.decode(String.self, isLong: true)
         self.init(
             response: response
@@ -478,14 +478,14 @@ extension Spec.Connection.SecureOk: AMQPCodable {
     var bytesCount: UInt32 { response.longBytesCount }
 }
 
-extension Spec.Connection.Tune: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Connection.Tune: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(channelMax)
         try encoder.encode(frameMax)
         try encoder.encode(heartbeat)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let channelMax = try decoder.decode(Int16.self)
         let frameMax = try decoder.decode(Int32.self)
         let heartbeat = try decoder.decode(Int16.self)
@@ -499,14 +499,14 @@ extension Spec.Connection.Tune: AMQPCodable {
     var bytesCount: UInt32 { 2 + 2 + 4 }
 }
 
-extension Spec.Connection.TuneOk: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Connection.TuneOk: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(channelMax)
         try encoder.encode(frameMax)
         try encoder.encode(heartbeat)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let channelMax = try decoder.decode(Int16.self)
         let frameMax = try decoder.decode(Int32.self)
         let heartbeat = try decoder.decode(Int16.self)
@@ -520,14 +520,14 @@ extension Spec.Connection.TuneOk: AMQPCodable {
     var bytesCount: UInt32 { 2 + 2 + 4 }
 }
 
-extension Spec.Connection.Open: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Connection.Open: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(virtualHost, isLong: false)
         try encoder.encode(capabilities, isLong: false)
         try encoder.encode(insist)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let virtualHost = try decoder.decode(String.self, isLong: false)
         let capabilities = try decoder.decode(String.self, isLong: false)
         let insist = try decoder.decode(Bool.self)
@@ -543,12 +543,12 @@ extension Spec.Connection.Open: AMQPCodable {
     }
 }
 
-extension Spec.Connection.OpenOk: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Connection.OpenOk: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(knownHosts, isLong: false)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let knownHosts = try decoder.decode(String.self, isLong: false)
         self.init(
             knownHosts: knownHosts
@@ -558,15 +558,15 @@ extension Spec.Connection.OpenOk: AMQPCodable {
     var bytesCount: UInt32 { UInt32(knownHosts.shortBytesCount) }
 }
 
-extension Spec.Connection.Close: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Connection.Close: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(replyCode)
         try encoder.encode(replyText, isLong: false)
         try encoder.encode(classId)
         try encoder.encode(methodId)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let replyCode = try decoder.decode(Int16.self)
         let replyText = try decoder.decode(String.self, isLong: false)
         let classId = try decoder.decode(Int16.self)
@@ -582,23 +582,23 @@ extension Spec.Connection.Close: AMQPCodable {
     var bytesCount: UInt32 { 2 + 2 + 2 + UInt32(replyText.shortBytesCount) }
 }
 
-extension Spec.Connection.CloseOk: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Connection.CloseOk: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         self.init()
     }
 
     var bytesCount: UInt32 { 0 }
 }
 
-extension Spec.Connection.Blocked: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Connection.Blocked: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(reason, isLong: false)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let reason = try decoder.decode(String.self, isLong: false)
         self.init(
             reason: reason
@@ -608,24 +608,24 @@ extension Spec.Connection.Blocked: AMQPCodable {
     var bytesCount: UInt32 { UInt32(reason.shortBytesCount) }
 }
 
-extension Spec.Connection.Unblocked: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Connection.Unblocked: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         self.init()
     }
 
     var bytesCount: UInt32 { 0 }
 }
 
-extension Spec.Connection.UpdateSecret: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Connection.UpdateSecret: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(newSecret, isLong: true)
         try encoder.encode(reason, isLong: false)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let newSecret = try decoder.decode(String.self, isLong: true)
         let reason = try decoder.decode(String.self, isLong: false)
         self.init(
@@ -637,23 +637,23 @@ extension Spec.Connection.UpdateSecret: AMQPCodable {
     var bytesCount: UInt32 { UInt32(reason.shortBytesCount) + newSecret.longBytesCount }
 }
 
-extension Spec.Connection.UpdateSecretOk: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Connection.UpdateSecretOk: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         self.init()
     }
 
     var bytesCount: UInt32 { 0 }
 }
 
-extension Spec.Channel.Open: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Channel.Open: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(outOfBand, isLong: false)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let outOfBand = try decoder.decode(String.self, isLong: false)
         self.init(
             outOfBand: outOfBand
@@ -663,12 +663,12 @@ extension Spec.Channel.Open: AMQPCodable {
     var bytesCount: UInt32 { UInt32(outOfBand.shortBytesCount) }
 }
 
-extension Spec.Channel.OpenOk: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Channel.OpenOk: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(channelId, isLong: true)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let channelId = try decoder.decode(String.self, isLong: true)
         self.init(
             channelId: channelId
@@ -678,12 +678,12 @@ extension Spec.Channel.OpenOk: AMQPCodable {
     var bytesCount: UInt32 { channelId.longBytesCount }
 }
 
-extension Spec.Channel.Flow: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Channel.Flow: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(active)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let active = try decoder.decode(Bool.self)
         self.init(
             active: active
@@ -693,12 +693,12 @@ extension Spec.Channel.Flow: AMQPCodable {
     var bytesCount: UInt32 { 1 }
 }
 
-extension Spec.Channel.FlowOk: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Channel.FlowOk: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(active)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let active = try decoder.decode(Bool.self)
         self.init(
             active: active
@@ -708,15 +708,15 @@ extension Spec.Channel.FlowOk: AMQPCodable {
     var bytesCount: UInt32 { 1 }
 }
 
-extension Spec.Channel.Close: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Channel.Close: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(replyCode)
         try encoder.encode(replyText, isLong: false)
         try encoder.encode(classId)
         try encoder.encode(methodId)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let replyCode = try decoder.decode(Int16.self)
         let replyText = try decoder.decode(String.self, isLong: false)
         let classId = try decoder.decode(Int16.self)
@@ -732,19 +732,19 @@ extension Spec.Channel.Close: AMQPCodable {
     var bytesCount: UInt32 { 2 + 2 + 2 + UInt32(replyText.shortBytesCount) }
 }
 
-extension Spec.Channel.CloseOk: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Channel.CloseOk: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         self.init()
     }
 
     var bytesCount: UInt32 { 0 }
 }
 
-extension Spec.Access.Request: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Access.Request: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(realm, isLong: false)
         var bitPack: UInt8 = 0
         if exclusive { bitPack |= 1 << 0 }
@@ -755,7 +755,7 @@ extension Spec.Access.Request: AMQPCodable {
         try encoder.encode(bitPack)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let realm = try decoder.decode(String.self, isLong: false)
         let bitPack: UInt8 = try decoder.decode(UInt8.self)
         let exclusive: Bool = ((bitPack & (1 << 0)) != 0)
@@ -776,12 +776,12 @@ extension Spec.Access.Request: AMQPCodable {
     var bytesCount: UInt32 { 1 + UInt32(realm.shortBytesCount) }
 }
 
-extension Spec.Access.RequestOk: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Access.RequestOk: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(ticket)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let ticket = try decoder.decode(Int16.self)
         self.init(
             ticket: ticket
@@ -791,8 +791,8 @@ extension Spec.Access.RequestOk: AMQPCodable {
     var bytesCount: UInt32 { 2 }
 }
 
-extension Spec.Exchange.Declare: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Exchange.Declare: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(ticket)
         try encoder.encode(exchange, isLong: false)
         try encoder.encode(type, isLong: false)
@@ -806,7 +806,7 @@ extension Spec.Exchange.Declare: AMQPCodable {
         try encoder.encode(arguments)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let ticket = try decoder.decode(Int16.self)
         let exchange = try decoder.decode(String.self, isLong: false)
         let type = try decoder.decode(String.self, isLong: false)
@@ -836,19 +836,19 @@ extension Spec.Exchange.Declare: AMQPCodable {
     }
 }
 
-extension Spec.Exchange.DeclareOk: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Exchange.DeclareOk: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         self.init()
     }
 
     var bytesCount: UInt32 { 0 }
 }
 
-extension Spec.Exchange.Delete: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Exchange.Delete: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(ticket)
         try encoder.encode(exchange, isLong: false)
         var bitPack: UInt8 = 0
@@ -857,7 +857,7 @@ extension Spec.Exchange.Delete: AMQPCodable {
         try encoder.encode(bitPack)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let ticket = try decoder.decode(Int16.self)
         let exchange = try decoder.decode(String.self, isLong: false)
         let bitPack: UInt8 = try decoder.decode(UInt8.self)
@@ -874,19 +874,19 @@ extension Spec.Exchange.Delete: AMQPCodable {
     var bytesCount: UInt32 { 1 + 2 + UInt32(exchange.shortBytesCount) }
 }
 
-extension Spec.Exchange.DeleteOk: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Exchange.DeleteOk: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         self.init()
     }
 
     var bytesCount: UInt32 { 0 }
 }
 
-extension Spec.Exchange.Bind: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Exchange.Bind: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(ticket)
         try encoder.encode(destination, isLong: false)
         try encoder.encode(source, isLong: false)
@@ -895,7 +895,7 @@ extension Spec.Exchange.Bind: AMQPCodable {
         try encoder.encode(arguments)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let ticket = try decoder.decode(Int16.self)
         let destination = try decoder.decode(String.self, isLong: false)
         let source = try decoder.decode(String.self, isLong: false)
@@ -918,19 +918,19 @@ extension Spec.Exchange.Bind: AMQPCodable {
     }
 }
 
-extension Spec.Exchange.BindOk: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Exchange.BindOk: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         self.init()
     }
 
     var bytesCount: UInt32 { 0 }
 }
 
-extension Spec.Exchange.Unbind: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Exchange.Unbind: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(ticket)
         try encoder.encode(destination, isLong: false)
         try encoder.encode(source, isLong: false)
@@ -939,7 +939,7 @@ extension Spec.Exchange.Unbind: AMQPCodable {
         try encoder.encode(arguments)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let ticket = try decoder.decode(Int16.self)
         let destination = try decoder.decode(String.self, isLong: false)
         let source = try decoder.decode(String.self, isLong: false)
@@ -962,19 +962,19 @@ extension Spec.Exchange.Unbind: AMQPCodable {
     }
 }
 
-extension Spec.Exchange.UnbindOk: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Exchange.UnbindOk: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         self.init()
     }
 
     var bytesCount: UInt32 { 0 }
 }
 
-extension Spec.Queue.Declare: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Queue.Declare: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(ticket)
         try encoder.encode(queue, isLong: false)
         var bitPack: UInt8 = 0
@@ -987,7 +987,7 @@ extension Spec.Queue.Declare: AMQPCodable {
         try encoder.encode(arguments)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let ticket = try decoder.decode(Int16.self)
         let queue = try decoder.decode(String.self, isLong: false)
         let bitPack: UInt8 = try decoder.decode(UInt8.self)
@@ -1012,14 +1012,14 @@ extension Spec.Queue.Declare: AMQPCodable {
     var bytesCount: UInt32 { 1 + 2 + UInt32(queue.shortBytesCount) + arguments.bytesCount }
 }
 
-extension Spec.Queue.DeclareOk: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Queue.DeclareOk: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(queue, isLong: false)
         try encoder.encode(messageCount)
         try encoder.encode(consumerCount)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let queue = try decoder.decode(String.self, isLong: false)
         let messageCount = try decoder.decode(Int32.self)
         let consumerCount = try decoder.decode(Int32.self)
@@ -1033,8 +1033,8 @@ extension Spec.Queue.DeclareOk: AMQPCodable {
     var bytesCount: UInt32 { 4 + 4 + UInt32(queue.shortBytesCount) }
 }
 
-extension Spec.Queue.Bind: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Queue.Bind: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(ticket)
         try encoder.encode(queue, isLong: false)
         try encoder.encode(exchange, isLong: false)
@@ -1043,7 +1043,7 @@ extension Spec.Queue.Bind: AMQPCodable {
         try encoder.encode(arguments)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let ticket = try decoder.decode(Int16.self)
         let queue = try decoder.decode(String.self, isLong: false)
         let exchange = try decoder.decode(String.self, isLong: false)
@@ -1066,25 +1066,25 @@ extension Spec.Queue.Bind: AMQPCodable {
     }
 }
 
-extension Spec.Queue.BindOk: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Queue.BindOk: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         self.init()
     }
 
     var bytesCount: UInt32 { 0 }
 }
 
-extension Spec.Queue.Purge: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Queue.Purge: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(ticket)
         try encoder.encode(queue, isLong: false)
         try encoder.encode(nowait)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let ticket = try decoder.decode(Int16.self)
         let queue = try decoder.decode(String.self, isLong: false)
         let nowait = try decoder.decode(Bool.self)
@@ -1098,12 +1098,12 @@ extension Spec.Queue.Purge: AMQPCodable {
     var bytesCount: UInt32 { 1 + 2 + UInt32(queue.shortBytesCount) }
 }
 
-extension Spec.Queue.PurgeOk: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Queue.PurgeOk: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(messageCount)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let messageCount = try decoder.decode(Int32.self)
         self.init(
             messageCount: messageCount
@@ -1113,8 +1113,8 @@ extension Spec.Queue.PurgeOk: AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension Spec.Queue.Delete: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Queue.Delete: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(ticket)
         try encoder.encode(queue, isLong: false)
         var bitPack: UInt8 = 0
@@ -1124,7 +1124,7 @@ extension Spec.Queue.Delete: AMQPCodable {
         try encoder.encode(bitPack)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let ticket = try decoder.decode(Int16.self)
         let queue = try decoder.decode(String.self, isLong: false)
         let bitPack: UInt8 = try decoder.decode(UInt8.self)
@@ -1143,12 +1143,12 @@ extension Spec.Queue.Delete: AMQPCodable {
     var bytesCount: UInt32 { 1 + 2 + UInt32(queue.shortBytesCount) }
 }
 
-extension Spec.Queue.DeleteOk: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Queue.DeleteOk: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(messageCount)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let messageCount = try decoder.decode(Int32.self)
         self.init(
             messageCount: messageCount
@@ -1158,8 +1158,8 @@ extension Spec.Queue.DeleteOk: AMQPCodable {
     var bytesCount: UInt32 { 4 }
 }
 
-extension Spec.Queue.Unbind: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Queue.Unbind: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(ticket)
         try encoder.encode(queue, isLong: false)
         try encoder.encode(exchange, isLong: false)
@@ -1167,7 +1167,7 @@ extension Spec.Queue.Unbind: AMQPCodable {
         try encoder.encode(arguments)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let ticket = try decoder.decode(Int16.self)
         let queue = try decoder.decode(String.self, isLong: false)
         let exchange = try decoder.decode(String.self, isLong: false)
@@ -1188,89 +1188,89 @@ extension Spec.Queue.Unbind: AMQPCodable {
     }
 }
 
-extension Spec.Queue.UnbindOk: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Queue.UnbindOk: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         self.init()
     }
 
     var bytesCount: UInt32 { 0 }
 }
 
-extension Spec.Tx.Select: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Tx.Select: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         self.init()
     }
 
     var bytesCount: UInt32 { 0 }
 }
 
-extension Spec.Tx.SelectOk: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Tx.SelectOk: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         self.init()
     }
 
     var bytesCount: UInt32 { 0 }
 }
 
-extension Spec.Tx.Commit: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Tx.Commit: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         self.init()
     }
 
     var bytesCount: UInt32 { 0 }
 }
 
-extension Spec.Tx.CommitOk: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Tx.CommitOk: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         self.init()
     }
 
     var bytesCount: UInt32 { 0 }
 }
 
-extension Spec.Tx.Rollback: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Tx.Rollback: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         self.init()
     }
 
     var bytesCount: UInt32 { 0 }
 }
 
-extension Spec.Tx.RollbackOk: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Tx.RollbackOk: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         self.init()
     }
 
     var bytesCount: UInt32 { 0 }
 }
 
-extension Spec.Confirm.Select: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Confirm.Select: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         try encoder.encode(nowait)
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         let nowait = try decoder.decode(Bool.self)
         self.init(
             nowait: nowait
@@ -1280,11 +1280,11 @@ extension Spec.Confirm.Select: AMQPCodable {
     var bytesCount: UInt32 { 1 }
 }
 
-extension Spec.Confirm.SelectOk: AMQPCodable {
-    func encode(to encoder: AMQPEncoder) throws {
+extension Spec.Confirm.SelectOk: FrameCodable {
+    func encode(to encoder: FrameEncoderProtocol) throws {
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         self.init()
     }
 
@@ -1292,7 +1292,7 @@ extension Spec.Confirm.SelectOk: AMQPCodable {
 }
 
 extension Spec {
-    typealias Factory = @Sendable (any AMQPDecoder) throws -> any AMQPCodable
+    typealias Factory = @Sendable (any FrameDecoderProtocol) throws -> any FrameCodable
     static func makeFactory(with classId: UInt16, and methodId: UInt16) throws -> Factory {
         switch (classId, methodId) {
         case (60, 10): return Spec.Basic.Qos.init

@@ -1,6 +1,6 @@
 import Foundation
 
-protocol Frame: Sendable, AMQPCodable {
+protocol Frame: Sendable, FrameCodable {
     var type: UInt8 { get }
     var channelId: UInt16 { get }
     func asData() throws -> Data
@@ -62,7 +62,7 @@ struct ProtocolHeaderFrame {
 extension ProtocolHeaderFrame: Equatable {}
 
 extension ProtocolHeaderFrame: Frame {
-    func encode(to encoder: any AMQPEncoder) throws {
+    func encode(to encoder: any FrameEncoderProtocol) throws {
         for byte in protocolName {
             try encoder.encode(byte)
         }
@@ -72,7 +72,7 @@ extension ProtocolHeaderFrame: Frame {
         try encoder.encode(revision)
     }
 
-    init(from decoder: any AMQPDecoder) throws {
+    init(from decoder: any FrameDecoderProtocol) throws {
         protocolName = try (0..<Self.protocolNameLength)
             .reduce(into: [UInt8]()) { partialResult, _ in
                 partialResult.append(try decoder.decode(UInt8.self))
@@ -91,11 +91,11 @@ extension ProtocolHeaderFrame: Frame {
 struct MethodFrame {
     var type: UInt8 { Spec.FrameMethod }
     var channelId: UInt16
-    var payload: any AMQPCodable
+    var payload: any FrameCodable
 }
 
 extension MethodFrame: Frame {
-    init(from decoder: any AMQPDecoder) throws {
+    init(from decoder: any FrameDecoderProtocol) throws {
         let wireType = try decoder.decode(UInt8.self)
         precondition(wireType == Spec.FrameMethod)
         channelId = try decoder.decode(UInt16.self)
@@ -110,7 +110,7 @@ extension MethodFrame: Frame {
         precondition(end == Spec.FrameEnd)
     }
 
-    func encode(to encoder: any AMQPEncoder) throws {
+    func encode(to encoder: any FrameEncoderProtocol) throws {
         try encoder.encode(type)
         try encoder.encode(channelId)
         let method = payload as! any AMQPMethodProtocol
@@ -136,7 +136,7 @@ struct HeartbeatFrame {
 extension HeartbeatFrame: Equatable {}
 
 extension HeartbeatFrame: Frame {
-    init(from decoder: any AMQPDecoder) throws {
+    init(from decoder: any FrameDecoderProtocol) throws {
         let wireType = try decoder.decode(UInt8.self)
         precondition(wireType == Spec.FrameHeartbeat)
         let wireChannelId = try decoder.decode(UInt16.self)
@@ -149,7 +149,7 @@ extension HeartbeatFrame: Frame {
         precondition(end == Spec.FrameEnd)
     }
 
-    func encode(to encoder: any AMQPEncoder) throws {
+    func encode(to encoder: any FrameEncoderProtocol) throws {
         try encoder.encode(type)
         try encoder.encode(channelId)
         try encoder.encode(UInt32(0))
@@ -173,7 +173,7 @@ struct ContentHeaderFrame {
 extension ContentHeaderFrame: Equatable {}
 
 extension ContentHeaderFrame: Frame {
-    init(from decoder: any AMQPDecoder) throws {
+    init(from decoder: any FrameDecoderProtocol) throws {
         let wireType = try decoder.decode(UInt8.self)
         precondition(wireType == Spec.FrameHeader)
         channelId = try decoder.decode(UInt16.self)
@@ -191,7 +191,7 @@ extension ContentHeaderFrame: Frame {
         precondition(end == Spec.FrameEnd)
     }
 
-    func encode(to encoder: any AMQPEncoder) throws {
+    func encode(to encoder: any FrameEncoderProtocol) throws {
         try encoder.encode(type)
         try encoder.encode(channelId)
         // 8 for bodySize, 2 and 2 for classId and weight
@@ -217,7 +217,7 @@ extension ContentBodyFrame: Equatable {}
 
 extension ContentBodyFrame: Frame {
     // don't decode type the same was as classId and methodId in Methods are not decoded
-    init(from decoder: any AMQPDecoder) throws {
+    init(from decoder: any FrameDecoderProtocol) throws {
         let wireType = try decoder.decode(UInt8.self)
         precondition(wireType == Spec.FrameBody)
         channelId = try decoder.decode(UInt16.self)
@@ -233,7 +233,7 @@ extension ContentBodyFrame: Frame {
     }
 
     // don't encode type the same way as classId and methodId in Methods are not encoded
-    func encode(to encoder: any AMQPEncoder) throws {
+    func encode(to encoder: any FrameEncoderProtocol) throws {
         try encoder.encode(type)
         try encoder.encode(channelId)
         try encoder.encode(UInt32(fragment.count))

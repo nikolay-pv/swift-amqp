@@ -266,9 +266,9 @@ def gen_swift_impl(spec: AmqpSpec):
             for m in c.allMethods():
                 print()
                 print(
-                    f"extension Spec.{struct_name(c.name)}.{struct_name(m.name).strip()}: AMQPCodable {{"
+                    f"extension Spec.{struct_name(c.name)}.{struct_name(m.name).strip()}: FrameCodable {{"
                 )
-                print("    func encode(to encoder: AMQPEncoder) throws {")
+                print("    func encode(to encoder: FrameEncoderProtocol) throws {")
                 bits_to_pack = []
                 for a in m.arguments:
                     t = spec.resolveDomain(a.domain)
@@ -289,7 +289,7 @@ def gen_swift_impl(spec: AmqpSpec):
                 bits_to_pack = []
                 print("    }")
                 print()
-                print("    init(from decoder: AMQPDecoder) throws {")
+                print("    init(from decoder: FrameDecoderProtocol) throws {")
                 bytes_count = []
                 bits_to_unpack = []
                 for a in m.arguments:
@@ -339,7 +339,7 @@ def gen_swift_impl(spec: AmqpSpec):
         print()
         print("extension Spec {")
         print(
-            "    typealias Factory = @Sendable (any AMQPDecoder) throws -> any AMQPCodable"
+            "    typealias Factory = @Sendable (any FrameDecoderProtocol) throws -> any FrameCodable"
         )
         print(
             "    static func makeFactory(with classId: UInt16, and methodId: UInt16) throws -> Factory {"

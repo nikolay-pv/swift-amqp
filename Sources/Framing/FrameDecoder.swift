@@ -1,7 +1,7 @@
 import Foundation
 
 class FrameDecoder {
-    func decode<T>(_ type: T.Type, from data: Data) throws -> T where T: AMQPDecodable {
+    func decode<T>(_ type: T.Type, from data: Data) throws -> T where T: FrameDecodable {
         let decoder = _FrameDecoder()
         return try decoder.with(data: data) { try T.init(from: $0) }
     }
@@ -12,7 +12,7 @@ extension Spec.FieldValue {
         return Self.allCases.reduce(into: [:]) { $0[$1.type] = $1 }
     }()
 
-    fileprivate func decode(from decoder: AMQPDecoder) throws -> Self {
+    fileprivate func decode(from decoder: FrameDecoderProtocol) throws -> Self {
         switch self {
         case .int32: return .int32(try decoder.decode(Int32.self))
         case .decimal:
@@ -42,7 +42,7 @@ extension Spec.FieldValue {
     }
 }
 
-private class _FrameDecoder: AMQPDecoder {
+private class _FrameDecoder: FrameDecoderProtocol {
     private var _data = Data()
     private var _position: Int = 0
 
@@ -51,8 +51,8 @@ private class _FrameDecoder: AMQPDecoder {
         _data = Data()
     }
 
-    func with<T>(data: Data, closure: (AMQPDecoder) throws -> T) throws -> T
-    where T: AMQPDecodable {
+    func with<T>(data: Data, closure: (FrameDecoderProtocol) throws -> T) throws -> T
+    where T: FrameDecodable {
         self._data = data
         defer { self._reset() }
         return try closure(self)

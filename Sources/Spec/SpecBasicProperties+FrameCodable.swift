@@ -3,7 +3,7 @@
 
 import Foundation  // for Date
 
-extension Spec.BasicProperties: AMQPCodable {
+extension Spec.BasicProperties: FrameCodable {
 
     enum PropertyFlags: UInt16 {
         case ContentType = 0b10000000_00000000
@@ -26,7 +26,7 @@ extension Spec.BasicProperties: AMQPCodable {
         }
     }
 
-    func encode(to encoder: AMQPEncoder) throws {
+    func encode(to encoder: FrameEncoderProtocol) throws {
         var flags: UInt16 = 0
         var encodeCalls: [() throws -> Void] = .init()
         if let contentType {
@@ -103,7 +103,7 @@ extension Spec.BasicProperties: AMQPCodable {
         try encodeCalls.forEach { try $0() }
     }
 
-    init(from decoder: AMQPDecoder) throws {
+    init(from decoder: FrameDecoderProtocol) throws {
         var flags: UInt16 = 0
         var chunkCount = 0
         while true {

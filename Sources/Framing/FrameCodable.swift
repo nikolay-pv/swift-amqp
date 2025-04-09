@@ -1,6 +1,6 @@
 import Foundation
 
-protocol AMQPDecoder {
+protocol FrameDecoderProtocol {
     func decode(_ type: Bool.Type) throws -> Bool
     func decode(_ type: Int8.Type) throws -> Int8
     func decode(_ type: Int16.Type) throws -> Int16
@@ -19,11 +19,11 @@ protocol AMQPDecoder {
     func decode(_ type: Data.Type) throws -> Data
 }
 
-protocol AMQPDecodable {
-    init(from decoder: AMQPDecoder) throws
+protocol FrameDecodable {
+    init(from decoder: FrameDecoderProtocol) throws
 }
 
-protocol AMQPEncoder {
+protocol FrameEncoderProtocol {
     func encode(_ value: Bool) throws
     func encode(_ value: Int8) throws
     func encode(_ value: Int16) throws
@@ -40,11 +40,11 @@ protocol AMQPEncoder {
     func encode(_ value: [String: Spec.FieldValue]) throws
 }
 
-protocol AMQPEncodable {
-    func encode(to encoder: AMQPEncoder) throws
+protocol FrameEncodable {
+    func encode(to encoder: FrameEncoderProtocol) throws
     /// returns the number of bytes this object will occupy when serialized
     /// NOTE: depending on the object and implementation it might be more than O(1) time
     var bytesCount: UInt32 { get }
 }
 
-protocol AMQPCodable: Sendable, AMQPDecodable, AMQPEncodable {}
+protocol FrameCodable: Sendable, FrameDecodable, FrameEncodable {}
