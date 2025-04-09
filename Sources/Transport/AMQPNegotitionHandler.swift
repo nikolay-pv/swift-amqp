@@ -1,5 +1,8 @@
 import NIOCore
 
+/// Handler to be used in NIO to negotiate properties and constraints between the server and the client,
+/// it will be installed and perform the sequence dictated by a delegate (AMQPNegotiatorProtocol),
+/// and on success will remove itself from the pipeline
 class AMQPNegotitionHandler<T: AMQPNegotiatorProtocol>: ChannelInboundHandler,
     RemovableChannelHandler
 {

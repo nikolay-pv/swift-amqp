@@ -5,6 +5,7 @@ enum TransportAction {
     case complete
 }
 
+/// A delegate for AMQPNegotiationHandler
 protocol AMQPNegotiatorProtocol {
     associatedtype InputFrame
     func start() -> TransportAction
