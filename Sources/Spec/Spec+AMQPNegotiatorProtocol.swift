@@ -42,14 +42,14 @@ extension Spec.AMQPNegotiator: AMQPNegotiatorProtocol {
             // TODO: the below would need to be encapsulated somewhere
             // expected to get Connection.Start
             guard let method = frame.payload as? AMQP.Spec.Connection.Start else {
-                return .error(ConnectionError.unexpectedMethod)
+                return .error(NegotiationError.unexpectedMethod)
             }
             // check protocol versions mismatch
             if method.versionMajor != Spec.ProtocolLevel.MAJOR
                 || method.versionMinor != Spec.ProtocolLevel.MINOR
             {
                 return .error(
-                    ConnectionError.protocolVersionMismatch(
+                    NegotiationError.protocolVersionMismatch(
                         server: "\(method.versionMajor).\(method.versionMinor)",
                         client: "\(Spec.ProtocolLevel.MAJOR).\(Spec.ProtocolLevel.MINOR)"
                     )
@@ -60,7 +60,7 @@ extension Spec.AMQPNegotiator: AMQPNegotiatorProtocol {
             // self._send_connection_start_ok(*self._get_credentials(method_frame))
             if !method.mechanisms.contains(self.config.credentials.mechanim) {
                 let msg = "\(self.config.credentials.mechanim) is not supported by the server"
-                return .error(ConnectionError.unsupportedAuthMechanism(msg))
+                return .error(NegotiationError.unsupportedAuthMechanism(msg))
             }
             // send Start-Ok method with selected security mechanism
             let response = AMQP.Spec.Connection.StartOk(
@@ -84,7 +84,7 @@ extension Spec.AMQPNegotiator: AMQPNegotiatorProtocol {
             fatalError("not implemented")
         case .waitingTune:
             guard let method = frame.payload as? AMQP.Spec.Connection.Tune else {
-                return .error(ConnectionError.unexpectedMethod)
+                return .error(NegotiationError.unexpectedMethod)
             }
             // picking correct values
             self.config.channelMax = Self.decide(
@@ -113,7 +113,7 @@ extension Spec.AMQPNegotiator: AMQPNegotiatorProtocol {
             return .replySeveral([frame, connectData])
         case .waitingOpenOk:
             guard frame.payload is AMQP.Spec.Connection.OpenOk else {
-                return .error(ConnectionError.unexpectedMethod)
+                return .error(NegotiationError.unexpectedMethod)
             }
             self.state = .complete
             return .complete

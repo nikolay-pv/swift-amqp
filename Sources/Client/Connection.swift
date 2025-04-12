@@ -11,46 +11,20 @@ import Collections
 //    func connectionDidUnblock(_ connection: AMQPConnection) async
 //}
 
-public actor AMQPChannel {
-    init(id: Int) {
+public actor Channel {
+    init(id: Int) async {
         self.id = id
     }
 
     private(set) var id: Int
-
-    func open() async throws {
-
-    }
-}
-
-enum AMQPConnectionError: Error {
-    case unexpectedState(actual: Connection.State, expected: Connection.State)
-    case handshakeFailed(reason: String)
-}
-
-enum AMQPChannelError: Error {
-    case idAlreadyInUse
 }
 
 struct ChannelIDs {
-    private var nextFree: Int = 0
+    private var nextFree: Int = 1
     private var occupied: OrderedSet<Int> = []
     private var freed: OrderedSet<Int> = []
 
     func isFree(_ id: Int) -> Bool { !occupied.contains(id) && nextFree <= id }
-
-    // returns the same id if insertion was successful
-    mutating func add(id: Int) throws -> Int {
-        guard isFree(id) else { throw AMQPChannelError.idAlreadyInUse }
-        if id == nextFree {
-            nextFree += 1
-        } else if id > nextFree {
-            // TODO: this does lienear search -> find faster DS
-            occupied.insert(id, at: occupied.firstIndex(where: { $0 >= id }) ?? occupied.endIndex)
-        }
-        freed.remove(id)
-        return id
-    }
 
     mutating func remove(id: Int) {
         if id == nextFree - 1 {
@@ -74,68 +48,58 @@ struct ChannelIDs {
 }
 
 public actor Connection {
-    // MARK: - init
-    public init(with configuration: AMQPConfiguration = .default) async {
-        // transport = FakeAMQPTransport()
-        channel0 = AMQPChannel(id: 0)
-        // todo: fix the force unwrap
-        try! await start()
+    // MARK: - transport management
+    private var transport: Transport
+    private var closed: Bool = false
+
+    public func close() {
+        // TODO: implement this properly
+        closed = false
     }
 
-    deinit {
-        // TODO: close here
+    public func blockingClose() {
+        // TODO: implement this properly
+        closed = false
     }
-
-    // MARK: - state management
-    public enum State: String, Sendable {
-        case closed
-        case handshake
-        case open
-        case closing
-
-        var isOpen: Bool { self == .open }
-        var isClosed: Bool { self == .closed }
-        var isClosing: Bool { self == .closing }
-    }
-    public private(set) var state: State = .closed
-
-    // MARK: - connection management
-    // var transport: AMQPTransportProtocol
-
-    public var isOpen: Bool { return state == .open }
-
-    func start() async throws {
-        guard state.isClosed else {
-            throw AMQPConnectionError.unexpectedState(actual: state, expected: .closed)
-        }
-        // try transport.connect()
-        // do a sequence here
-        state = .handshake
-        // start
-        // tune
-        // open
-        state = .open
-    }
-
-    func close() {}
-    func blockingClose() {}
 
     // MARK: - channel management
-
-    private var channel0: AMQPChannel
-    private var channels: [Int: AMQPChannel] = [:]
+    private var channel0: Channel
+    private var channels: [Int: Channel] = [:]
     private var channelIDs: ChannelIDs = .init()
 
-    func makeChannel(id: Int?) async throws -> AMQPChannel {
-        guard isOpen else {
-            throw AMQPConnectionError.unexpectedState(actual: state, expected: .open)
-        }
-        // will throw if id is already occupied
-        let id = id == nil ? channelIDs.next() : try channelIDs.add(id: id!)
-        let channel = AMQPChannel.init(id: id)
-        // TODO: or force the client to call open so they get the feedback on it themselves
-        try await channel.open()
+    public func makeChannel() async throws -> Channel {
+        try ensureOpen()
+        let id = channelIDs.next()
+        let channel = await Channel.init(id: id)
         return channel
     }
 
+    // MARK: - private methods
+    private func ensureOpen() throws {
+        guard !closed else {
+            throw ConnectionError.connectionIsClosed
+        }
+    }
+
+    // MARK: - init
+    public init(with configuration: AMQPConfiguration = .default) async throws {
+        channel0 = await Channel(id: 0)
+        // TODO: make configurable
+        let properties: Spec.Table = [
+            "product": .longstr("swift-amqp"),
+            "platform": .longstr("swift"),  // TODO: version here or something
+            "capabilities": .table([
+                "authentication_failure_close": .bool(true),
+                "basic.nack": .bool(true),
+                "connection.blocked": .bool(true),
+                "consumer_cancel_notify": .bool(true),
+                "publisher_confirms": .bool(true),
+            ]),
+            "information": .longstr("website here"),
+            // TODO: "version":  of the library
+        ]
+        transport = try await Transport(host: configuration.host, port: configuration.port) {
+            return Spec.AMQPNegotiator(config: configuration, properties: properties)
+        }
+    }
 }

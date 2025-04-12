@@ -34,7 +34,7 @@ class AMQPNegotitionHandler<T: AMQPNegotiatorProtocol>: ChannelInboundHandler,
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         let frame = unwrapInboundIn(data) as? T.InputFrame
         guard let frame else {
-            context.fireErrorCaught(ConnectionError.unexpectedMethod)
+            context.fireErrorCaught(NegotiationError.unexpectedMethod)
             return
         }
         handle(action: negotiator.negotiate(frame: frame), on: context)
