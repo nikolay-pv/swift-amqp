@@ -6,7 +6,7 @@ import Testing
 @Test func TransportManualTest() async throws {
     // this test requires running AMQP server
     let connection = try await Transport {
-        let configuration = AMQPConfiguration.default
+        let configuration = Configuration.default
         let properties: Spec.Table = [
             "product": .longstr("swift-amqp"),
             "platform": .longstr("swift"),  // TODO: version here or something

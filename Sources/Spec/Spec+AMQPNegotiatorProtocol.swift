@@ -9,10 +9,10 @@ extension Spec {
         }
 
         private var state: State = .waitingStart
-        var config: AMQPConfiguration
+        var config: Configuration
         let properties: Spec.Table
 
-        init(config: AMQPConfiguration, properties: Spec.Table) {
+        init(config: Configuration, properties: Spec.Table) {
             self.config = config
             self.properties = properties
         }

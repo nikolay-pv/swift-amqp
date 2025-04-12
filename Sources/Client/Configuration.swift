@@ -1,4 +1,4 @@
-public struct AMQPConfiguration: Sendable {
+public struct Configuration: Sendable {
     public var host: String
     public var port: Int
 
@@ -27,7 +27,7 @@ public struct AMQPConfiguration: Sendable {
     //     return max(0, frameMax - AMQP.Spec.FrameHeaderSize - AMQP.Spec.FrameEndSize)
     // }
 
-    public static let `default`: AMQPConfiguration =
+    public static let `default`: Configuration =
         .init(
             host: "localhost",
             port: 5672,
