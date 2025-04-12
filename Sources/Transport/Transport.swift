@@ -14,7 +14,7 @@ actor Transport {
         port: Int = 5672,
         _ negotiatorFactory: @escaping @Sendable () -> some AMQPNegotiatorProtocol
     ) async throws {
-        // TODO(@nikolay-pv): should be in config? What will higher number achieve here?
+        // one event loop per connection
         eventLoopGroup = .init(numberOfThreads: 1)
         asyncNIOChannel = try await ClientBootstrap(group: eventLoopGroup)
             .connect(host: host, port: port) { channel in
@@ -51,6 +51,6 @@ actor Transport {
     }
 
     deinit {
-        try? eventLoopGroup.syncShutdownGracefully()
+        try? asyncNIOChannel.channel.close().wait()
     }
 }
