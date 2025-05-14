@@ -10,13 +10,16 @@ class AMQPNegotitionHandler<T: AMQPNegotiatorProtocol>: ChannelInboundHandler,
     typealias OutboundOut = Frame
 
     let negotiator: T
+    // fullfiled when the negotiation is successful
+    let complete: EventLoopPromise<Void>
 
     private func handle(action: TransportAction, on context: ChannelHandlerContext) {
         switch action {
         case .complete:
             context.pipeline.removeHandler(self, promise: nil)
+            complete.succeed()
         case .error(let error):
-            context.fireErrorCaught(error)
+            complete.fail(error)
         case .reply(let frame):
             context.writeAndFlush(wrapOutboundOut(frame), promise: nil)
         case .replySeveral(let frames):
@@ -40,7 +43,8 @@ class AMQPNegotitionHandler<T: AMQPNegotiatorProtocol>: ChannelInboundHandler,
         handle(action: negotiator.negotiate(frame: frame), on: context)
     }
 
-    init(negotiator: T) {
+    init(negotiator: T, done: EventLoopPromise<Void>) {
         self.negotiator = negotiator
+        self.complete = done
     }
 }
