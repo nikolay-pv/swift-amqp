@@ -80,4 +80,14 @@ extension Transport {
     func send(frame: Frame) async throws {
         try await self.asyncNIOChannel.channel.writeAndFlush(frame)
     }
+
+    func send(frames: [Frame]) async throws {
+        guard frames.count > 0 else { return }
+        let promise = self.asyncNIOChannel.channel.eventLoop.makePromise(of: Void.self)
+        for frame in frames.dropLast() {
+            self.asyncNIOChannel.channel.write(frame, promise: promise)
+        }
+        self.asyncNIOChannel.channel.writeAndFlush(frames.last, promise: promise)
+        try await promise.futureResult.get()
+    }
 }

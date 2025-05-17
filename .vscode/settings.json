@@ -3,5 +3,6 @@
     "lldb.launch.expressions": "native",
     "cSpell.words": [
         "AMQP"
-    ]
+    ],
+    "editor.formatOnSave": true
 }
