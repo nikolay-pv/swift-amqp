@@ -1,33 +1,35 @@
 import Collections
+import NIOCore
+import NIOPosix
 
 public actor Channel {
     public let id: UInt16
     private weak var connection: Connection?
-    private var continuation: AsyncStream<Frame>.Continuation?
-    private lazy var responses: AsyncStream<Frame> = {
-        AsyncStream { continuation in
-            self.continuation = continuation
-        }
-    }()
+    private var promises: [EventLoopPromise<Frame>] = .init()
+    private let eventLoop: EventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1).next()
 
     public func exchangeDeclare(named exchangeName: String) async throws {
-        let method = Spec.Exchange.Declare(exchange: exchangeName)
-        try await send(method: method)
+        let method = Spec.Exchange.Declare(exchange: exchangeName, durable: true)
+        let promise = eventLoop.makePromise(of: Frame.self)
+        try await send(method: method, with: promise)
+        let frame = try await promise.futureResult.get() as? MethodFrame
         // make sure DeclareOk came back
-        _ = await responses.first(where: {
-            guard let frame = $0 as? MethodFrame else { return false }
-            return frame.payload is Spec.Exchange.DeclareOk
-        })
+        if frame != nil && frame?.payload is Spec.Exchange.DeclareOk {
+            return
+        }
+        fatalError("expected MethodFrame but got \(type(of: frame))")
     }
 
     public func queueDeclare(named queueName: String) async throws {
-        let method = Spec.Queue.Declare(queue: queueName)
-        try await send(method: method)
-        let response = await responses.first(where: {
-            guard let frame = $0 as? MethodFrame else { return false }
-            return frame.payload is Spec.Queue.DeclareOk
-        })
-        print("\(response)")
+        let method = Spec.Queue.Declare(queue: queueName, durable: true)
+        let promise = eventLoop.makePromise(of: Frame.self)
+        try await send(method: method, with: promise)
+        let frame = try await promise.futureResult.get() as? MethodFrame
+        // make sure DeclareOk came back
+        if frame != nil && frame?.payload is Spec.Queue.DeclareOk {
+            return
+        }
+        fatalError("expected MethodFrame but got \(type(of: frame))")
     }
 
     public func basicPublish(exchange: String, routingKey: String, body: String) async throws {
@@ -45,19 +47,20 @@ public actor Channel {
         guard let connection = self.connection else {
             throw ConnectionError.connectionIsClosed
         }
-        try await connection.send(frames: [frame, contentHeaderFrame, contentFrame])
+        await connection.send(frames: [frame, contentHeaderFrame, contentFrame])
     }
 
+    // start receiving the messages too
     internal func requestOpen() async throws {
         let method = Spec.Channel.Open()
-        try await send(method: method)
-
-        let response = await responses.first(where: {
-            guard let frame = $0 as? MethodFrame else { return false }
-            return frame.payload is Spec.Channel.OpenOk
-        })
-        // TODO: make sure the name is used if wasn't requested
-        print("\(response)")
+        let promise = eventLoop.makePromise(of: Frame.self)
+        try await send(method: method, with: promise)
+        let frame = try await promise.futureResult.get() as? MethodFrame
+        // make sure DeclareOk came back
+        if frame != nil && frame?.payload is Spec.Channel.OpenOk {
+            return
+        }
+        fatalError("expected MethodFrame but got \(type(of: frame))")
     }
 
     // MARK: - init
@@ -69,17 +72,27 @@ public actor Channel {
 
 extension Channel {
     fileprivate func send(
-        method: some AMQPMethodProtocol & FrameCodable
+        method: some AMQPMethodProtocol & FrameCodable,
+        with promise: EventLoopPromise<Frame>?
     ) async throws {
         let frame = MethodFrame(channelId: id, payload: method)
         guard let connection = self.connection else {
             throw ConnectionError.connectionIsClosed
         }
-        try await connection.send(frame: frame)
+        if let promise {
+            promises.append(promise)
+        }
+        await connection.send(frame: frame)
     }
 
-    fileprivate func handleIncoming(frame: Frame) {
-        self.continuation?.yield(frame)
+    internal func dispatch(frame: Frame) {
+        guard promises.isEmpty == false else {
+            fatalError(
+                "TODO: better message here and handle it better as there can be basic consume frames"
+            )
+        }
+        let promise = promises.removeFirst()
+        promise.succeed(frame)
     }
 }
 
@@ -116,12 +129,15 @@ public actor Connection {
     private let transport: Transport
     private var transportExecutor: Task<Void?, Never>?
 
-    func send(frame: Frame) async throws {
-        try await transport.send(frame: frame)
+    private let serverFrames: AsyncStream<Frame>
+    private var serverFramesDispatcher: Task<Void?, Never>?
+
+    func send(frame: Frame) {
+        transport.send(frame: frame)
     }
 
-    func send(frames: [Frame]) async throws {
-        try await transport.send(frames: frames)
+    func send(frames: [Frame]) {
+        transport.send(frames: frames)
     }
 
     // MARK: - channel management
@@ -179,10 +195,19 @@ public actor Connection {
             }
         )
         self.transport = transport
-        transportExecutor = Task { [weak self, unowned transport] in
-            try? await transport.execute { [weak self] frame in
-                let id = frame.channelId
-                await self?.channels[id]?.handleIncoming(frame: frame)
+        var serverContinuation: AsyncStream<Frame>.Continuation? = nil
+        self.serverFrames = AsyncStream { continuation in
+            serverContinuation = continuation
+            // TODO: onTerminate
+        }
+        transportExecutor = Task {
+            guard let serverContinuation else { return }
+            try? await self.transport.execute(serverContinuation)
+        }
+        serverFramesDispatcher = Task {
+            for await frame in self.serverFrames {
+                let channelId = frame.channelId
+                await channels[channelId]?.dispatch(frame: frame)
             }
         }
     }

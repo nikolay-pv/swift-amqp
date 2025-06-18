@@ -11,6 +11,6 @@ import Testing
     let queueName = "swift-amqp-queue"
     try await channel?.exchangeDeclare(named: exchangeName)
     try await channel?.queueDeclare(named: queueName)
-    try await channel?.basicPublish(exchange: exchangeName, routingKey: queueName, body: "ping")
+    try await channel?.basicPublish(exchange: "", routingKey: queueName, body: "ping")
     sleep(10 * 60)
 }

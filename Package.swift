@@ -33,6 +33,10 @@ let package = Package(
             url: "https://github.com/apple/swift-collections.git",
             .upToNextMajor(from: "1.1.0")
         ),
+        .package(
+            url: "https://github.com/apple/swift-async-algorithms.git",
+            .upToNextMajor(from: "1.0.0")
+        ),
     ],
     targets: [
         .target(
@@ -44,6 +48,8 @@ let package = Package(
                 .product(name: "NIOExtras", package: "swift-nio-extras"),
                 .product(name: "NIOFoundationCompat", package: "swift-nio"),
                 .product(name: "Collections", package: "swift-collections"),
+                .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
+            ],
             ]
         ),
         .testTarget(
