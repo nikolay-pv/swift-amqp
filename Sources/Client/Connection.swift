@@ -35,6 +35,25 @@ public actor Channel {
         return payload
     }
 
+    public func queueBind(queue: String, exchange: String, routingKey: String? = nil) async throws {
+        let method = Spec.Queue.Bind(
+            ticket: 0,
+            queue: queue,
+            exchange: exchange,
+            routingKey: routingKey ?? "",
+            nowait: false,
+            arguments: .init()
+        )
+        let promise = eventLoop.makePromise(of: Frame.self)
+        try await send(method: method, with: promise)
+        let frame = try await promise.futureResult.get() as? MethodFrame
+        guard frame?.payload is Spec.Queue.BindOk else {
+            preconditionFailure(
+                "queueDeclare expects Spec.Exchange.DeclareOk but got \(String(describing: frame))"
+            )
+        }
+    }
+
     public func basicPublish(exchange: String, routingKey: String, body: String) async throws {
         let method = Spec.Basic.Publish(exchange: exchange, routingKey: routingKey)
         let frame = MethodFrame(channelId: self.id, payload: method)
