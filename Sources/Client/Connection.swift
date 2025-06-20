@@ -198,7 +198,6 @@ public actor Connection {
         var serverContinuation: AsyncStream<Frame>.Continuation? = nil
         self.serverFrames = AsyncStream { continuation in
             serverContinuation = continuation
-            // TODO: onTerminate
         }
         transportExecutor = Task {
             guard let serverContinuation else { return }
@@ -214,5 +213,8 @@ public actor Connection {
 
     deinit {
         transportExecutor?.cancel()
+        transportExecutor = nil
+        serverFramesDispatcher?.cancel()
+        serverFramesDispatcher = nil
     }
 }
