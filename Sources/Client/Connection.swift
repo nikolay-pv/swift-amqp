@@ -2,9 +2,11 @@ import Collections
 import NIOCore
 import NIOPosix
 
+///
+/// @note Channel can't outlive the Connection which made it
 public actor Channel {
     public let id: UInt16
-    private weak var connection: Connection?
+    private unowned var connection: Connection
     private var promises: [EventLoopPromise<Frame>] = .init()
     private let eventLoop: EventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1).next()
 
@@ -13,23 +15,24 @@ public actor Channel {
         let promise = eventLoop.makePromise(of: Frame.self)
         try await send(method: method, with: promise)
         let frame = try await promise.futureResult.get() as? MethodFrame
-        // make sure DeclareOk came back
-        if frame != nil && frame?.payload is Spec.Exchange.DeclareOk {
-            return
+        guard frame?.payload is Spec.Exchange.DeclareOk else {
+            preconditionFailure(
+                "exchangeDeclare expects Spec.Exchange.DeclareOk but got \(String(describing: frame))"
+            )
         }
-        fatalError("expected MethodFrame but got \(type(of: frame))")
     }
 
-    public func queueDeclare(named queueName: String) async throws {
+    public func queueDeclare(named queueName: String) async throws -> Spec.Queue.DeclareOk {
         let method = Spec.Queue.Declare(queue: queueName, durable: true)
         let promise = eventLoop.makePromise(of: Frame.self)
         try await send(method: method, with: promise)
         let frame = try await promise.futureResult.get() as? MethodFrame
-        // make sure DeclareOk came back
-        if frame != nil && frame?.payload is Spec.Queue.DeclareOk {
-            return
+        guard let payload = frame?.payload as? Spec.Queue.DeclareOk else {
+            preconditionFailure(
+                "queueDeclare expects Spec.Exchange.DeclareOk but got \(String(describing: frame))"
+            )
         }
-        fatalError("expected MethodFrame but got \(type(of: frame))")
+        return payload
     }
 
     public func basicPublish(exchange: String, routingKey: String, body: String) async throws {
@@ -43,10 +46,6 @@ public actor Channel {
             properties: contentProps
         )
         let contentFrame = ContentBodyFrame(channelId: self.id, fragment: [UInt8].init(body.utf8))
-
-        guard let connection = self.connection else {
-            throw ConnectionError.connectionIsClosed
-        }
         await connection.send(frames: [frame, contentHeaderFrame, contentFrame])
     }
 
@@ -56,11 +55,11 @@ public actor Channel {
         let promise = eventLoop.makePromise(of: Frame.self)
         try await send(method: method, with: promise)
         let frame = try await promise.futureResult.get() as? MethodFrame
-        // make sure DeclareOk came back
-        if frame != nil && frame?.payload is Spec.Channel.OpenOk {
-            return
+        guard frame?.payload is Spec.Channel.OpenOk else {
+            preconditionFailure(
+                "Channel.requestOpen expects Spec.Channel.OpenOk but got \(String(describing: frame))"
+            )
         }
-        fatalError("expected MethodFrame but got \(type(of: frame))")
     }
 
     // MARK: - init
@@ -76,9 +75,6 @@ extension Channel {
         with promise: EventLoopPromise<Frame>?
     ) async throws {
         let frame = MethodFrame(channelId: id, payload: method)
-        guard let connection = self.connection else {
-            throw ConnectionError.connectionIsClosed
-        }
         if let promise {
             promises.append(promise)
         }
@@ -86,11 +82,11 @@ extension Channel {
     }
 
     internal func dispatch(frame: Frame) {
-        guard promises.isEmpty == false else {
-            fatalError(
-                "TODO: better message here and handle it better as there can be basic consume frames"
-            )
+        // ideally will handle other frames too, but for now only ones it expects
+        guard !promises.isEmpty else {
+            return
         }
+        precondition(!promises.isEmpty, "channel got an unexpected frame")
         let promise = promises.removeFirst()
         promise.succeed(frame)
     }
