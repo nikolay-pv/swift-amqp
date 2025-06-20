@@ -1,55 +1,88 @@
 import Collections
+import NIOCore
+import NIOPosix
 
+///
+/// @note Channel can't outlive the Connection which made it
 public actor Channel {
     public let id: UInt16
-    private(set) weak var connection: Connection?
-    private var continuation: AsyncStream<Frame>.Continuation?
-    private lazy var responses: AsyncStream<Frame> = {
-        AsyncStream { continuation in
-            self.continuation = continuation
+    private unowned var connection: Connection
+    private var promises: [EventLoopPromise<Frame>] = .init()
+    private let eventLoop: EventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1).next()
+
+    public func exchangeDeclare(named exchangeName: String) async throws {
+        let method = Spec.Exchange.Declare(exchange: exchangeName, durable: true)
+        let promise = eventLoop.makePromise(of: Frame.self)
+        try await send(method: method, with: promise)
+        let frame = try await promise.futureResult.get() as? MethodFrame
+        guard frame?.payload is Spec.Exchange.DeclareOk else {
+            preconditionFailure(
+                "exchangeDeclare expects Spec.Exchange.DeclareOk but got \(String(describing: frame))"
+            )
         }
-    }()
-
-    func exchange_declare(named exchangeName: String) async throws {
-        let method = Spec.Exchange.Declare(exchange: exchangeName)
-        try await send(method: method, waitingFor: Spec.Exchange.DeclareOk())
     }
 
-    func queue_declare(named queueName: String) async throws {
-        let method = Spec.Queue.Declare(queue: queueName)
-        try await send(
-            method: method,
-            waitingFor: Spec.Queue.DeclareOk(queue: queueName, messageCount: 0, consumerCount: 0)
+    public func queueDeclare(named queueName: String) async throws -> Spec.Queue.DeclareOk {
+        let method = Spec.Queue.Declare(queue: queueName, durable: true)
+        let promise = eventLoop.makePromise(of: Frame.self)
+        try await send(method: method, with: promise)
+        let frame = try await promise.futureResult.get() as? MethodFrame
+        guard let payload = frame?.payload as? Spec.Queue.DeclareOk else {
+            preconditionFailure(
+                "queueDeclare expects Spec.Exchange.DeclareOk but got \(String(describing: frame))"
+            )
+        }
+        return payload
+    }
+
+    public func queueBind(queue: String, exchange: String, routingKey: String? = nil) async throws {
+        let method = Spec.Queue.Bind(
+            ticket: 0,
+            queue: queue,
+            exchange: exchange,
+            routingKey: routingKey ?? "",
+            nowait: false,
+            arguments: .init()
         )
+        let promise = eventLoop.makePromise(of: Frame.self)
+        try await send(method: method, with: promise)
+        let frame = try await promise.futureResult.get() as? MethodFrame
+        guard frame?.payload is Spec.Queue.BindOk else {
+            preconditionFailure(
+                "queueDeclare expects Spec.Exchange.DeclareOk but got \(String(describing: frame))"
+            )
+        }
     }
 
-    func basic_publish(exchange: String, routingKey: String, body: String) async throws {
+    public func basicPublish(exchange: String, routingKey: String, body: String) async throws {
         let method = Spec.Basic.Publish(exchange: exchange, routingKey: routingKey)
         let frame = MethodFrame(channelId: self.id, payload: method)
-        let contnetProps = Spec.BasicProperties()
+        let contentProps = Spec.BasicProperties()
         let contentHeaderFrame = ContentHeaderFrame(
             channelId: self.id,
             classId: method.amqpClassId,
             bodySize: UInt64(body.utf8.count),
-            properties: contnetProps
+            properties: contentProps
         )
         let contentFrame = ContentBodyFrame(channelId: self.id, fragment: [UInt8].init(body.utf8))
-
-        guard let connection = self.connection else {
-            throw ConnectionError.connectionIsClosed
-        }
-        try await connection.send(frame: frame)
-        try await connection.send(frame: contentHeaderFrame)
-        try await connection.send(frame: contentFrame)
+        await connection.send(frames: [frame, contentHeaderFrame, contentFrame])
     }
 
-    func requestOpen() async throws {
+    // start receiving the messages too
+    internal func requestOpen() async throws {
         let method = Spec.Channel.Open()
-        try await send(method: method, waitingFor: Spec.Channel.OpenOk())
+        let promise = eventLoop.makePromise(of: Frame.self)
+        try await send(method: method, with: promise)
+        let frame = try await promise.futureResult.get() as? MethodFrame
+        guard frame?.payload is Spec.Channel.OpenOk else {
+            preconditionFailure(
+                "Channel.requestOpen expects Spec.Channel.OpenOk but got \(String(describing: frame))"
+            )
+        }
     }
 
     // MARK: - init
-    init(connection: Connection, id: UInt16) {
+    internal init(connection: Connection, id: UInt16) {
         self.id = id
         self.connection = connection
     }
@@ -58,29 +91,23 @@ public actor Channel {
 extension Channel {
     fileprivate func send(
         method: some AMQPMethodProtocol & FrameCodable,
-        waitingFor response: any AMQPMethodProtocol & FrameCodable
+        with promise: EventLoopPromise<Frame>?
     ) async throws {
         let frame = MethodFrame(channelId: id, payload: method)
-        guard let connection = self.connection else {
-            throw ConnectionError.connectionIsClosed
+        if let promise {
+            promises.append(promise)
         }
-        try await connection.send(frame: frame)
-        print("Channel with id \(id) waits for response: \(response)")
-        let response = await responses.first(where: { [response] frame in
-            guard let methodFrame = frame as? MethodFrame else {
-                return false
-            }
-            guard let payload = methodFrame.payload as? AMQPMethodProtocol else {
-                return false
-            }
-            return payload.amqpMethodId == response.amqpMethodId
-                && payload.amqpClassId == response.amqpClassId
-        })
-        print("Channel with id \(id) got a frame:\n\t\(response)")
+        await connection.send(frame: frame)
     }
 
-    fileprivate func handleIncoming(frame: Frame) {
-        self.continuation?.yield(frame)
+    internal func dispatch(frame: Frame) {
+        // ideally will handle other frames too, but for now only ones it expects
+        guard !promises.isEmpty else {
+            return
+        }
+        precondition(!promises.isEmpty, "channel got an unexpected frame")
+        let promise = promises.removeFirst()
+        promise.succeed(frame)
     }
 }
 
@@ -115,20 +142,23 @@ struct ChannelIDs {
 public actor Connection {
     // MARK: - transport management
     private let transport: Transport
-    private var closed: Bool = false
     private var transportExecutor: Task<Void?, Never>?
 
-    public func close() {
-        // TODO: implement this properly
-        closed = false
+    private let serverFrames: AsyncStream<Frame>
+    private var serverFramesDispatcher: Task<Void?, Never>?
+
+    func send(frame: Frame) {
+        transport.send(frame: frame)
     }
 
-    public func blockingClose() {
-        // TODO: implement this properly
-        closed = false
+    func send(frames: [Frame]) {
+        transport.send(frames: frames)
     }
 
     // MARK: - channel management
+    // channel0 is special and is used for communications before any channel exists
+    // it never explicitly created on the server side (so no requestOpen call is made for it)
+    private lazy var channel0: Channel = { Channel(connection: self, id: 0) }()
     private var channels: [UInt16: Channel] = [:]
     private var channelIDs: ChannelIDs = .init()
 
@@ -141,7 +171,17 @@ public actor Connection {
         return channel
     }
 
-    // MARK: - private methods
+    // MARK: - lifecycle management
+    private var closed: Bool = false
+
+    public func close() {
+        closed = false
+    }
+
+    public func blockingClose() {
+        closed = false
+    }
+
     private func ensureOpen() throws {
         guard !closed else {
             throw ConnectionError.connectionIsClosed
@@ -150,10 +190,9 @@ public actor Connection {
 
     // MARK: - init
     public init(with configuration: Configuration = .default) async throws {
-        // TODO: make configurable
         let properties: Spec.Table = [
             "product": .longstr("swift-amqp"),
-            "platform": .longstr("swift"),  // TODO: version here or something
+            "platform": .longstr("swift"),
             "capabilities": .table([
                 "authentication_failure_close": .bool(true),
                 "basic.nack": .bool(true),
@@ -162,7 +201,6 @@ public actor Connection {
                 "publisher_confirms": .bool(true),
             ]),
             "information": .longstr("website here"),
-            // TODO: "version":  of the library
         ]
         let transport = try await Transport(
             host: configuration.host,
@@ -172,23 +210,26 @@ public actor Connection {
             }
         )
         self.transport = transport
-        transportExecutor = Task { [weak self, unowned transport] in
-            try? await transport.execute { [weak self] frame in
-                let id = frame.channelId
-                await self?.channels[id]?.handleIncoming(frame: frame)
+        var serverContinuation: AsyncStream<Frame>.Continuation? = nil
+        self.serverFrames = AsyncStream { continuation in
+            serverContinuation = continuation
+        }
+        transportExecutor = Task {
+            guard let serverContinuation else { return }
+            try? await self.transport.execute(serverContinuation)
+        }
+        serverFramesDispatcher = Task {
+            for await frame in self.serverFrames {
+                let channelId = frame.channelId
+                await channels[channelId]?.dispatch(frame: frame)
             }
         }
     }
 
     deinit {
         transportExecutor?.cancel()
+        transportExecutor = nil
+        serverFramesDispatcher?.cancel()
+        serverFramesDispatcher = nil
     }
-}
-
-// Methods to be used by Channel
-extension Connection {
-    func send(frame: Frame) async throws {
-        try await transport.send(frame: frame)
-    }
-
 }

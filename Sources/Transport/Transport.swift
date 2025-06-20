@@ -1,3 +1,5 @@
+import AsyncAlgorithms
+import NIOConcurrencyHelpers
 import NIOCore
 import NIOPosix
 
@@ -5,9 +7,12 @@ import NIOPosix
     import NIOExtras
 #endif
 
-final class Transport: Sendable {
+struct Transport: ~Copyable {
     private let eventLoopGroup: MultiThreadedEventLoopGroup
     private let asyncNIOChannel: NIOAsyncChannel<Frame, Frame>
+
+    private let continuation: AsyncStream<Frame>.Continuation?
+    private let clientFrames: AsyncStream<Frame>
 
     init(
         host: String = "localhost",
@@ -15,9 +20,9 @@ final class Transport: Sendable {
         negotiatorFactory: @escaping @Sendable () -> some AMQPNegotiatorProtocol
     ) async throws {
         // one event loop per connection
-        eventLoopGroup = .init(numberOfThreads: 1)
+        let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         let negotiationComplete = eventLoopGroup.any().makePromise(of: Void.self)
-        asyncNIOChannel = try await ClientBootstrap(group: eventLoopGroup)
+        let asyncNIOChannel = try await ClientBootstrap(group: eventLoopGroup)
             .connect(host: host, port: port) { channel in
                 return channel.pipeline
                     .addHandler(ByteToMessageHandler(ByteToMessageCoderHandler()))
@@ -37,7 +42,7 @@ final class Transport: Sendable {
                                 DebugInboundEventsHandler { event, _ in print("\(event)") }
                             )
                         }
-                    #endif
+                    #endif  // canImport(NIOExtras)
                     .flatMap {
                         return channel.pipeline.addHandler(
                             AMQPNegotitionHandler(
@@ -53,6 +58,14 @@ final class Transport: Sendable {
                     }
             }
         try await negotiationComplete.futureResult.get()
+        self.eventLoopGroup = eventLoopGroup
+        self.asyncNIOChannel = asyncNIOChannel
+        var internalContinuation: AsyncStream<Frame>.Continuation?
+        self.clientFrames = AsyncStream { continuation in
+            internalContinuation = continuation
+            // TODO: onTermination
+        }
+        self.continuation = internalContinuation
     }
 
     deinit {
@@ -61,23 +74,27 @@ final class Transport: Sendable {
 }
 
 extension Transport {
-    typealias FrameHandler = @Sendable (any Frame) async throws -> Void
     /// Consume frames as they come from the server and call `handleInboundFrame` on each of them.
     ///
     /// - Throws: Any error that occurs during task execution.
-    func execute(_ handler: @escaping FrameHandler) async throws {
+    func execute(_ serverFramesContinuation: AsyncStream<Frame>.Continuation) async throws {
         try await withThrowingTaskGroup { group in
-            try await asyncNIOChannel.executeThenClose { inbound, _ in
-                for try await frame in inbound {
-                    group.addTask {
-                        try await handler(frame)
+            try await asyncNIOChannel.executeThenClose { inbound, outbound in
+                group.addTask {
+                    for try await frame in inbound {
+                        serverFramesContinuation.yield(frame)
                     }
                 }
+                try await outbound.write(contentsOf: clientFrames)
             }
         }
     }
 
-    func send(frame: Frame) async throws {
-        try await self.asyncNIOChannel.channel.writeAndFlush(frame)
+    func send(frame: Frame) {
+        continuation?.yield(frame)
+    }
+
+    func send(frames: [Frame]) {
+        frames.forEach { continuation?.yield($0) }
     }
 }
