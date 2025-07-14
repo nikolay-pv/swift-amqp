@@ -1,6 +1,7 @@
 import NIOCore
 import NIOPosix
 
+/// Channel can be created off the Connection instance, by calling makeChannel method
 ///
 /// @note Channel can't outlive the Connection which made it
 public actor Channel {
@@ -29,34 +30,71 @@ public actor Channel {
 
 // MARK: - Spec methods
 extension Channel {
-    fileprivate func send(
+
+    fileprivate func sendReturningResponse(
         method: some AMQPMethodProtocol & FrameCodable,
-        with promise: EventLoopPromise<Frame>?
-    ) async throws {
+    ) async throws -> MethodFrame? {
         let frame = MethodFrame(channelId: id, payload: method)
-        if let promise {
-            promises.append(promise)
-        }
+        let promise = eventLoop.makePromise(of: Frame.self)
+        promises.append(promise)
         await connection.send(frame: frame)
+        let response = try await promise.futureResult.get() as? MethodFrame
+        return response
+    }
+
+    /// Requests a specific quality of service (QoS) for this `Channel` or for all channels on the `Connection`.
+    /// The client can request that messages be sent in advance so that when the client finishes processing a
+    /// message, the following message is already held locally, rather than needing to be sent down the channel.
+    /// Prefetching gives a performance improvement.
+    ///
+    /// - Parameter prefetchSize: the prefetch window size in octets. The
+    /// server will send a message in advance if it is equal to or smaller in size than the available prefetch size
+    /// (and also falls into other prefetch limits). May be set to zero, meaning "no specific limit", although other
+    /// prefetch limits may still apply. Can't be set to a value higher than Int32.max.
+    /// The prefetch­size is ignored if the no­ack option is set.
+    /// - Parameter prefetchCount: Specifies a prefetch window in terms of whole messages.
+    /// This field may be used in combination with the prefetch­size field; a message will only be sent in
+    /// advance if both prefetch windows (and those at the channel and connection level) allow it.
+    /// Value must be larger or equal to 0 and smaller or equal than Int16.max.
+    /// The prefetch­count is ignored if the no­ack option is set.
+    /// - Parameter global: if set to `true` the QoS settings are applied to entire `Connection`.
+    /// By default is `false`, i.e. settings are applied to the current instance of the `Channel` only.
+    /// - Throws:
+    public func basicQos(prefetchSize: Int = 0, prefetchCount: Int = 0, global: Bool = false)
+        async throws
+    {
+        precondition(
+            prefetchSize >= 0 && prefetchSize <= Int32.max,
+            "prefetchSize should be within [0, Int32.max]"
+        )
+        precondition(
+            prefetchCount >= 0 && prefetchCount <= Int16.max,
+            "prefetchCount should be within [0, Int16.max]"
+        )
+        let method = Spec.Basic.Qos(
+            prefetchSize: Int32(prefetchSize),
+            prefetchCount: Int16(prefetchCount),
+            global: global
+        )
+        let frame = try await sendReturningResponse(method: method)
+        precondition(
+            frame?.payload is Spec.Basic.QosOk,
+            "basicQos expects Spec.Basic.QosOk but got \(String(describing: frame))"
+        )
     }
 
     public func exchangeDeclare(named exchangeName: String) async throws {
         let method = Spec.Exchange.Declare(exchange: exchangeName, durable: true)
-        let promise = eventLoop.makePromise(of: Frame.self)
-        try await send(method: method, with: promise)
-        let frame = try await promise.futureResult.get() as? MethodFrame
-        guard frame?.payload is Spec.Exchange.DeclareOk else {
-            preconditionFailure(
-                "exchangeDeclare expects Spec.Exchange.DeclareOk but got \(String(describing: frame))"
-            )
-        }
+        let frame = try await sendReturningResponse(method: method)
+        precondition(
+            frame?.payload is Spec.Exchange.DeclareOk,
+            "exchangeDeclare expects Spec.Exchange.DeclareOk but got \(String(describing: frame))"
+        )
     }
 
     public func queueDeclare(named queueName: String) async throws -> Spec.Queue.DeclareOk {
         let method = Spec.Queue.Declare(queue: queueName, durable: true)
-        let promise = eventLoop.makePromise(of: Frame.self)
-        try await send(method: method, with: promise)
-        let frame = try await promise.futureResult.get() as? MethodFrame
+        let frame = try await sendReturningResponse(method: method)
         guard let payload = frame?.payload as? Spec.Queue.DeclareOk else {
             preconditionFailure(
                 "queueDeclare expects Spec.Exchange.DeclareOk but got \(String(describing: frame))"
@@ -74,14 +112,11 @@ extension Channel {
             nowait: false,
             arguments: .init()
         )
-        let promise = eventLoop.makePromise(of: Frame.self)
-        try await send(method: method, with: promise)
-        let frame = try await promise.futureResult.get() as? MethodFrame
-        guard frame?.payload is Spec.Queue.BindOk else {
-            preconditionFailure(
-                "queueDeclare expects Spec.Exchange.DeclareOk but got \(String(describing: frame))"
-            )
-        }
+        let frame = try await sendReturningResponse(method: method)
+        precondition(
+            frame?.payload is Spec.Queue.BindOk,
+            "queueBind expects Spec.Queue.BindOk but got \(String(describing: frame)))"
+        )
     }
 
     public func basicPublish(exchange: String, routingKey: String, body: String) async throws {
@@ -101,13 +136,10 @@ extension Channel {
     // start receiving the messages too
     internal func requestOpen() async throws {
         let method = Spec.Channel.Open()
-        let promise = eventLoop.makePromise(of: Frame.self)
-        try await send(method: method, with: promise)
-        let frame = try await promise.futureResult.get() as? MethodFrame
-        guard frame?.payload is Spec.Channel.OpenOk else {
-            preconditionFailure(
-                "Channel.requestOpen expects Spec.Channel.OpenOk but got \(String(describing: frame))"
-            )
-        }
+        let frame = try await sendReturningResponse(method: method)
+        precondition(
+            frame?.payload is Spec.Channel.OpenOk,
+            "Channel.requestOpen expects Spec.Channel.OpenOk but got \(String(describing: frame))"
+        )
     }
 }

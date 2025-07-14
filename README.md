@@ -12,6 +12,7 @@ This is AMQP 0-9-1 client library written in Swift.
 ## Using swift-amqp in your project
 
 Add this package as a dependency in a SwiftPM project:
+
 ```swift
 // swift-tools-version:6.0
 import PackageDescription
