@@ -10,7 +10,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 //===----------------------------------------------------------------------===//
-// swift-tools-version: 6.2
+// swift-tools-version: 6.0
 
 import PackageDescription
 
@@ -50,10 +50,11 @@ let package = Package(
                 .product(name: "Collections", package: "swift-collections"),
                 .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
             ],
-            swiftSettings: [
-                .enableUpcomingFeature("StrictConcurrency"),
-                .defaultIsolation(nil),  // nonisolated by default, as recommended by https://developer.apple.com/videos/play/wwdc2025/268?time=1638
-            ]
+            // these can be enabled in Swift 6.2
+            // swiftSettings: [
+            //     .enableUpcomingFeature("StrictConcurrency"),
+            //     .defaultIsolation(nil),  // nonisolated by default, as recommended by https://developer.apple.com/videos/play/wwdc2025/268?time=1638
+            // ]
         ),
         .testTarget(
             name: "AMQPTests",
