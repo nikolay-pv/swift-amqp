@@ -50,6 +50,11 @@ public actor Channel {
     internal init(connection: Connection, id: UInt16) {
         self.id = id
         self.connection = connection
+        var messagesContinuation: AsyncStream<Message>.Continuation?
+        self.messages = AsyncStream { continuation in
+            messagesContinuation = continuation
+        }
+        self.continuation = messagesContinuation
     }
 }
 
