@@ -14,6 +14,10 @@ extension Frame {
     }
 }
 
+internal func isContent(_ frame: Frame) -> Bool {
+    frame is ContentHeaderFrame || frame is ContentBodyFrame
+}
+
 func decodeFrame(type: UInt8, from data: Data) throws -> Frame {
     // for errors see 4.2.3 General Frame Format
     if data.last != Spec.FrameEnd {

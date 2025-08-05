@@ -1,15 +1,6 @@
 import NIOCore
 import NIOPosix
 
-internal func isContent(_ frame: Frame) -> Bool {
-    frame is ContentHeaderFrame || frame is ContentBodyFrame
-}
-
-public struct Message: Sendable {
-    var body: [UInt8]
-    var properties: Spec.BasicProperties
-}
-
 /// Channel can be created off the Connection instance, by calling makeChannel method
 ///
 /// @note Channel can't outlive the Connection which made it
@@ -173,7 +164,7 @@ extension Channel {
         return messages
     }
 
-    // start receiving the messages too
+    // this will start receiving the messages from Transport too
     internal func requestOpen() async throws {
         let method = Spec.Channel.Open()
         let frame = try await sendReturningResponse(method: method)
