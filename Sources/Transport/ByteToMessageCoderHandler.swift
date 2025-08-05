@@ -9,10 +9,11 @@ struct ByteToMessageCoderHandler: ByteToMessageDecoder, MessageToByteEncoder {
     mutating func decode(context: ChannelHandlerContext, buffer: inout ByteBuffer) throws
         -> DecodingState
     {
+        let startIdx = buffer.readerIndex
         // peek inside the buffer to know how much data expected
-        let type = buffer.getInteger(at: 0, endianness: .big, as: UInt8.self)
-        let channelId = buffer.getInteger(at: 1, endianness: .big, as: UInt16.self)
-        let expectedSize = buffer.getInteger(at: 3, endianness: .big, as: UInt32.self)
+        let type = buffer.getInteger(at: startIdx, endianness: .big, as: UInt8.self)
+        let channelId = buffer.getInteger(at: startIdx + 1, endianness: .big, as: UInt16.self)
+        let expectedSize = buffer.getInteger(at: startIdx + 3, endianness: .big, as: UInt32.self)
         guard let type, channelId != nil, let expectedSize else {
             return .needMoreData
         }
@@ -24,7 +25,7 @@ struct ByteToMessageCoderHandler: ByteToMessageDecoder, MessageToByteEncoder {
         }
         do {
             // force unwrapping is safe because of the previous check
-            let data = buffer.readData(length: totalFrameSize)!
+            let data = buffer.readData(length: totalFrameSize, byteTransferStrategy: .noCopy)!
             let frame = try decodeFrame(type: type, from: data)
             context.fireChannelRead(self.wrapInboundOut(frame))
         } catch {

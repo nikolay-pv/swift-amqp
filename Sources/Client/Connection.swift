@@ -63,14 +63,14 @@ public actor Connection {
     }
 
     // MARK: - lifecycle management
-    private var closed: Bool = false
+    private var closed: Bool = true
 
     public func close() {
-        closed = false
+        closed = true
     }
 
     public func blockingClose() {
-        closed = false
+        closed = true
     }
 
     private func ensureOpen() throws {
@@ -101,7 +101,8 @@ public actor Connection {
             }
         )
         self.transport = transport
-        var serverContinuation: AsyncStream<Frame>.Continuation? = nil
+        self.closed = false
+        var serverContinuation: AsyncStream<Frame>.Continuation?
         self.serverFrames = AsyncStream { continuation in
             serverContinuation = continuation
         }
@@ -112,7 +113,11 @@ public actor Connection {
         serverFramesDispatcher = Task {
             for await frame in self.serverFrames {
                 let channelId = frame.channelId
-                await channels[channelId]?.dispatch(frame: frame)
+                if channelId == 0 {
+                    await channel0.dispatch(frame: frame)
+                } else {
+                    await channels[channelId]?.dispatch(frame: frame)
+                }
             }
         }
     }

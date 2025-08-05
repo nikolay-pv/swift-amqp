@@ -9,9 +9,6 @@
 				"-Xswiftc",
 				"-diagnostic-style=llvm"
 			],
-			"env": {
-				"DEVELOPER_DIR": "/Applications/Xcode.app"
-			},
 			"cwd": "${workspaceFolder}",
 			"disableTaskQueue": true,
 			"showBuildStatus": "swiftStatus",
