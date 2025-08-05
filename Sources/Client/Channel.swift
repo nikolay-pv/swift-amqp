@@ -1,6 +1,15 @@
 import NIOCore
 import NIOPosix
 
+internal func isContent(_ frame: Frame) -> Bool {
+    frame is ContentHeaderFrame || frame is ContentBodyFrame
+}
+
+public struct Message: Sendable {
+    var body: [UInt8]
+    var properties: Spec.BasicProperties
+}
+
 /// Channel can be created off the Connection instance, by calling makeChannel method
 ///
 /// @note Channel can't outlive the Connection which made it
@@ -9,9 +18,25 @@ public actor Channel {
     private unowned var connection: Connection
     private var promises: [EventLoopPromise<Frame>] = .init()
     private let eventLoop: EventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1).next()
+    private let messages: AsyncStream<Message>
+    private let continuation: AsyncStream<Message>.Continuation?
+    private var content: Message?
+    private var expectedContentSize: UInt64?
 
     /// method to handle incoming frames from a Broker
     internal func dispatch(frame: Frame) {
+        if isContent(frame) {
+            if let header = frame as? ContentHeaderFrame {
+                self.expectedContentSize = header.bodySize
+                self.content = .init(body: [], properties: header.properties)
+            } else if let body = frame as? ContentBodyFrame {
+                self.content?.body.append(contentsOf: body.fragment)
+            }
+            if self.expectedContentSize == UInt64(self.content?.body.count ?? .max) {
+                continuation?.yield(self.content!)
+                self.content = nil
+            }
+        }
         // ideally will handle other frames too, but for now only ones it expects
         guard !promises.isEmpty else {
             return
@@ -131,6 +156,16 @@ extension Channel {
         )
         let contentFrame = ContentBodyFrame(channelId: self.id, fragment: [UInt8].init(body.utf8))
         await connection.send(frames: [frame, contentHeaderFrame, contentFrame])
+    }
+
+    public func basicConsume(queue: String, tag: String) async throws -> AsyncStream<Message> {
+        let method = Spec.Basic.Consume(queue: queue, consumerTag: tag)
+        let frame = try await sendReturningResponse(method: method)
+        precondition(
+            frame?.payload is Spec.Basic.ConsumeOk,
+            "basicConsume expects Spec.Basic.ConsumeOk but got \(String(describing: frame))"
+        )
+        return messages
     }
 
     // start receiving the messages too
