@@ -32,18 +32,17 @@ struct ChannelIDs {
 
 public actor Connection {
     // MARK: - transport management
-    private let transport: Transport
-    private var transportExecutor: Task<Void?, Never>?
+    private var transportExecutor: Task<Void?, Never>
 
-    private let serverFrames: AsyncStream<Frame>
-    private var serverFramesDispatcher: Task<Void?, Never>?
+    private let outboundContinuation: AsyncStream<Frame>.Continuation
+    private var inboundFramesDispatcher: Task<Void?, Never>!
 
     func send(frame: Frame) {
-        transport.send(frame: frame)
+        outboundContinuation.yield(frame)
     }
 
     func send(frames: [Frame]) {
-        transport.send(frames: frames)
+        frames.forEach { outboundContinuation.yield($0) }
     }
 
     // MARK: - channel management
@@ -93,39 +92,58 @@ public actor Connection {
             ]),
             "information": .longstr("website here"),
         ]
+
+        // create inbound AsyncStream
+        var inboundContinuation: AsyncStream<Frame>.Continuation?
+        let inboundFrames = AsyncStream { continuation in
+            inboundContinuation = continuation
+        }
+        guard let inboundContinuation else {
+            fatalError("Couldn't create inbound AsyncStream")
+        }
+
+        // create outbound AsyncStream
+        var outboundContinuation: AsyncStream<Frame>.Continuation?
+        let outboundFrames = AsyncStream { continuation in
+            outboundContinuation = continuation
+        }
+        guard let outboundContinuation else {
+            fatalError("Couldn't create outbound AsyncStream")
+        }
+        // save continuation for later use
+        self.outboundContinuation = outboundContinuation
+
+        // hand both AsyncStreams to Transport for communication
         let transport = try await Transport(
             host: configuration.host,
             port: configuration.port,
+            inboundContinuation: inboundContinuation,
+            outboundFrames: outboundFrames,
             negotiatorFactory: {
                 return Spec.AMQPNegotiator(config: configuration, properties: properties)
             }
         )
-        self.transport = transport
+        // start receiving & sending frames
+        self.transportExecutor = Task {
+            try? await transport.execute()
+        }
         self.closed = false
-        var serverContinuation: AsyncStream<Frame>.Continuation?
-        self.serverFrames = AsyncStream { continuation in
-            serverContinuation = continuation
-        }
-        transportExecutor = Task {
-            guard let serverContinuation else { return }
-            try? await self.transport.execute(serverContinuation)
-        }
-        serverFramesDispatcher = Task {
-            for await frame in self.serverFrames {
+
+        // create a task to distribute incoming frames
+        self.inboundFramesDispatcher = Task {
+            for await frame in inboundFrames {
                 let channelId = frame.channelId
                 if channelId == 0 {
-                    await channel0.dispatch(frame: frame)
+                    await self.channel0.dispatch(frame: frame)
                 } else {
-                    await channels[channelId]?.dispatch(frame: frame)
+                    await self.channels[channelId]?.dispatch(frame: frame)
                 }
             }
         }
     }
 
     deinit {
-        transportExecutor?.cancel()
-        transportExecutor = nil
-        serverFramesDispatcher?.cancel()
-        serverFramesDispatcher = nil
+        transportExecutor.cancel()
+        inboundFramesDispatcher.cancel()
     }
 }

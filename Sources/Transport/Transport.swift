@@ -11,12 +11,14 @@ struct Transport: ~Copyable {
     private let eventLoopGroup: MultiThreadedEventLoopGroup
     private let asyncNIOChannel: NIOAsyncChannel<Frame, Frame>
 
-    private let continuation: AsyncStream<Frame>.Continuation?
-    private let clientFrames: AsyncStream<Frame>
+    private let outboundFrames: AsyncStream<Frame>
+    private let inboundContinuation: AsyncStream<Frame>.Continuation
 
     init(
         host: String = "localhost",
         port: Int = 5672,
+        inboundContinuation: AsyncStream<Frame>.Continuation,
+        outboundFrames: AsyncStream<Frame>,
         negotiatorFactory: @escaping @Sendable () -> any AMQPNegotiationDelegateProtocol
     ) async throws {
         // one event loop per connection
@@ -61,12 +63,8 @@ struct Transport: ~Copyable {
         try await negotiationComplete.futureResult.get()
         self.eventLoopGroup = eventLoopGroup
         self.asyncNIOChannel = asyncNIOChannel
-        var internalContinuation: AsyncStream<Frame>.Continuation?
-        self.clientFrames = AsyncStream { continuation in
-            internalContinuation = continuation
-            // TODO: onTermination
-        }
-        self.continuation = internalContinuation
+        self.outboundFrames = outboundFrames
+        self.inboundContinuation = inboundContinuation
     }
 
     deinit {
@@ -75,27 +73,20 @@ struct Transport: ~Copyable {
 }
 
 extension Transport {
-    /// Consume frames as they come from the server and call `handleInboundFrame` on each of them.
+    /// Receives and sends out frames as they come through the AsyncStream's passed on construction of the object
     ///
     /// - Throws: Any error that occurs during task execution.
-    func execute(_ serverFramesContinuation: AsyncStream<Frame>.Continuation) async throws {
+    func execute() async throws {
         try await withThrowingTaskGroup { group in
             try await asyncNIOChannel.executeThenClose { inbound, outbound in
+                let continuation = self.inboundContinuation
                 group.addTask {
                     for try await frame in inbound {
-                        serverFramesContinuation.yield(frame)
+                        continuation.yield(frame)
                     }
                 }
-                try await outbound.write(contentsOf: clientFrames)
+                try await outbound.write(contentsOf: outboundFrames)
             }
         }
-    }
-
-    func send(frame: Frame) {
-        continuation?.yield(frame)
-    }
-
-    func send(frames: [Frame]) {
-        frames.forEach { continuation?.yield($0) }
     }
 }
