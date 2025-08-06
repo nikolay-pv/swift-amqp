@@ -114,18 +114,22 @@ public actor Connection {
         self.outboundContinuation = outboundContinuation
 
         // hand both AsyncStreams to Transport for communication
-        let transport = try await Transport(
-            host: configuration.host,
-            port: configuration.port,
-            inboundContinuation: inboundContinuation,
-            outboundFrames: outboundFrames,
-            negotiatorFactory: {
-                return Spec.AMQPNegotiator(config: configuration, properties: properties)
-            }
-        )
-        // start receiving & sending frames
+        // and then start receiving & sending frames
         self.transportExecutor = Task {
-            try? await transport.execute()
+            do {
+                let transport = try await Environment.shared.transportFactory(
+                    configuration.host,
+                    configuration.port,
+                    inboundContinuation,
+                    outboundFrames,
+                    {
+                        return Environment.shared.negotiationFactory(configuration, properties)
+                    }
+                )
+                try await transport.execute()
+            } catch {
+                fatalError("TODO: better messaging")
+            }
         }
         self.closed = false
 

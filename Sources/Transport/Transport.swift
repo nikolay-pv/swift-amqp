@@ -7,7 +7,7 @@ import NIOPosix
     import NIOExtras
 #endif
 
-struct Transport: ~Copyable {
+struct Transport: ~Copyable, TransportProtocol, Sendable {
     private let eventLoopGroup: MultiThreadedEventLoopGroup
     private let asyncNIOChannel: NIOAsyncChannel<Frame, Frame>
 
@@ -90,5 +90,3 @@ extension Transport {
         }
     }
 }
-
-extension Transport: TransportProtocol {}

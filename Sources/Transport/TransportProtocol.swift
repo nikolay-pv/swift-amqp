@@ -1,4 +1,4 @@
-protocol TransportProtocol: ~Copyable {
+protocol TransportProtocol: ~Copyable, Sendable {
     init(
         host: String,
         port: Int,
