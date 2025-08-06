@@ -1,22 +1,24 @@
 import NIOCore
 
 /// Handler to be used in NIO to negotiate properties and constraints between the server and the client,
-/// it will be installed and perform the sequence dictated by a delegate (AMQPNegotiatorProtocol),
+/// it will be installed and perform the sequence dictated by a delegate (AMQPNegotiationDelegateProtocol),
 /// and on success will remove itself from the pipeline
-class AMQPNegotiationHandler<T: AMQPNegotiatorProtocol>: ChannelInboundHandler,
+class AMQPNegotiationHandler: ChannelInboundHandler,
     RemovableChannelHandler
 {
     typealias InboundIn = Frame
     typealias OutboundOut = Frame
 
-    let negotiator: T
+    static let handlerName = "AMQPNegotiationHandler"
+
+    let negotiator: any AMQPNegotiationDelegateProtocol
     // fullfiled when the negotiation is successful
     let complete: EventLoopPromise<Void>
 
     private func handle(action: TransportAction, on context: ChannelHandlerContext) {
         switch action {
         case .complete:
-            context.pipeline.removeHandler(self, promise: nil)
+            context.pipeline.removeHandler(name: Self.handlerName, promise: nil)
             complete.succeed()
         case .error(let error):
             complete.fail(error)
@@ -35,15 +37,15 @@ class AMQPNegotiationHandler<T: AMQPNegotiatorProtocol>: ChannelInboundHandler,
     }
 
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        let frame = unwrapInboundIn(data) as? T.InputFrame
-        guard let frame else {
+        guard let frame = unwrapInboundIn(data) as? MethodFrame else {
             context.fireErrorCaught(NegotiationError.unexpectedMethod)
             return
         }
-        handle(action: negotiator.negotiate(frame: frame), on: context)
+        let action = negotiator.negotiate(frame: frame)
+        handle(action: action, on: context)
     }
 
-    init(negotiator: T, done: EventLoopPromise<Void>) {
+    init(negotiator: any AMQPNegotiationDelegateProtocol, done: EventLoopPromise<Void>) {
         self.negotiator = negotiator
         self.complete = done
     }

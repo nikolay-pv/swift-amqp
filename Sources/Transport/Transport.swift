@@ -17,7 +17,7 @@ struct Transport: ~Copyable {
     init(
         host: String = "localhost",
         port: Int = 5672,
-        negotiatorFactory: @escaping @Sendable () -> some AMQPNegotiatorProtocol
+        negotiatorFactory: @escaping @Sendable () -> any AMQPNegotiationDelegateProtocol
     ) async throws {
         // one event loop per connection
         let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
@@ -48,7 +48,8 @@ struct Transport: ~Copyable {
                             AMQPNegotiationHandler(
                                 negotiator: negotiatorFactory(),
                                 done: negotiationComplete
-                            )
+                            ),
+                            name: AMQPNegotiationHandler.handlerName
                         )
                     }
                     .flatMapThrowing {

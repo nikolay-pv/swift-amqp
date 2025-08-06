@@ -6,8 +6,7 @@ enum TransportAction {
 }
 
 /// A delegate for AMQPNegotiationHandler
-protocol AMQPNegotiatorProtocol {
-    associatedtype InputFrame
+protocol AMQPNegotiationDelegateProtocol {
     func start() -> TransportAction
-    func negotiate(frame: InputFrame) -> TransportAction
+    func negotiate(frame: MethodFrame) -> TransportAction
 }

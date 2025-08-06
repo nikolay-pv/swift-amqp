@@ -28,7 +28,7 @@ extension Spec.AMQPNegotiator {
     }
 }
 
-extension Spec.AMQPNegotiator: AMQPNegotiatorProtocol {
+extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
     typealias InputFrame = MethodFrame
 
     func start() -> TransportAction {
