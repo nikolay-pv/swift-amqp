@@ -90,3 +90,5 @@ extension Transport {
         }
     }
 }
+
+extension Transport: TransportProtocol {}
