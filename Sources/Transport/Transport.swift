@@ -45,7 +45,7 @@ struct Transport: ~Copyable {
                     #endif  // canImport(NIOExtras)
                     .flatMap {
                         return channel.pipeline.addHandler(
-                            AMQPNegotitionHandler(
+                            AMQPNegotiationHandler(
                                 negotiator: negotiatorFactory(),
                                 done: negotiationComplete
                             )
