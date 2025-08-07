@@ -14,6 +14,14 @@ extension Frame {
     }
 }
 
+// this extension allows comparing any Frame to any Frame, otherwise == fails
+extension Frame where Self: Equatable {
+    func isEqual(to other: any Frame) -> Bool {
+        guard let other = other as? Self else { return false }
+        return self == other
+    }
+}
+
 internal func isContent(_ frame: Frame) -> Bool {
     frame is ContentHeaderFrame || frame is ContentBodyFrame
 }
@@ -96,6 +104,13 @@ struct MethodFrame {
     var type: UInt8 { Spec.FrameMethod }
     var channelId: UInt16
     var payload: any FrameCodable
+}
+
+extension MethodFrame: Equatable {
+    static func == (lhs: MethodFrame, rhs: MethodFrame) -> Bool {
+        return lhs.type == rhs.type && lhs.channelId == rhs.channelId
+            && lhs.payload.isEqual(to: rhs.payload)
+    }
 }
 
 extension MethodFrame: Frame {
