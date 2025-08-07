@@ -23,9 +23,9 @@ import Testing
     }
 }
 
-@Suite struct AMQPFrameCodingTests {
+@Suite struct AMQPFrameCoding {
     @Test("ProtocolHeaderFrame default encoding/decoding roundtrip")
-    func protocolHeaderFrameCoding() async throws {
+    func protocolHeaderFrame() async throws {
         let object = ProtocolHeaderFrame(majorVersion: 0, minorVersion: 9, revision: 1)
         let binary = try FrameEncoder().encode(object)
         let decoded = try FrameDecoder().decode(ProtocolHeaderFrame.self, from: binary)
@@ -34,7 +34,7 @@ import Testing
     }
 
     @Test("MethodFrame default encoding/decoding roundtrip")
-    func methodFrameCoding() async throws {
+    func methodFrame() async throws {
         let method = Spec.Basic.Ack()
         // MethodFrame doesn't conform to Equatable due to non conformant FrameCodabale
         let object = MethodFrame(channelId: 3, payload: method)
@@ -48,7 +48,7 @@ import Testing
     }
 
     @Test("HeartbeatFrame default encoding/decoding roundtrip")
-    func heartbeatFrameCoding() async throws {
+    func heartbeatFrame() async throws {
         let object = HeartbeatFrame()
         let binary = try FrameEncoder().encode(object)
         let decoded = try FrameDecoder().decode(HeartbeatFrame.self, from: binary)
@@ -57,7 +57,7 @@ import Testing
     }
 
     @Test("ContentHeaderFrame default encoding/decoding roundtrip")
-    func contentHeaderFrameCoding() async throws {
+    func contentHeaderFrame() async throws {
         let object = ContentHeaderFrame(
             channelId: 3,
             classId: Spec.Basic.Publish().amqpClassId,
@@ -71,7 +71,7 @@ import Testing
     }
 
     @Test("ContentBodyFrame default encoding/decoding roundtrip")
-    func contentBodyFrameCoding() async throws {
+    func contentBodyFrame() async throws {
         let object = ContentBodyFrame(channelId: 3, fragment: [0, 1, 2, 3, 4, 5])
         let binary = try FrameEncoder().encode(object)
         let decoded = try FrameDecoder().decode(ContentBodyFrame.self, from: binary)

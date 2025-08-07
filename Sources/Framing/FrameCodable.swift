@@ -47,4 +47,11 @@ protocol FrameEncodable {
     var bytesCount: UInt32 { get }
 }
 
-protocol FrameCodable: Sendable, FrameDecodable, FrameEncodable {}
+protocol FrameCodable: Sendable, FrameDecodable, FrameEncodable, Equatable {}
+
+extension FrameCodable where Self: Equatable {
+    func isEqual(to other: any FrameCodable) -> Bool {
+        guard let other = other as? Self else { return false }
+        return self == other
+    }
+}
