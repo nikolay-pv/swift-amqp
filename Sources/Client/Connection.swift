@@ -94,7 +94,7 @@ public actor Connection {
         ]
 
         // create inbound AsyncStream
-        var inboundContinuation: AsyncStream<Frame>.Continuation?
+        var inboundContinuation: AsyncStream<any Frame>.Continuation?
         let inboundFrames = AsyncStream { continuation in
             inboundContinuation = continuation
         }
@@ -103,7 +103,7 @@ public actor Connection {
         }
 
         // create outbound AsyncStream
-        var outboundContinuation: AsyncStream<Frame>.Continuation?
+        var outboundContinuation: AsyncStream<any Frame>.Continuation?
         let outboundFrames = AsyncStream { continuation in
             outboundContinuation = continuation
         }

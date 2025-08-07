@@ -9,16 +9,16 @@ import NIOPosix
 
 struct Transport: ~Copyable, TransportProtocol, Sendable {
     private let eventLoopGroup: MultiThreadedEventLoopGroup
-    private let asyncNIOChannel: NIOAsyncChannel<Frame, Frame>
+    private let asyncNIOChannel: NIOAsyncChannel<any Frame, any Frame>
 
-    private let outboundFrames: AsyncStream<Frame>
-    private let inboundContinuation: AsyncStream<Frame>.Continuation
+    private let outboundFrames: AsyncStream<any Frame>
+    private let inboundContinuation: AsyncStream<any Frame>.Continuation
 
     init(
         host: String = "localhost",
         port: Int = 5672,
-        inboundContinuation: AsyncStream<Frame>.Continuation,
-        outboundFrames: AsyncStream<Frame>,
+        inboundContinuation: AsyncStream<any Frame>.Continuation,
+        outboundFrames: AsyncStream<any Frame>,
         negotiatorFactory: @escaping @Sendable () -> any AMQPNegotiationDelegateProtocol
     ) async throws {
         // one event loop per connection
@@ -55,7 +55,7 @@ struct Transport: ~Copyable, TransportProtocol, Sendable {
                         )
                     }
                     .flatMapThrowing {
-                        return try NIOAsyncChannel<Frame, Frame>(
+                        return try NIOAsyncChannel<any Frame, any Frame>(
                             wrappingChannelSynchronously: channel
                         )
                     }
