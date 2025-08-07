@@ -1,9 +1,9 @@
-class Environment {
-    typealias NegotiationFactoryT =
-        (Configuration, Spec.Table) -> any AMQPNegotiationDelegateProtocol
+struct Environment: Sendable {
+    typealias NegotiationFactoryT = @Sendable
+    (Configuration, Spec.Table) -> any AMQPNegotiationDelegateProtocol
     private(set) var negotiationFactory: NegotiationFactoryT = Spec.AMQPNegotiator.init
 
-    func setNegotiationFactory(factory: @escaping NegotiationFactoryT) {
+    mutating func setNegotiationFactory(factory: @escaping NegotiationFactoryT) {
         self.negotiationFactory = factory
     }
 
@@ -13,9 +13,9 @@ class Environment {
     ) async throws -> any TransportProtocol & ~Copyable & Sendable
     private(set) var transportFactory: TransportFactoryT = Transport.init
 
-    func setTransportFactory(factory: @escaping TransportFactoryT) {
+    mutating func setTransportFactory(factory: @escaping TransportFactoryT) {
         self.transportFactory = factory
     }
 
-    nonisolated(unsafe) static var shared: Environment = Environment()
+    static let shared: Environment = .init()
 }

@@ -80,6 +80,10 @@ public actor Connection {
 
     // MARK: - init
     public init(with configuration: Configuration = .default) async throws {
+        try await self.init(with: configuration, env: Environment.shared)
+    }
+
+    init(with configuration: Configuration, env: Environment) async throws {
         let properties: Spec.Table = [
             "product": .longstr("swift-amqp"),
             "platform": .longstr("swift"),
@@ -117,13 +121,13 @@ public actor Connection {
         // and then start receiving & sending frames
         self.transportExecutor = Task {
             do {
-                let transport = try await Environment.shared.transportFactory(
+                let transport = try await env.transportFactory(
                     configuration.host,
                     configuration.port,
                     inboundContinuation,
                     outboundFrames,
                     {
-                        return Environment.shared.negotiationFactory(configuration, properties)
+                        return env.negotiationFactory(configuration, properties)
                     }
                 )
                 try await transport.execute()
