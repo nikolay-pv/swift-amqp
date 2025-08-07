@@ -2,10 +2,10 @@ import Testing
 
 @testable import AMQP
 
-func makeTestEnv(with actions: [TransportPostNegotiationMock.Action]) -> Environment {
+func makeTestEnv(with actions: [TransportMock.Action]) -> Environment {
     var env = Environment.shared
     env.setTransportFactory {
-        var transportStub = try await TransportPostNegotiationMock(
+        var transportStub = try await TransportMock(
             host: $0,
             port: $1,
             inboundContinuation: $2,
@@ -18,21 +18,21 @@ func makeTestEnv(with actions: [TransportPostNegotiationMock.Action]) -> Environ
     return env
 }
 
-@Suite struct ConnectionConstruction {
+@Suite struct MakingObjects {
 
-    @Test("Create Connection with a stub")
-    func testConnectionCreation() async throws {
-        let actions: [TransportPostNegotiationMock.Action] = .init()
+    @Test("Make Connection")
+    func connection() async throws {
+        let actions: [TransportMock.Action] = .init()
         let env = makeTestEnv(with: actions)
         let connection = try? await Connection(with: .default, env: env)
         #expect(connection != nil)
     }
 
-    @Test("Connection Channel creation")
-    func testConnectionChannelCreation() async throws {
+    @Test("Make Channel")
+    func channel() async throws {
         // assume the channel id is growing uniformly starting from 1
         let expectedChannelId: UInt16 = 1
-        let actions: [TransportPostNegotiationMock.Action] = [
+        let actions: [TransportMock.Action] = [
             .outbound(
                 MethodFrame(
                     channelId: expectedChannelId,

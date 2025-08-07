@@ -2,7 +2,7 @@ import Testing
 
 @testable import AMQP  // testable to be able to use TransportProtocol
 
-struct TransportPostNegotiationMock: TransportProtocol, ~Copyable, Sendable {
+struct TransportMock: TransportProtocol, ~Copyable, Sendable {
 
     enum Action {
         case inbound(any Frame)
@@ -29,8 +29,12 @@ struct TransportPostNegotiationMock: TransportProtocol, ~Copyable, Sendable {
         self.outboundFrames = outboundFrames
     }
 
-    func sendPending(_ idx: Int) -> Int {
-        // send out all inbound actions first to provoke the response
+    /// Sends out all inbound actions starting `from` the given index.
+    /// Stops at the end of the sequence of `actions` or if outbound frame is encountered.
+    ///
+    /// - Parameter idx: The starting index for the actions.
+    /// - Returns: The new index after sending out all the inbound actions.
+    func sendInboundActionsStarting(from idx: Int) -> Int {
         var idx = idx
         while idx < actions.endIndex {
             guard case .inbound(let frame) = actions[idx] else {
@@ -44,7 +48,7 @@ struct TransportPostNegotiationMock: TransportProtocol, ~Copyable, Sendable {
 
     func execute() async throws {
         var idx = actions.startIndex
-        idx = sendPending(idx)
+        idx = sendInboundActionsStarting(from: idx)
         if idx == actions.endIndex {
             return
         }
@@ -56,7 +60,7 @@ struct TransportPostNegotiationMock: TransportProtocol, ~Copyable, Sendable {
                 #expect(testedFrame.isEqual(to: expectedFrame))
             }
             idx = idx.advanced(by: 1)
-            idx = sendPending(idx)
+            idx = sendInboundActionsStarting(from: idx)
             if idx == actions.endIndex {
                 break
             }
