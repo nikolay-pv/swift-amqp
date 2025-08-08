@@ -8,4 +8,4 @@ use docker:
 docker run -it --rm --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:4.0-management
 ```
 
-The admin console is accessible at http://localhost:15672 behind the default RabbitMQ credentials.
+The admin console is accessible at <http://localhost:15672> behind the default RabbitMQ credentials.

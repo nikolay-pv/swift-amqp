@@ -5,13 +5,13 @@ public struct Configuration: Sendable {
     public enum AuthType: Sendable {
         case basic(username: String, password: String)
 
-        var mechanim: String {
+        var mechanism: String {
             switch self {
             case .basic: "PLAIN"
             }
         }
 
-        /// returns response as requried by Connection.StartOk method for this type of AuthType
+        /// returns response as required by Connection.StartOk method for this type of AuthType
         var response: String {
             switch self {
             case .basic(let username, let password): "\0\(username)\0\(password)"

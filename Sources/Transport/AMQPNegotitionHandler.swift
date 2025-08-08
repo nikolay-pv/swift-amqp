@@ -12,7 +12,7 @@ class AMQPNegotiationHandler: ChannelInboundHandler,
     static let handlerName = "AMQPNegotiationHandler"
 
     let negotiator: any AMQPNegotiationDelegateProtocol
-    // fullfiled when the negotiation is successful
+    // fulfilled when the negotiation is successful
     let complete: EventLoopPromise<Void>
 
     private func handle(action: TransportAction, on context: ChannelHandlerContext) {
