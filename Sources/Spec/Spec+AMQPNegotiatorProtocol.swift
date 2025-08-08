@@ -36,6 +36,7 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
         return .reply(header)
     }
 
+    // swiftlint:disable:next function_body_length
     func negotiate(frame: InputFrame) -> TransportAction {
         switch state {
         case .waitingStart:

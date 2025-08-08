@@ -96,6 +96,7 @@ private class _FrameEncoder: FrameEncoderProtocol {
         case array([WrappedValue])  // only for field values
         case data(Data)  // only for field values
 
+        // swiftlint:disable:next cyclomatic_complexity
         func encode(to data: inout Data) {
             switch self {
             case .shortstring(let value):

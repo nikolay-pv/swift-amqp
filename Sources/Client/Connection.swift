@@ -83,6 +83,7 @@ public actor Connection {
         try await self.init(with: configuration, env: Environment.shared)
     }
 
+    // swiftlint:disable:next function_body_length
     init(with configuration: Configuration, env: Environment) async throws {
         let properties: Spec.Table = [
             "product": .longstr("swift-amqp"),

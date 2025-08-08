@@ -5,6 +5,7 @@ import Foundation  // for Date
 
 extension Spec.BasicProperties: FrameCodable {
 
+    // swiftlint:disable identifier_name
     enum PropertyFlags: UInt16 {
         case ContentType = 0b10000000_00000000
         case ContentEncoding = 0b1000000_00000000
@@ -25,7 +26,9 @@ extension Spec.BasicProperties: FrameCodable {
             (flags & self.rawValue) != 0
         }
     }
+    // swiftlint:enable identifier_name
 
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     func encode(to encoder: FrameEncoderProtocol) throws {
         var flags: UInt16 = 0
         var encodeCalls: [() throws -> Void] = .init()
@@ -103,6 +106,7 @@ extension Spec.BasicProperties: FrameCodable {
         try encodeCalls.forEach { try $0() }
     }
 
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     init(from decoder: FrameDecoderProtocol) throws {
         var flags: UInt16 = 0
         var chunkCount = 0

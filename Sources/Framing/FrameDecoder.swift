@@ -12,6 +12,7 @@ extension Spec.FieldValue {
         return Self.allCases.reduce(into: [:]) { $0[$1.type] = $1 }
     }()
 
+    // swiftlint:disable:next cyclomatic_complexity
     fileprivate func decode(from decoder: FrameDecoderProtocol) throws -> Self {
         switch self {
         case .int32: return .int32(try decoder.decode(Int32.self))

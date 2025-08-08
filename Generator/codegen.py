@@ -198,6 +198,7 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
                 specific_properties(c)
 
     def amqp_spec():
+        print("// swiftlint:disable nesting type_body_length")
         print("public enum Spec {")
 
         FieldValueEnum()
@@ -206,6 +207,7 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
         amqp_properties_classes()
 
         print("}")
+        print("// swiftlint:enable nesting type_body_length")
 
     header()
     print()
@@ -339,7 +341,10 @@ def gen_swift_impl(spec: AmqpSpec):
         print()
         print("extension Spec {")
         print(
-            "    typealias Factory = @Sendable (any FrameDecoderProtocol) throws -> any FrameCodable"
+            "    typealias Factory = @Sendable (any FrameDecoderProtocol) throws -> any FrameCodable\n"
+        )
+        print(
+            "    // swiftlint:disable:next all"
         )
         print(
             "    static func makeFactory(with classId: UInt16, and methodId: UInt16) throws -> Factory {"
