@@ -132,7 +132,9 @@ extension MethodFrame: Frame {
     func encode(to encoder: any FrameEncoderProtocol) throws {
         try encoder.encode(type)
         try encoder.encode(channelId)
-        let method = payload as! any AMQPMethodProtocol
+        guard let method = payload as? any AMQPMethodProtocol else {
+            fatalError("Unexpected payload inside MethodFrame")
+        }
         // accounting for class and method IDs
         try encoder.encode(payload.bytesCount + 2 + 2)
         try encoder.encode(method.amqpClassId)

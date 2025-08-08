@@ -24,7 +24,7 @@ extension Spec.FieldValue {
         case .timestamp: return .timestamp(try decoder.decode(Date.self))
         case .table: return .table(try decoder.decode(Spec.Table.self))
         case .void:
-            let _ = try decoder.decode(UInt8.self)
+            _ = try decoder.decode(UInt8.self)
             return .void
         case .bool: return .bool(try decoder.decode(Bool.self))
         case .int8: return .int8(try decoder.decode(Int8.self))
