@@ -32,10 +32,11 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
     typealias InputFrame = MethodFrame
 
     func start() -> TransportAction {
-        let header: Frame = ProtocolHeaderFrame.specHeader
+        let header: any Frame = ProtocolHeaderFrame.specHeader
         return .reply(header)
     }
 
+    // swiftlint:disable:next function_body_length
     func negotiate(frame: InputFrame) -> TransportAction {
         switch state {
         case .waitingStart:
@@ -58,15 +59,15 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
             // save server information somehow
             // self._set_server_information(method_frame)
             // self._send_connection_start_ok(*self._get_credentials(method_frame))
-            if !method.mechanisms.contains(self.config.credentials.mechanim) {
-                let msg = "\(self.config.credentials.mechanim) is not supported by the server"
+            if !method.mechanisms.contains(self.config.credentials.mechanism) {
+                let msg = "\(self.config.credentials.mechanism) is not supported by the server"
                 return .error(NegotiationError.unsupportedAuthMechanism(msg))
             }
             // send Start-Ok method with selected security mechanism
             let response = AMQP.Spec.Connection.StartOk(
                 // clientProperties: properties,
                 clientProperties: ["product": .longstr("pika")],
-                mechanism: self.config.credentials.mechanim,
+                mechanism: self.config.credentials.mechanism,
                 response: self.config.credentials.response
             )
             let startOkFrame = MethodFrame(
@@ -95,7 +96,7 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
                 server: Int(method.frameMax),
                 client: self.config.frameMax
             )
-            // TODO: setup hearbeat here
+            // TODO: setup heartbeat here
             let response = AMQP.Spec.Connection.TuneOk(
                 channelMax: Int16(self.config.channelMax),
                 frameMax: Int32(self.config.frameMax),

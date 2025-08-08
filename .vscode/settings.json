@@ -2,7 +2,14 @@
     "lldb.library": "/Applications/Xcode.app/Contents/SharedFrameworks/LLDB.framework/Versions/A/LLDB",
     "lldb.launch.expressions": "native",
     "cSpell.words": [
-        "AMQP"
+        "AMQP",
+        "codegen",
+        "defaultvalue",
+        "longstr",
+        "longstring",
+        "nowait",
+        "shortstr",
+        "shortstring"
     ],
     "editor.formatOnSave": true
 }

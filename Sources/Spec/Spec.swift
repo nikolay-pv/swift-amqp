@@ -27,6 +27,7 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
     var amqpMethodId: UInt16 { get }
 }
 
+// swiftlint:disable nesting type_body_length
 public enum Spec {
     public typealias Table = [String: FieldValue]
 
@@ -824,3 +825,4 @@ public enum Spec {
         public var amqpName: String { "basic" }
     }
 }
+// swiftlint:enable nesting type_body_length

@@ -1293,6 +1293,8 @@ extension Spec.Confirm.SelectOk: FrameCodable {
 
 extension Spec {
     typealias Factory = @Sendable (any FrameDecoderProtocol) throws -> any FrameCodable
+
+    // swiftlint:disable:next all
     static func makeFactory(with classId: UInt16, and methodId: UInt16) throws -> Factory {
         switch (classId, methodId) {
         case (60, 10): return Spec.Basic.Qos.init

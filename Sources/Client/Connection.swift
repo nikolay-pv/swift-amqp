@@ -34,14 +34,14 @@ public actor Connection {
     // MARK: - transport management
     private var transportExecutor: Task<Void?, Never>
 
-    private let outboundContinuation: AsyncStream<Frame>.Continuation
+    private let outboundContinuation: AsyncStream<any Frame>.Continuation
     private var inboundFramesDispatcher: Task<Void?, Never>!
 
-    func send(frame: Frame) {
+    func send(frame: any Frame) {
         outboundContinuation.yield(frame)
     }
 
-    func send(frames: [Frame]) {
+    func send(frames: [any Frame]) {
         frames.forEach { outboundContinuation.yield($0) }
     }
 
@@ -83,6 +83,7 @@ public actor Connection {
         try await self.init(with: configuration, env: Environment.shared)
     }
 
+    // swiftlint:disable:next function_body_length
     init(with configuration: Configuration, env: Environment) async throws {
         let properties: Spec.Table = [
             "product": .longstr("swift-amqp"),

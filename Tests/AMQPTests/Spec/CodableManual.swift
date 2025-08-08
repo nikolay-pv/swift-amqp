@@ -36,7 +36,7 @@ import Testing
     @Test("MethodFrame default encoding/decoding roundtrip")
     func methodFrame() async throws {
         let method = Spec.Basic.Ack()
-        // MethodFrame doesn't conform to Equatable due to non conformant FrameCodabale
+        // MethodFrame doesn't conform to Equatable due to non conformant FrameCodable
         let object = MethodFrame(channelId: 3, payload: method)
         let binary = try FrameEncoder().encode(object)
         let decoded = try FrameDecoder().decode(MethodFrame.self, from: binary)

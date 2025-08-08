@@ -7,7 +7,7 @@ import NIOPosix
 public actor Channel {
     public let id: UInt16
     private unowned var connection: Connection
-    private var promises: [EventLoopPromise<Frame>] = .init()
+    private var promises: [EventLoopPromise<any Frame>] = .init()
     private let eventLoop: EventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1).next()
     private let messages: AsyncStream<Message>
     private let continuation: AsyncStream<Message>.Continuation?
@@ -15,7 +15,7 @@ public actor Channel {
     private var expectedContentSize: UInt64?
 
     /// method to handle incoming frames from a Broker
-    internal func dispatch(frame: Frame) {
+    internal func dispatch(frame: any Frame) {
         if isContent(frame) {
             if let header = frame as? ContentHeaderFrame {
                 self.expectedContentSize = header.bodySize
@@ -56,7 +56,7 @@ extension Channel {
         method: some AMQPMethodProtocol & FrameCodable,
     ) async throws -> MethodFrame? {
         let frame = MethodFrame(channelId: id, payload: method)
-        let promise = eventLoop.makePromise(of: Frame.self)
+        let promise = eventLoop.makePromise(of: (any Frame).self)
         promises.append(promise)
         await connection.send(frame: frame)
         let response = try await promise.futureResult.get() as? MethodFrame

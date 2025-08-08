@@ -22,11 +22,11 @@ extension Frame where Self: Equatable {
     }
 }
 
-internal func isContent(_ frame: Frame) -> Bool {
+internal func isContent(_ frame: any Frame) -> Bool {
     frame is ContentHeaderFrame || frame is ContentBodyFrame
 }
 
-func decodeFrame(type: UInt8, from data: Data) throws -> Frame {
+func decodeFrame(type: UInt8, from data: Data) throws -> any Frame {
     // for errors see 4.2.3 General Frame Format
     if data.last != Spec.FrameEnd {
         throw FramingError.fatal("Frame doesn't end with the frame-end octet")
@@ -132,7 +132,9 @@ extension MethodFrame: Frame {
     func encode(to encoder: any FrameEncoderProtocol) throws {
         try encoder.encode(type)
         try encoder.encode(channelId)
-        let method = payload as! any AMQPMethodProtocol
+        guard let method = payload as? any AMQPMethodProtocol else {
+            fatalError("Unexpected payload inside MethodFrame")
+        }
         // accounting for class and method IDs
         try encoder.encode(payload.bytesCount + 2 + 2)
         try encoder.encode(method.amqpClassId)

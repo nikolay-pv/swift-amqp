@@ -1,6 +1,6 @@
 enum TransportAction {
-    case reply(AMQPNegotiationHandler.OutboundOut)
-    case replySeveral([AMQPNegotiationHandler.OutboundOut])
+    case reply(any AMQPNegotiationHandler.OutboundOut)
+    case replySeveral([any AMQPNegotiationHandler.OutboundOut])
     case error(Error)
     case complete
 }
