@@ -45,7 +45,7 @@ struct ByteToMessageCoderHandler: ByteToMessageDecoder, MessageToByteEncoder {
     // MARK: - MessageToByteEncoder
     typealias OutboundIn = Frame
 
-    func encode(data: OutboundIn, out: inout NIOCore.ByteBuffer) throws {
+    func encode(data: any OutboundIn, out: inout NIOCore.ByteBuffer) throws {
         out = ByteBuffer(data: try data.asData())
     }
 

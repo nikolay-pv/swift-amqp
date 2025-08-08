@@ -32,7 +32,7 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
     typealias InputFrame = MethodFrame
 
     func start() -> TransportAction {
-        let header: Frame = ProtocolHeaderFrame.specHeader
+        let header: any Frame = ProtocolHeaderFrame.specHeader
         return .reply(header)
     }
 
