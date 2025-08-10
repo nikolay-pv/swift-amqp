@@ -46,7 +46,7 @@ struct TransportMock: TransportProtocol, ~Copyable, Sendable {
         return idx
     }
 
-    func execute() async throws {
+    func execute() async {
         var idx = actions.startIndex
         idx = sendInboundActionsStarting(from: idx)
         if idx == actions.endIndex {

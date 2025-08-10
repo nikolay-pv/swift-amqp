@@ -7,5 +7,5 @@ protocol TransportProtocol: ~Copyable, Sendable {
         negotiatorFactory: @escaping @Sendable () -> any AMQPNegotiationDelegateProtocol
     ) async throws
 
-    func execute() async throws
+    func execute() async
 }

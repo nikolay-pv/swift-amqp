@@ -31,8 +31,22 @@ struct ChannelIDs {
 }
 
 public actor Connection {
+    enum Status {
+        case connecting
+        case connected
+        case failed(reason: any Error)
+        case closed
+
+        var isClosed: Bool {
+            switch self {
+            case .failed, .closed: return true
+            default: return true
+            }
+        }
+    }
+
     // MARK: - transport management
-    private var transportExecutor: Task<Void?, Never>
+    private var transportExecutor: Task<Void?, Never>!
 
     private let outboundContinuation: AsyncStream<any Frame>.Continuation
     private var inboundFramesDispatcher: Task<Void?, Never>!
@@ -62,18 +76,21 @@ public actor Connection {
     }
 
     // MARK: - lifecycle management
-    private var closed: Bool = true
+    private var closed: Status = .closed
 
     public func close() {
-        closed = true
+        closed = .closed
     }
 
     public func blockingClose() {
-        closed = true
+        closed = .closed
     }
 
     private func ensureOpen() throws {
-        guard !closed else {
+        guard closed.isClosed else {
+            if case .failed(let reason) = closed {
+                throw ConnectionError.connectionFailed(reason: reason.localizedDescription)
+            }
             throw ConnectionError.connectionIsClosed
         }
     }
@@ -122,6 +139,7 @@ public actor Connection {
         // and then start receiving & sending frames
         self.transportExecutor = Task {
             do {
+                self.closed = .connecting
                 let transport = try await env.transportFactory(
                     configuration.host,
                     configuration.port,
@@ -131,12 +149,12 @@ public actor Connection {
                         return env.negotiationFactory(configuration, properties)
                     }
                 )
-                try await transport.execute()
+                self.closed = .connected
+                await transport.execute()
             } catch {
-                fatalError("TODO: better messaging")
+                self.closed = .failed(reason: error)
             }
         }
-        self.closed = false
 
         // create a task to distribute incoming frames
         self.inboundFramesDispatcher = Task {
