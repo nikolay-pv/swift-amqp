@@ -3,14 +3,18 @@ import Foundation
 
 // this example requires running AMQP server
 let publisher = Task {
-    let connection = try? await Connection(with: .default)
-    guard let connection else {
-        print("connection wasn't created")
+    let connection: Connection
+    do {
+        connection = try await Connection(with: .default)
+    } catch {
+        print("Failed to create connection: \(error)")
         return false
     }
-    let channel = try? await connection.makeChannel()
-    guard let channel else {
-        print("channel wasn't created")
+    let channel: Channel
+    do {
+        channel = try await connection.makeChannel()
+    } catch {
+        print("Failed to create channel: \(error)")
         return false
     }
     let exchangeName = "swift-amqp-exchange"

@@ -31,25 +31,19 @@ struct ChannelIDs {
 }
 
 public actor Connection {
-    enum Status {
+    public enum Status {
         case connecting
         case connected
-        case failed(reason: any Error)
         case closed
 
-        var isClosed: Bool {
-            switch self {
-            case .failed, .closed: return true
-            default: return true
-            }
-        }
+        var isClosed: Bool { self == .closed }
     }
 
     // MARK: - transport management
-    private var transportExecutor: Task<Void?, Never>!
+    private var transportExecutor: Task<Void?, Never>?
 
     private let outboundContinuation: AsyncStream<any Frame>.Continuation
-    private var inboundFramesDispatcher: Task<Void?, Never>!
+    private var inboundFramesDispatcher: Task<Void?, Never>?
 
     func send(frame: any Frame) {
         outboundContinuation.yield(frame)
@@ -76,21 +70,18 @@ public actor Connection {
     }
 
     // MARK: - lifecycle management
-    private var closed: Status = .closed
+    private(set) var status: Status = .closed
 
     public func close() {
-        closed = .closed
+        status = .closed
     }
 
     public func blockingClose() {
-        closed = .closed
+        status = .closed
     }
 
     private func ensureOpen() throws {
-        guard closed.isClosed else {
-            if case .failed(let reason) = closed {
-                throw ConnectionError.connectionFailed(reason: reason.localizedDescription)
-            }
+        guard !status.isClosed else {
             throw ConnectionError.connectionIsClosed
         }
     }
@@ -137,23 +128,25 @@ public actor Connection {
 
         // hand both AsyncStreams to Transport for communication
         // and then start receiving & sending frames
+        self.status = .connecting
+        let transport: any TransportProtocol & ~Copyable
+        do {
+            transport = try await env.transportFactory(
+                configuration.host,
+                configuration.port,
+                inboundContinuation,
+                outboundFrames,
+                {
+                    return env.negotiationFactory(configuration, properties)
+                }
+            )
+        } catch {
+            self.status = .closed
+            throw error
+        }
         self.transportExecutor = Task {
-            do {
-                self.closed = .connecting
-                let transport = try await env.transportFactory(
-                    configuration.host,
-                    configuration.port,
-                    inboundContinuation,
-                    outboundFrames,
-                    {
-                        return env.negotiationFactory(configuration, properties)
-                    }
-                )
-                self.closed = .connected
-                await transport.execute()
-            } catch {
-                self.closed = .failed(reason: error)
-            }
+            self.status = .connected
+            await transport.execute()
         }
 
         // create a task to distribute incoming frames
@@ -170,7 +163,7 @@ public actor Connection {
     }
 
     deinit {
-        transportExecutor.cancel()
-        inboundFramesDispatcher.cancel()
+        transportExecutor?.cancel()
+        inboundFramesDispatcher?.cancel()
     }
 }

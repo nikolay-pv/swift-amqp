@@ -1,6 +1,5 @@
 enum ConnectionError: Error {
     case connectionIsClosed
-    case connectionFailed(reason: String)
 }
 
 enum NegotiationError: Error {
