@@ -31,7 +31,7 @@ struct ChannelIDs {
 }
 
 public actor Connection {
-    public enum Status {
+    public enum Status: Sendable {
         case connecting
         case connected
         case closing
@@ -59,7 +59,7 @@ public actor Connection {
             preconditionFailure("Unexpected frame type in channel 0: \(type(of: frame))")
         }
         if frame.payload as? Spec.Connection.CloseOk != nil {
-            self.status = .closed
+            await self.channel0.dispatch(frame: frame)
             return
         }
         if let payload = frame.payload as? Spec.Connection.Close {
@@ -98,13 +98,18 @@ public actor Connection {
     // MARK: - lifecycle management
     private(set) var status: Status = .closed
 
-    public func close() {
+    public func close() async throws {
         let method = Spec.Connection.Close(replyCode: 0, classId: 0, methodId: 0)
-        let frame = channel0.makeFrame(with: method)
-        send(frame: frame)
-        // from now on no more frame will be sent out
         self.status = .closing
+        // from now on no more frame will be sent out
+        let frame = try await channel0.sendReturningResponse(method: method)
         // will be closed if CloseOk is received
+        precondition(
+            frame?.payload is Spec.Connection.CloseOk,
+            "close expects Spec.Connection.CloseOk but got \(String(describing: frame))"
+        )
+        self.status = .closed
+        transportExecutor?.cancel()
     }
 
     private func ensureOpen() throws {
@@ -190,6 +195,11 @@ public actor Connection {
     }
 
     deinit {
+        if self.status.isOpen {
+            preconditionFailure(
+                "Connection is not closed before deinit is called, please call close() first"
+            )
+        }
         transportExecutor?.cancel()
         inboundFramesDispatcher?.cancel()
     }

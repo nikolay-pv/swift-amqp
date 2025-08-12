@@ -64,7 +64,7 @@ extension Channel {
         }
     }
 
-    fileprivate func sendReturningResponse(
+    internal func sendReturningResponse(
         method: some AMQPMethodProtocol & FrameCodable,
     ) async throws -> MethodFrame? {
         let frame = MethodFrame(channelId: id, payload: method)
