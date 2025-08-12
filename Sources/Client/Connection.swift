@@ -34,9 +34,10 @@ public actor Connection {
     public enum Status {
         case connecting
         case connected
+        case closing
         case closed
 
-        var isClosed: Bool { self == .closed }
+        var isOpen: Bool { self == .connected }
     }
 
     // MARK: - transport management
@@ -51,6 +52,31 @@ public actor Connection {
 
     func send(frames: [any Frame]) {
         frames.forEach { outboundContinuation.yield($0) }
+    }
+
+    private func handleChannel0(frame: any Frame) async {
+        guard let frame = frame as? MethodFrame else {
+            preconditionFailure("Unexpected frame type in channel 0: \(type(of: frame))")
+        }
+        if frame.payload as? Spec.Connection.CloseOk != nil {
+            self.status = .closed
+            return
+        }
+        if let payload = frame.payload as? Spec.Connection.Close {
+            let method = Spec.Connection.CloseOk()
+            self.send(frame: self.channel0.makeFrame(with: method))
+            self.status = .closed
+            // shut down the transport
+            transportExecutor?.cancel()
+            if payload.replyCode != 0 {
+                print("Connection closed with code \(payload.replyCode): \(payload.replyText)")
+                for channel in channels.values {
+                    await channel.handleConnectionError(ConnectionError.connectionIsClosed)
+                }
+            }
+            return
+        }
+        fatalError("unreachable: in handleChannel0 with frame \(frame)")
     }
 
     // MARK: - channel management
@@ -73,15 +99,16 @@ public actor Connection {
     private(set) var status: Status = .closed
 
     public func close() {
-        status = .closed
-    }
-
-    public func blockingClose() {
-        status = .closed
+        let method = Spec.Connection.Close(replyCode: 0, classId: 0, methodId: 0)
+        let frame = channel0.makeFrame(with: method)
+        send(frame: frame)
+        // from now on no more frame will be sent out
+        self.status = .closing
+        // will be closed if CloseOk is received
     }
 
     private func ensureOpen() throws {
-        guard !status.isClosed else {
+        guard status.isOpen else {
             throw ConnectionError.connectionIsClosed
         }
     }
@@ -154,7 +181,7 @@ public actor Connection {
             for await frame in inboundFrames {
                 let channelId = frame.channelId
                 if channelId == 0 {
-                    await self.channel0.dispatch(frame: frame)
+                    await self.handleChannel0(frame: frame)
                 } else {
                     await self.channels[channelId]?.dispatch(frame: frame)
                 }

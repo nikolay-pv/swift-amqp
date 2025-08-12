@@ -116,7 +116,7 @@ extension Transport {
         } catch {
             // it should never happen, but if it does, log a warning, there is
             // no withThrowingTaskGroup which accepts non-throwing closure
-            print("WARNING: unexpected Error \(error) in TransportProtocol::execute()")
+            fatalError("Unexpected error in TransportProtocol::execute(): \(error)")
         }
     }
 }

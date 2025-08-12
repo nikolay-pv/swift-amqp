@@ -52,6 +52,18 @@ public actor Channel {
 // MARK: - Spec methods
 extension Channel {
 
+    nonisolated internal func makeFrame(
+        with method: any AMQPMethodProtocol & FrameCodable
+    ) -> MethodFrame {
+        return MethodFrame(channelId: id, payload: method)
+    }
+
+    internal func handleConnectionError(_ error: Error) {
+        for promise in promises {
+            promise.fail(error)
+        }
+    }
+
     fileprivate func sendReturningResponse(
         method: some AMQPMethodProtocol & FrameCodable,
     ) async throws -> MethodFrame? {
