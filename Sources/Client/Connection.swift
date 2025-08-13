@@ -34,7 +34,6 @@ public actor Connection {
     public enum Status: Sendable {
         case connecting
         case connected
-        case closing
         case closed
 
         var isOpen: Bool { self == .connected }
@@ -47,11 +46,15 @@ public actor Connection {
     private var inboundFramesDispatcher: Task<Void?, Never>?
 
     func send(frame: any Frame) {
-        outboundContinuation.yield(frame)
+        if self.status.isOpen {
+            outboundContinuation.yield(frame)
+        }
     }
 
     func send(frames: [any Frame]) {
-        frames.forEach { outboundContinuation.yield($0) }
+        if self.status.isOpen {
+            frames.forEach { outboundContinuation.yield($0) }
+        }
     }
 
     private func handleChannel0(frame: any Frame) async {
@@ -63,10 +66,9 @@ public actor Connection {
             return
         }
         if let payload = frame.payload as? Spec.Connection.Close {
-            let method = Spec.Connection.CloseOk()
-            self.send(frame: self.channel0.makeFrame(with: method))
+            // eat exceptions as it doesn't make sense to throw here (broker already closed the connection)
+            try? await self.channel0.connectionCloseOk()
             self.status = .closed
-            // shut down the transport
             transportExecutor?.cancel()
             if payload.replyCode != 0 {
                 print("Connection closed with code \(payload.replyCode): \(payload.replyText)")
@@ -99,15 +101,8 @@ public actor Connection {
     private(set) var status: Status = .closed
 
     public func close() async throws {
-        let method = Spec.Connection.Close(replyCode: 0, classId: 0, methodId: 0)
-        self.status = .closing
-        // from now on no more frame will be sent out
-        let frame = try await channel0.sendReturningResponse(method: method)
-        // will be closed if CloseOk is received
-        precondition(
-            frame?.payload is Spec.Connection.CloseOk,
-            "close expects Spec.Connection.CloseOk but got \(String(describing: frame))"
-        )
+        try await self.channel0.connectionClose()
+        // from now on no more frames will be sent out
         self.status = .closed
         transportExecutor?.cancel()
     }

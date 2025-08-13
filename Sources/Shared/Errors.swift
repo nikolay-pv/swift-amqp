@@ -1,5 +1,6 @@
 enum ConnectionError: Error {
     case connectionIsClosed
+    case channelIsClosed
 }
 
 enum NegotiationError: Error {

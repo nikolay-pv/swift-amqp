@@ -19,11 +19,16 @@ let publisher = Task {
     }
     let exchangeName = "swift-amqp-exchange"
     let queueName = "swift-amqp-queue"
-    try await channel.exchangeDeclare(named: exchangeName)
-    _ = try await channel.queueDeclare(named: queueName)
-    try await channel.queueBind(queue: queueName, exchange: exchangeName, routingKey: queueName)
-    try await channel.basicPublish(exchange: exchangeName, routingKey: queueName, body: "ping")
-    try await connection.close()
+    do {
+        try await channel.exchangeDeclare(named: exchangeName)
+        _ = try await channel.queueDeclare(named: queueName)
+        try await channel.queueBind(queue: queueName, exchange: exchangeName, routingKey: queueName)
+        try await channel.basicPublish(exchange: exchangeName, routingKey: queueName, body: "ping")
+        try await connection.close()
+    } catch {
+        print("Failed to publish message: \(error)")
+        return false
+    }
     return true
 }
 async let _ = publisher.result
