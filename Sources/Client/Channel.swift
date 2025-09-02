@@ -218,15 +218,34 @@ extension Channel {
         )
     }
 
-    public func queueBind(queue: String, exchange: String, routingKey: String? = nil) async throws {
+    // asks broker to bind the queue to exchange waiting for a confirmation
+    /// - Parameters:
+    ///   - queue: the name of the queue.
+    ///   - exchange: the name of the exchange.
+    ///   - routingKey: the routing key to use. If not provided, the queue name will be used as the routing key.
+    ///   - nowait: doesn't wait for a response from the broker, but let broker to raise exception if it didn't work.
+    ///  - Throws: if sending fails or the broker responds with an error.
+    public func queueBind(
+        queue: String,
+        exchange: String,
+        routingKey: String? = nil,
+        nowait: Bool = false,
+        arguments: Spec.Table = .init()
+    ) async throws {
         let method = Spec.Queue.Bind(
             ticket: 0,
             queue: queue,
             exchange: exchange,
-            routingKey: routingKey ?? "",
-            nowait: false,
-            arguments: .init()
+            routingKey: routingKey ?? queue,
+            nowait: nowait,
+            arguments: arguments
         )
+        if nowait {
+            let connection = try ensureOpen()
+            let frame = MethodFrame(channelId: self.id, payload: method)
+            await connection.send(frame: frame)
+            return
+        }
         let frame = try await sendReturningResponse(method: method)
         precondition(
             frame?.payload is Spec.Queue.BindOk,
