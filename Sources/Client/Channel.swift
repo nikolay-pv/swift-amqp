@@ -14,9 +14,16 @@ public actor Channel {
     private let continuation: AsyncStream<Message>.Continuation?
     private var content: Message?
     private var expectedContentSize: UInt64?
+    private var deliverMethod: Spec.Basic.Deliver?
 
     /// method to handle incoming frames from a Broker
     internal func dispatch(frame: any Frame) {
+        if let methodFrame = frame as? MethodFrame,
+            let method = methodFrame.payload as? Spec.Basic.Deliver
+        {
+            self.deliverMethod = method
+            return
+        }
         if isContent(frame) {
             if let header = frame as? ContentHeaderFrame {
                 self.expectedContentSize = header.bodySize
@@ -27,7 +34,9 @@ public actor Channel {
             if self.expectedContentSize == UInt64(self.content?.body.count ?? .max) {
                 continuation?.yield(self.content!)
                 self.content = nil
+                self.deliverMethod = nil
             }
+            return
         }
         // ideally will handle other frames too, but for now only ones it expects
         guard !promises.isEmpty else {
