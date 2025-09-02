@@ -192,15 +192,22 @@ extension Channel {
         )
     }
 
-    public func queueDeclare(named queueName: String) async throws -> Spec.Queue.DeclareOk {
+    /// Declares a queue and returns information about it.
+    /// - Parameter queueName: the name of the queue to declare.
+    /// - Returns: info about the queue on success, see `QueueDeclareResult`.
+    public func queueDeclare(named queueName: String) async throws -> QueueDeclareResult {
         let method = Spec.Queue.Declare(queue: queueName, durable: true)
         let frame = try await sendReturningResponse(method: method)
         guard let payload = frame?.payload as? Spec.Queue.DeclareOk else {
             preconditionFailure(
-                "queueDeclare expects Spec.Exchange.DeclareOk but got \(String(describing: frame))"
+                "queueDeclare expects Spec.Queue.DeclareOk but got \(String(describing: frame))"
             )
         }
-        return payload
+        return QueueDeclareResult(
+            queueName: payload.queue,
+            messageCount: Int(payload.messageCount),
+            consumerCount: Int(payload.consumerCount)
+        )
     }
 
     public func queueBind(queue: String, exchange: String, routingKey: String? = nil) async throws {
