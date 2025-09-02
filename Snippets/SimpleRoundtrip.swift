@@ -18,6 +18,9 @@ let publisher = Task {
     try await channel.queueBind(queue: queueName, exchange: exchangeName, routingKey: queueName)
     try await channel.basicPublish(exchange: exchangeName, routingKey: queueName, body: "ping")
     try await channel.basicPublish(exchange: exchangeName, routingKey: queueName, body: "stop")
+    // graceful shutdown
+    _ = try await channel.close()
+    _ = try await connection.close()
 }
 async let _ = publisher.result
 
@@ -45,5 +48,8 @@ let consumer = Task {
             break
         }
     }
+    // graceful shutdown
+    _ = try await channel.close()
+    _ = try await connection.close()
 }
 async let _ = consumer.result

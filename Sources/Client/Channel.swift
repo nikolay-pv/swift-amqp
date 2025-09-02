@@ -6,7 +6,7 @@ import NIOPosix
 /// @note Channel can't outlive the Connection which made it
 public actor Channel {
     public let id: UInt16
-    private(set) var closed = false
+    private(set) var isOpen = true
     private weak var connection: Connection?
     private var promises: [EventLoopPromise<any Frame>] = .init()
     private let eventLoop: EventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1).next()
@@ -50,21 +50,11 @@ public actor Channel {
     }
 
     deinit {
-        if !self.closed {
-            // if Channel is still open, send Close method without waiting for a response
-            let method = Spec.Channel.Close(
-                replyCode: 0,
-                replyText: "",
-                classId: 0,
-                methodId: 0
+        // id == 0 is special and it is never closed explicitly
+        if isOpen && id != 0 {
+            preconditionFailure(
+                "Channel is not closed before deinit is called, please call close() first"
             )
-            let connection = self.connection
-            let frame = makeFrame(with: method)
-            Task.detached {
-                // send Close method to the broker without waiting for a response to
-                // ensure no messages are coming to deallocated Channel
-                await connection?.send(frame: frame)
-            }
         }
     }
 }
@@ -72,7 +62,7 @@ public actor Channel {
 // MARK: - Spec methods
 extension Channel {
     private func ensureOpen() throws -> Connection {
-        guard !closed else {
+        guard isOpen else {
             throw ConnectionError.channelIsClosed
         }
         guard let connection = self.connection else {
@@ -117,7 +107,7 @@ extension Channel {
             frame?.payload is Spec.Channel.CloseOk,
             "close expects Spec.Channel.CloseOk but got \(String(describing: frame))"
         )
-        self.closed = true
+        self.isOpen = false
     }
 
     // this is only used on channel0
