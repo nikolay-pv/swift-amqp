@@ -47,8 +47,10 @@ let consumer = Task {
     for await message in messages {
         print("======= Consumer got message: \(message)")
         if String(bytes: message.body, encoding: .utf8) == "stop" {
+            try await message.ack()
             break
         }
+        try await message.nack(requeue: false)
     }
     // graceful shutdown
     _ = try await channel.close()

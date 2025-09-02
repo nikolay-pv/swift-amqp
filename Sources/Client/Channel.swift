@@ -28,8 +28,16 @@ public actor Channel {
         }
         if isContent(frame) {
             if let header = frame as? ContentHeaderFrame {
+                guard let deliverMethod = self.deliverMethod else {
+                    preconditionFailure("Received content frame without prior deliver method")
+                }
                 self.expectedContentSize = header.bodySize
-                self.content = .init(body: [], properties: header.properties)
+                self.content = .init(
+                    body: [],
+                    properties: header.properties,
+                    channel: self,
+                    deliveryTag: deliverMethod.deliveryTag
+                )
             } else if let body = frame as? ContentBodyFrame {
                 self.content?.body.append(contentsOf: body.fragment)
             }
@@ -249,6 +257,35 @@ extension Channel {
             "basicConsume expects Spec.Basic.ConsumeOk but got \(String(describing: frame))"
         )
         return messages
+    }
+
+    /// Sends ack for one or more messages on this channel.
+    /// - Parameters:
+    ///   - deliveryTag: the delivery tag of the message to acknowledge.
+    ///   - multiple: if true, acknowledges all messages up to and including this one.
+    public func basicAck(deliveryTag: Int64, multiple: Bool = false) async throws {
+        let connection = try ensureOpen()
+        let method = Spec.Basic.Ack(deliveryTag: deliveryTag, multiple: multiple)
+        let frame = makeFrame(with: method)
+        await connection.send(frame: frame)
+    }
+
+    /// Sends nack for one or more messages on this channel.
+    /// - Parameters:
+    ///   - deliveryTag: the delivery tag of the message to reject.
+    ///   - multiple: if true, rejects all messages up to and including this one.
+    ///   - requeue: if true, the message will be requeued.
+    public func basicNack(deliveryTag: Int64, multiple: Bool = false, requeue: Bool = true)
+        async throws
+    {
+        let connection = try ensureOpen()
+        let method = Spec.Basic.Nack(
+            deliveryTag: deliveryTag,
+            multiple: multiple,
+            requeue: requeue
+        )
+        let frame = makeFrame(with: method)
+        await connection.send(frame: frame)
     }
 
     // this will start receiving the messages from Transport too
