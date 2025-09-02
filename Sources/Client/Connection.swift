@@ -30,14 +30,6 @@ struct ChannelIDs {
 }
 
 public actor Connection {
-    public enum Status: Sendable {
-        case connecting
-        case connected
-        case closed
-
-        var isOpen: Bool { self == .connected }
-    }
-
     // MARK: - transport management
     private var transportExecutor: Task<Void?, Never>?
 
@@ -45,13 +37,13 @@ public actor Connection {
     private var inboundFramesDispatcher: Task<Void?, Never>?
 
     func send(frame: any Frame) {
-        if self.status.isOpen {
+        if isOpen {
             outboundContinuation.yield(frame)
         }
     }
 
     func send(frames: [any Frame]) {
-        if self.status.isOpen {
+        if isOpen {
             frames.forEach { outboundContinuation.yield($0) }
         }
     }
@@ -67,7 +59,7 @@ public actor Connection {
         if let payload = frame.payload as? Spec.Connection.Close {
             // eat exceptions as it doesn't make sense to throw here (broker already closed the connection)
             try? await self.channel0.connectionCloseOk()
-            self.status = .closed
+            isOpen = false
             transportExecutor?.cancel()
             if payload.replyCode != 0 {
                 print("Connection closed with code \(payload.replyCode): \(payload.replyText)")
@@ -97,17 +89,17 @@ public actor Connection {
     }
 
     // MARK: - lifecycle management
-    private(set) var status: Status = .closed
+    private(set) var isOpen: Bool = true
 
     public func close() async throws {
         try await self.channel0.connectionClose()
         // from now on no more frames will be sent out
-        self.status = .closed
+        isOpen = false
         transportExecutor?.cancel()
     }
 
     private func ensureOpen() throws {
-        guard status.isOpen else {
+        if !isOpen {
             throw ConnectionError.connectionIsClosed
         }
     }
@@ -154,7 +146,7 @@ public actor Connection {
 
         // hand both AsyncStreams to Transport for communication
         // and then start receiving & sending frames
-        self.status = .connecting
+        isOpen = true
         let transport: any TransportProtocol & ~Copyable
         do {
             transport = try await env.transportFactory(
@@ -167,11 +159,10 @@ public actor Connection {
                 }
             )
         } catch {
-            self.status = .closed
+            isOpen = false
             throw error
         }
         self.transportExecutor = Task {
-            self.status = .connected
             await transport.execute()
         }
 
@@ -189,7 +180,7 @@ public actor Connection {
     }
 
     deinit {
-        if self.status.isOpen {
+        if isOpen {
             preconditionFailure(
                 "Connection is not closed before deinit is called, please call close() first"
             )
