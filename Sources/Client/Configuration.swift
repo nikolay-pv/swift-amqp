@@ -1,3 +1,5 @@
+import Logging
+
 public struct Configuration: Sendable {
     public var host: String
     public var port: Int
@@ -20,6 +22,7 @@ public struct Configuration: Sendable {
     }
 
     public var credentials: AuthType
+    public var logger = Logger(label: "swift.amqp")
     public var channelMax: Int = 0
     public var frameMax: Int = 0
 

@@ -25,6 +25,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-nio.git", .upToNextMajor(from: "2.67.0")),
+        .package(url: "https://github.com/apple/swift-log", .upToNextMajor(from: "1.6.0")),
         .package(
             url: "https://github.com/apple/swift-nio-extras.git",
             .upToNextMajor(from: "1.25.0")
@@ -46,6 +47,7 @@ let package = Package(
                 .product(name: "NIOPosix", package: "swift-nio"),
                 .product(name: "NIOExtras", package: "swift-nio-extras"),
                 .product(name: "NIOFoundationCompat", package: "swift-nio"),
+                .product(name: "Logging", package: "swift-log"),
                 .product(name: "Collections", package: "swift-collections"),
                 .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
             ],

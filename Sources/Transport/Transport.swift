@@ -1,4 +1,5 @@
 import AsyncAlgorithms
+import Logging
 import NIOConcurrencyHelpers
 import NIOCore
 import NIOPosix
@@ -18,6 +19,7 @@ struct Transport: ~Copyable, TransportProtocol, Sendable {
     init(
         host: String = "localhost",
         port: Int = 5672,
+        logger: Logger,
         inboundContinuation: AsyncStream<any Frame>.Continuation,
         outboundFrames: AsyncStream<any Frame>,
         negotiatorFactory: @escaping @Sendable () -> any AMQPNegotiationDelegateProtocol
@@ -40,12 +42,15 @@ struct Transport: ~Copyable, TransportProtocol, Sendable {
                         #if canImport(NIOExtras)
                             .flatMap {
                                 return channel.pipeline.addHandler(
-                                    DebugOutboundEventsHandler { event, _ in print("\(event)") }
+                                    DebugOutboundEventsHandler { event, _ in
+                                        logger.debug("\(event)")
+                                    }
                                 )
                             }
                             .flatMap {
                                 return channel.pipeline.addHandler(
-                                    DebugInboundEventsHandler { event, _ in print("\(event)") }
+                                    DebugInboundEventsHandler { event, _ in logger.debug("\(event)")
+                                    }
                                 )
                             }
                         #endif  // canImport(NIOExtras)

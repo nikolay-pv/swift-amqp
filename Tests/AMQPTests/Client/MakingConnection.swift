@@ -8,9 +8,10 @@ func makeTestEnv(with actions: [TransportMock.Action]) -> Environment {
         var transportStub = try await TransportMock(
             host: $0,
             port: $1,
-            inboundContinuation: $2,
-            outboundFrames: $3,
-            negotiatorFactory: $4
+            logger: $2,
+            inboundContinuation: $3,
+            outboundFrames: $4,
+            negotiatorFactory: $5
         )
         transportStub.expecting(sequenceOf: actions)
         return transportStub

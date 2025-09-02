@@ -1,4 +1,5 @@
 import Collections
+import Logging
 import NIOCore
 import NIOPosix
 
@@ -30,6 +31,7 @@ struct ChannelIDs {
 }
 
 public actor Connection {
+    private var logger: Logger
     // MARK: - transport management
     private var transportExecutor: Task<Void?, Never>?
 
@@ -62,7 +64,9 @@ public actor Connection {
             isOpen = false
             transportExecutor?.cancel()
             if payload.replyCode != 0 {
-                print("Connection closed with code \(payload.replyCode): \(payload.replyText)")
+                logger.error(
+                    "Connection closed by broker with code \(payload.replyCode): \(payload.replyText)"
+                )
                 for channel in channels.values {
                     await channel.handleConnectionError(ConnectionError.connectionIsClosed)
                 }
@@ -75,14 +79,14 @@ public actor Connection {
     // MARK: - channel management
     // channel0 is special and is used for communications before any channel exists
     // it never explicitly created on the server side (so no requestOpen call is made for it)
-    private lazy var channel0: Channel = { Channel(connection: self, id: 0) }()
+    private lazy var channel0: Channel = { Channel(connection: self, id: 0, logger: self.logger) }()
     private var channels: [UInt16: Channel] = [:]
     private var channelIDs: ChannelIDs = .init()
 
     public func makeChannel() async throws -> Channel {
         try ensureOpen()
         let id = UInt16(channelIDs.next())
-        let channel = Channel.init(connection: self, id: id)
+        let channel = Channel.init(connection: self, id: id, logger: self.logger)
         channels[id] = channel
         try await channel.requestOpen()
         return channel
@@ -111,6 +115,7 @@ public actor Connection {
 
     // swiftlint:disable:next function_body_length
     init(with configuration: Configuration, env: Environment) async throws {
+        self.logger = configuration.logger
         let properties: Spec.Table = [
             "product": .longstr("swift-amqp"),
             "platform": .longstr("swift"),
@@ -148,10 +153,12 @@ public actor Connection {
         // and then start receiving & sending frames
         isOpen = true
         let transport: any TransportProtocol & ~Copyable
+        let transportLogger = self.logger
         do {
             transport = try await env.transportFactory(
                 configuration.host,
                 configuration.port,
+                transportLogger,
                 inboundContinuation,
                 outboundFrames,
                 {

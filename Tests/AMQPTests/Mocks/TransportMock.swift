@@ -1,3 +1,4 @@
+import Logging
 import Testing
 
 @testable import AMQP  // testable to be able to use TransportProtocol
@@ -21,6 +22,7 @@ struct TransportMock: TransportProtocol, ~Copyable, Sendable {
     init(
         host: String,
         port: Int,
+        logger: Logger,
         inboundContinuation: AsyncStream<any AMQP.Frame>.Continuation,
         outboundFrames: AsyncStream<any AMQP.Frame>,
         negotiatorFactory: @escaping @Sendable () -> any AMQP.AMQPNegotiationDelegateProtocol

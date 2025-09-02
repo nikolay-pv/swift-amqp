@@ -1,3 +1,4 @@
+import Logging
 import NIOCore
 import NIOPosix
 
@@ -8,6 +9,7 @@ public actor Channel {
     public let id: UInt16
     private(set) var isOpen = true
     private weak var connection: Connection?
+    private let logger: Logger
     private var promises: [EventLoopPromise<any Frame>] = .init()
     private let eventLoop: EventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1).next()
     private let messages: AsyncStream<Message>
@@ -48,9 +50,12 @@ public actor Channel {
     }
 
     // MARK: - init
-    internal init(connection: Connection, id: UInt16) {
+    internal init(connection: Connection, id: UInt16, logger: Logger) {
         self.id = id
         self.connection = connection
+        var decoratedLogger = logger
+        decoratedLogger[metadataKey: "channel-id"] = "\(id)"
+        self.logger = decoratedLogger
         var messagesContinuation: AsyncStream<Message>.Continuation?
         self.messages = AsyncStream { continuation in
             messagesContinuation = continuation
