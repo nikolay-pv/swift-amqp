@@ -1,4 +1,4 @@
 public struct Message: Sendable {
-    var body: [UInt8]
-    var properties: Spec.BasicProperties
+    public var body: [UInt8]
+    public var properties: Spec.BasicProperties
 }

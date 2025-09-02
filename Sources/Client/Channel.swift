@@ -6,16 +6,24 @@ import NIOPosix
 /// @note Channel can't outlive the Connection which made it
 public actor Channel {
     public let id: UInt16
-    private unowned var connection: Connection
+    private(set) var isOpen = true
+    private weak var connection: Connection?
     private var promises: [EventLoopPromise<any Frame>] = .init()
     private let eventLoop: EventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1).next()
     private let messages: AsyncStream<Message>
     private let continuation: AsyncStream<Message>.Continuation?
     private var content: Message?
     private var expectedContentSize: UInt64?
+    private var deliverMethod: Spec.Basic.Deliver?
 
     /// method to handle incoming frames from a Broker
     internal func dispatch(frame: any Frame) {
+        if let methodFrame = frame as? MethodFrame,
+            let method = methodFrame.payload as? Spec.Basic.Deliver
+        {
+            self.deliverMethod = method
+            return
+        }
         if isContent(frame) {
             if let header = frame as? ContentHeaderFrame {
                 self.expectedContentSize = header.bodySize
@@ -26,7 +34,9 @@ public actor Channel {
             if self.expectedContentSize == UInt64(self.content?.body.count ?? .max) {
                 continuation?.yield(self.content!)
                 self.content = nil
+                self.deliverMethod = nil
             }
+            return
         }
         // ideally will handle other frames too, but for now only ones it expects
         guard !promises.isEmpty else {
@@ -51,16 +61,80 @@ public actor Channel {
 
 // MARK: - Spec methods
 extension Channel {
+    private func ensureOpen() throws -> Connection {
+        guard isOpen else {
+            throw ConnectionError.channelIsClosed
+        }
+        guard let connection = self.connection else {
+            throw ConnectionError.connectionIsClosed
+        }
+        return connection
+    }
 
-    fileprivate func sendReturningResponse(
+    nonisolated internal func makeFrame(
+        with method: any AMQPMethodProtocol & FrameCodable
+    ) -> MethodFrame {
+        return MethodFrame(channelId: id, payload: method)
+    }
+
+    internal func handleConnectionError(_ error: Error) {
+        for promise in promises {
+            promise.fail(error)
+        }
+    }
+
+    private func sendReturningResponse(
         method: some AMQPMethodProtocol & FrameCodable,
     ) async throws -> MethodFrame? {
+        let connection = try ensureOpen()
         let frame = MethodFrame(channelId: id, payload: method)
         let promise = eventLoop.makePromise(of: (any Frame).self)
         promises.append(promise)
         await connection.send(frame: frame)
         let response = try await promise.futureResult.get() as? MethodFrame
         return response
+    }
+
+    public func close(replyCode: Int16 = 0, replyText: String = "") async throws {
+        let method = Spec.Channel.Close(
+            replyCode: replyCode,
+            replyText: replyText,
+            classId: 0,
+            methodId: 0
+        )
+        let frame = try await sendReturningResponse(method: method)
+        precondition(
+            frame?.payload is Spec.Channel.CloseOk,
+            "close expects Spec.Channel.CloseOk but got \(String(describing: frame))"
+        )
+        self.isOpen = false
+    }
+
+    // this is only used on channel0
+    internal func connectionClose(
+        replyCode: Int16 = 0,
+        replyText: String = "",
+        classId: Int16 = 0,
+        methodId: Int16 = 0
+    ) async throws {
+        let method = Spec.Connection.Close(
+            replyCode: replyCode,
+            replyText: replyText,
+            classId: classId,
+            methodId: methodId
+        )
+        let frame = try await sendReturningResponse(method: method)
+        precondition(
+            frame?.payload is Spec.Connection.CloseOk,
+            "close expects Spec.Connection.CloseOk but got \(String(describing: frame))"
+        )
+    }
+
+    // this is only used on channel0
+    internal func connectionCloseOk() async throws {
+        let method = Spec.Connection.CloseOk()
+        let frame = MethodFrame(channelId: id, payload: method)
+        await connection?.send(frame: frame)
     }
 
     /// Requests a specific quality of service (QoS) for this `Channel` or for all channels on the `Connection`.
@@ -141,6 +215,7 @@ extension Channel {
     }
 
     public func basicPublish(exchange: String, routingKey: String, body: String) async throws {
+        let connection = try ensureOpen()
         let method = Spec.Basic.Publish(exchange: exchange, routingKey: routingKey)
         let frame = MethodFrame(channelId: self.id, payload: method)
         let contentProps = Spec.BasicProperties()

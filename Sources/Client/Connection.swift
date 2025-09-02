@@ -13,7 +13,6 @@ struct ChannelIDs {
         if id == nextFree - 1 {
             nextFree -= 1
         } else {
-            // TODO: this does linear search -> find faster DS
             freed.insert(id, at: occupied.firstIndex(where: { $0 >= id }) ?? occupied.endIndex)
         }
         occupied.remove(id)
@@ -32,17 +31,45 @@ struct ChannelIDs {
 
 public actor Connection {
     // MARK: - transport management
-    private var transportExecutor: Task<Void?, Never>
+    private var transportExecutor: Task<Void?, Never>?
 
     private let outboundContinuation: AsyncStream<any Frame>.Continuation
-    private var inboundFramesDispatcher: Task<Void?, Never>!
+    private var inboundFramesDispatcher: Task<Void?, Never>?
 
     func send(frame: any Frame) {
-        outboundContinuation.yield(frame)
+        if isOpen {
+            outboundContinuation.yield(frame)
+        }
     }
 
     func send(frames: [any Frame]) {
-        frames.forEach { outboundContinuation.yield($0) }
+        if isOpen {
+            frames.forEach { outboundContinuation.yield($0) }
+        }
+    }
+
+    private func handleChannel0(frame: any Frame) async {
+        guard let frame = frame as? MethodFrame else {
+            preconditionFailure("Unexpected frame type in channel 0: \(type(of: frame))")
+        }
+        if frame.payload as? Spec.Connection.CloseOk != nil {
+            await self.channel0.dispatch(frame: frame)
+            return
+        }
+        if let payload = frame.payload as? Spec.Connection.Close {
+            // eat exceptions as it doesn't make sense to throw here (broker already closed the connection)
+            try? await self.channel0.connectionCloseOk()
+            isOpen = false
+            transportExecutor?.cancel()
+            if payload.replyCode != 0 {
+                print("Connection closed with code \(payload.replyCode): \(payload.replyText)")
+                for channel in channels.values {
+                    await channel.handleConnectionError(ConnectionError.connectionIsClosed)
+                }
+            }
+            return
+        }
+        fatalError("unreachable: in handleChannel0 with frame \(frame)")
     }
 
     // MARK: - channel management
@@ -62,18 +89,17 @@ public actor Connection {
     }
 
     // MARK: - lifecycle management
-    private var closed: Bool = true
+    private(set) var isOpen: Bool = true
 
-    public func close() {
-        closed = true
-    }
-
-    public func blockingClose() {
-        closed = true
+    public func close() async throws {
+        try await self.channel0.connectionClose()
+        // from now on no more frames will be sent out
+        isOpen = false
+        transportExecutor?.cancel()
     }
 
     private func ensureOpen() throws {
-        guard !closed else {
+        if !isOpen {
             throw ConnectionError.connectionIsClosed
         }
     }
@@ -120,30 +146,32 @@ public actor Connection {
 
         // hand both AsyncStreams to Transport for communication
         // and then start receiving & sending frames
-        self.transportExecutor = Task {
-            do {
-                let transport = try await env.transportFactory(
-                    configuration.host,
-                    configuration.port,
-                    inboundContinuation,
-                    outboundFrames,
-                    {
-                        return env.negotiationFactory(configuration, properties)
-                    }
-                )
-                try await transport.execute()
-            } catch {
-                fatalError("TODO: better messaging")
-            }
+        isOpen = true
+        let transport: any TransportProtocol & ~Copyable
+        do {
+            transport = try await env.transportFactory(
+                configuration.host,
+                configuration.port,
+                inboundContinuation,
+                outboundFrames,
+                {
+                    return env.negotiationFactory(configuration, properties)
+                }
+            )
+        } catch {
+            isOpen = false
+            throw error
         }
-        self.closed = false
+        self.transportExecutor = Task {
+            await transport.execute()
+        }
 
         // create a task to distribute incoming frames
         self.inboundFramesDispatcher = Task {
             for await frame in inboundFrames {
                 let channelId = frame.channelId
                 if channelId == 0 {
-                    await self.channel0.dispatch(frame: frame)
+                    await self.handleChannel0(frame: frame)
                 } else {
                     await self.channels[channelId]?.dispatch(frame: frame)
                 }
@@ -152,7 +180,7 @@ public actor Connection {
     }
 
     deinit {
-        transportExecutor.cancel()
-        inboundFramesDispatcher.cancel()
+        transportExecutor?.cancel()
+        inboundFramesDispatcher?.cancel()
     }
 }

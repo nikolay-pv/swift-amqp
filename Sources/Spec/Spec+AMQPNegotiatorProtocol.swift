@@ -40,7 +40,6 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
     func negotiate(frame: InputFrame) -> TransportAction {
         switch state {
         case .waitingStart:
-            // TODO: the below would need to be encapsulated somewhere
             // expected to get Connection.Start
             guard let method = frame.payload as? AMQP.Spec.Connection.Start else {
                 return .error(NegotiationError.unexpectedMethod)
@@ -77,7 +76,6 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
             self.state = .waitingTune
             return .reply(startOkFrame)
         case .waitingSecure:
-            // TODO: implement secure
             // repeat below two
             // SASL, challenge-response model = get Secure method
             // send Secure-Ok method
@@ -96,7 +94,6 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
                 server: Int(method.frameMax),
                 client: self.config.frameMax
             )
-            // TODO: setup heartbeat here
             let response = AMQP.Spec.Connection.TuneOk(
                 channelMax: Int16(self.config.channelMax),
                 frameMax: Int32(self.config.frameMax),
@@ -108,7 +105,7 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
             )
             let connectData = MethodFrame(
                 channelId: 0,
-                payload: Spec.Connection.Open()  // TODO: config?
+                payload: Spec.Connection.Open()
             )
             self.state = .waitingOpenOk
             return .replySeveral([frame, connectData])

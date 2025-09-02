@@ -17,6 +17,10 @@ let publisher = Task {
     _ = try await channel.queueDeclare(named: queueName)
     try await channel.queueBind(queue: queueName, exchange: exchangeName, routingKey: queueName)
     try await channel.basicPublish(exchange: exchangeName, routingKey: queueName, body: "ping")
+    try await channel.basicPublish(exchange: exchangeName, routingKey: queueName, body: "stop")
+    // graceful shutdown
+    _ = try await channel.close()
+    _ = try await connection.close()
 }
 async let _ = publisher.result
 
@@ -38,9 +42,14 @@ let consumer = Task {
         queue: queueName,
         tag: "somerandomtag"
     )
-    // the following would never stop running unless an error occurs
-    for await mess in messages {
-        print("======= Consumer got message: \(mess)")
+    for await message in messages {
+        print("======= Consumer got message: \(message)")
+        if String(bytes: message.body, encoding: .utf8) == "stop" {
+            break
+        }
     }
+    // graceful shutdown
+    _ = try await channel.close()
+    _ = try await connection.close()
 }
 async let _ = consumer.result
