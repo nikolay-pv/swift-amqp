@@ -2,7 +2,7 @@ import Foundation
 import NIOCore
 import NIOFoundationCompat
 
-struct ByteToMessageCoderHandler: ByteToMessageDecoder, MessageToByteEncoder {
+struct ByteToFrameCoderHandler: ByteToMessageDecoder, MessageToByteEncoder {
     // MARK: - ByteToMessageDecoder
     typealias InboundOut = Frame
 

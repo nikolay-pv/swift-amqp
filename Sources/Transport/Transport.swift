@@ -33,10 +33,10 @@ struct Transport: ~Copyable, TransportProtocol, Sendable {
             self.asyncNIOChannel = try await ClientBootstrap(group: eventLoopGroup)
                 .connect(host: host, port: port) { channel in
                     return channel.pipeline
-                        .addHandler(ByteToMessageHandler(ByteToMessageCoderHandler()))
+                        .addHandler(ByteToMessageHandler(ByteToFrameCoderHandler()))
                         .flatMap {
                             return channel.pipeline.addHandler(
-                                MessageToByteHandler(ByteToMessageCoderHandler())
+                                MessageToByteHandler(ByteToFrameCoderHandler())
                             )
                         }
                         #if canImport(NIOExtras)
