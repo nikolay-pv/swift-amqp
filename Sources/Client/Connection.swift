@@ -13,7 +13,6 @@ struct ChannelIDs {
         if id == nextFree - 1 {
             nextFree -= 1
         } else {
-            // TODO: this does linear search -> find faster DS
             freed.insert(id, at: occupied.firstIndex(where: { $0 >= id }) ?? occupied.endIndex)
         }
         occupied.remove(id)
