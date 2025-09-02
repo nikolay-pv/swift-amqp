@@ -180,11 +180,6 @@ public actor Connection {
     }
 
     deinit {
-        if isOpen {
-            preconditionFailure(
-                "Connection is not closed before deinit is called, please call close() first"
-            )
-        }
         transportExecutor?.cancel()
         inboundFramesDispatcher?.cancel()
     }

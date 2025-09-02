@@ -57,15 +57,6 @@ public actor Channel {
         }
         self.continuation = messagesContinuation
     }
-
-    deinit {
-        // id == 0 is special and it is never closed explicitly
-        if isOpen && id != 0 {
-            preconditionFailure(
-                "Channel is not closed before deinit is called, please call close() first"
-            )
-        }
-    }
 }
 
 // MARK: - Spec methods
