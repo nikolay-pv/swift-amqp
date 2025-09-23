@@ -8,11 +8,13 @@ import NIOPosix
     import NIOExtras
 #endif
 
-struct Transport: ~Copyable, TransportProtocol, Sendable {
+final class Transport: TransportProtocol, Sendable {
     private let eventLoopGroup: MultiThreadedEventLoopGroup
     // can only be nil if Transport is throwing at init
     private let asyncNIOChannel: NIOAsyncChannel<any Frame, any Frame>?
 
+    private let outboundLock: NIOLock = .init()
+    private let outboundContinuation: AsyncStream<any Frame>.Continuation
     private let outboundFrames: AsyncStream<any Frame>
     private let inboundContinuation: AsyncStream<any Frame>.Continuation
 
@@ -21,13 +23,23 @@ struct Transport: ~Copyable, TransportProtocol, Sendable {
         port: Int = 5672,
         logger: Logger,
         inboundContinuation: AsyncStream<any Frame>.Continuation,
-        outboundFrames: AsyncStream<any Frame>,
         negotiatorFactory: @escaping @Sendable () -> any AMQPNegotiationDelegateProtocol
     ) async throws {
         // one event loop per connection
         self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         let negotiationComplete = eventLoopGroup.any().makePromise(of: Void.self)
-        self.outboundFrames = outboundFrames
+
+        // create outbound AsyncStream
+        var outboundContinuation: AsyncStream<any Frame>.Continuation?
+        self.outboundFrames = AsyncStream { continuation in
+            outboundContinuation = continuation
+        }
+        guard let outboundContinuation else {
+            fatalError("Couldn't create outbound AsyncStream")
+        }
+        // save continuation for later use
+        self.outboundContinuation = outboundContinuation
+
         self.inboundContinuation = inboundContinuation
         do {
             self.asyncNIOChannel = try await ClientBootstrap(group: eventLoopGroup)
@@ -73,7 +85,6 @@ struct Transport: ~Copyable, TransportProtocol, Sendable {
             // this will catch any error during connection establishment
             self.asyncNIOChannel = nil
             negotiationComplete.fail(error)
-            throw error
         }
         try await negotiationComplete.futureResult.get()
     }
@@ -84,6 +95,45 @@ struct Transport: ~Copyable, TransportProtocol, Sendable {
 }
 
 extension Transport {
+    var isActive: Bool {
+        self.asyncNIOChannel?.channel.isActive ?? false
+    }
+
+    // sends a frame to the broker throught the established connection,
+    // the caller is responsible for making sure that the `Transport.isActive`
+    func send(_ frame: any Frame) -> EventLoopPromise<any Frame> {
+        let promise = eventLoopGroup.any().makePromise(of: (any Frame).self)
+        outboundLock.withLockVoid {
+            outboundContinuation.yield(frame)
+        }
+        return promise
+    }
+
+    func send(_ frames: [any Frame]) -> EventLoopPromise<any Frame> {
+        let promise = eventLoopGroup.any().makePromise(of: (any Frame).self)
+        outboundLock.withLockVoid {
+            frames.forEach {
+                outboundContinuation.yield($0)
+            }
+        }
+        return promise
+    }
+
+    // same as send, but doesn't return any promises to be called later
+    func sendAsync(_ frame: any Frame) {
+        outboundLock.withLockVoid {
+            outboundContinuation.yield(frame)
+        }
+    }
+
+    func sendAsync(_ frames: [any Frame]) {
+        outboundLock.withLockVoid {
+            frames.forEach {
+                outboundContinuation.yield($0)
+            }
+        }
+    }
+
     /// Receives and sends out frames as they come through the AsyncStream's passed on construction of the object
     ///
     /// - Throws: Any error that occurs during task execution.

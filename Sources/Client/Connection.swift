@@ -33,20 +33,20 @@ struct ChannelIDs {
 public actor Connection {
     private var logger: Logger
     // MARK: - transport management
+    private let transport: TransportProtocol
     private var transportExecutor: Task<Void?, Never>?
 
-    private let outboundContinuation: AsyncStream<any Frame>.Continuation
     private var inboundFramesDispatcher: Task<Void?, Never>?
 
     func send(frame: any Frame) {
         if isOpen {
-            outboundContinuation.yield(frame)
+            transport.sendAsync(frame)
         }
     }
 
     func send(frames: [any Frame]) {
         if isOpen {
-            frames.forEach { outboundContinuation.yield($0) }
+            transport.sendAsync(frames)
         }
     }
 
@@ -61,7 +61,6 @@ public actor Connection {
         if let payload = frame.payload as? Spec.Connection.Close {
             // eat exceptions as it doesn't make sense to throw here (broker already closed the connection)
             try? await self.channel0.connectionCloseOk()
-            isOpen = false
             transportExecutor?.cancel()
             if payload.replyCode != 0 {
                 logger.error(
@@ -93,12 +92,11 @@ public actor Connection {
     }
 
     // MARK: - lifecycle management
-    private(set) var isOpen: Bool = true
+    public var isOpen: Bool { transport.isActive }
 
     public func close() async throws {
         try await self.channel0.connectionClose()
         // from now on no more frames will be sent out
-        isOpen = false
         transportExecutor?.cancel()
     }
 
@@ -138,39 +136,20 @@ public actor Connection {
             fatalError("Couldn't create inbound AsyncStream")
         }
 
-        // create outbound AsyncStream
-        var outboundContinuation: AsyncStream<any Frame>.Continuation?
-        let outboundFrames = AsyncStream { continuation in
-            outboundContinuation = continuation
-        }
-        guard let outboundContinuation else {
-            fatalError("Couldn't create outbound AsyncStream")
-        }
-        // save continuation for later use
-        self.outboundContinuation = outboundContinuation
-
         // hand both AsyncStreams to Transport for communication
         // and then start receiving & sending frames
-        isOpen = true
-        let transport: any TransportProtocol & ~Copyable
-        let transportLogger = self.logger
-        do {
-            transport = try await env.transportFactory(
-                configuration.host,
-                configuration.port,
-                transportLogger,
-                inboundContinuation,
-                outboundFrames,
-                {
-                    return env.negotiationFactory(configuration, properties)
-                }
-            )
-        } catch {
-            isOpen = false
-            throw error
-        }
+        self.transport = try await env.transportFactory(
+            configuration.host,
+            configuration.port,
+            self.logger,
+            inboundContinuation,
+            {
+                return env.negotiationFactory(configuration, properties)
+            }
+        )
+        let sharedTransport = self.transport
         self.transportExecutor = Task {
-            await transport.execute()
+            await sharedTransport.execute()
         }
 
         // create a task to distribute incoming frames

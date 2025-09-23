@@ -1,20 +1,26 @@
 import Logging
+import NIOCore
+import NIOPosix
 import Testing
 
 @testable import AMQP  // testable to be able to use TransportProtocol
 
-struct TransportMock: TransportProtocol, ~Copyable, Sendable {
+// Warning: this is not strictly sendable
+final class TransportMock: TransportProtocol, @unchecked Sendable {
 
     enum Action {
         case inbound(any Frame)
         case outbound(any Frame)
     }
 
-    private var outboundFrames: AsyncStream<any Frame>
-    private var inboundContinuation: AsyncStream<any Frame>.Continuation
+    private let eventLoop: EventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1).next()
+    private let outboundContinuation: AsyncStream<any Frame>.Continuation
+    private let outboundFrames: AsyncStream<any Frame>
+    private let inboundContinuation: AsyncStream<any Frame>.Continuation
+    // Warning: the following variable is not Sendable
     private(set) var actions: [Action] = .init()
 
-    mutating func expecting(sequenceOf actions: [Action]) {
+    func expecting(sequenceOf actions: [Action]) {
         self.actions = actions
     }
 
@@ -24,11 +30,18 @@ struct TransportMock: TransportProtocol, ~Copyable, Sendable {
         port: Int,
         logger: Logger,
         inboundContinuation: AsyncStream<any AMQP.Frame>.Continuation,
-        outboundFrames: AsyncStream<any AMQP.Frame>,
         negotiatorFactory: @escaping @Sendable () -> any AMQP.AMQPNegotiationDelegateProtocol
     ) async throws {
         self.inboundContinuation = inboundContinuation
-        self.outboundFrames = outboundFrames
+        var outboundContinuation: AsyncStream<any Frame>.Continuation?
+        self.outboundFrames = AsyncStream { continuation in
+            outboundContinuation = continuation
+        }
+        guard let outboundContinuation else {
+            fatalError("Couldn't create outbound AsyncStream")
+        }
+        // save continuation for later use
+        self.outboundContinuation = outboundContinuation
     }
 
     /// Sends out all inbound actions starting `from` the given index.
@@ -66,6 +79,34 @@ struct TransportMock: TransportProtocol, ~Copyable, Sendable {
             if idx == actions.endIndex {
                 break
             }
+        }
+    }
+}
+
+extension TransportMock {
+    var isActive: Bool { true }
+
+    func send(_ frame: any AMQP.Frame) -> NIOCore.EventLoopPromise<any AMQP.Frame> {
+        let promise = eventLoop.makePromise(of: (any Frame).self)
+        outboundContinuation.yield(frame)
+        return promise
+    }
+
+    func send(_ frames: [any AMQP.Frame]) -> NIOCore.EventLoopPromise<any AMQP.Frame> {
+        let promise = eventLoop.makePromise(of: (any Frame).self)
+        frames.forEach {
+            outboundContinuation.yield($0)
+        }
+        return promise
+    }
+
+    func sendAsync(_ frame: any AMQP.Frame) {
+        outboundContinuation.yield(frame)
+    }
+
+    func sendAsync(_ frames: [any AMQP.Frame]) {
+        frames.forEach {
+            outboundContinuation.yield($0)
         }
     }
 }
