@@ -101,9 +101,8 @@ extension Channel {
     ) async throws -> MethodFrame? {
         let connection = try ensureOpen()
         let frame = MethodFrame(channelId: id, payload: method)
-        let promise = eventLoop.makePromise(of: (any Frame).self)
+        let promise = connection.transport.send(frame)
         promises.append(promise)
-        await connection.send(frame: frame)
         let response = try await promise.futureResult.get() as? MethodFrame
         return response
     }
@@ -147,7 +146,7 @@ extension Channel {
     internal func connectionCloseOk() async throws {
         let method = Spec.Connection.CloseOk()
         let frame = MethodFrame(channelId: id, payload: method)
-        await connection?.send(frame: frame)
+        _ = connection?.transport.send(frame)
     }
 
     /// Requests a specific quality of service (QoS) for this `Channel` or for all channels on the `Connection`.
@@ -243,7 +242,7 @@ extension Channel {
         if nowait {
             let connection = try ensureOpen()
             let frame = MethodFrame(channelId: self.id, payload: method)
-            await connection.send(frame: frame)
+            _ = connection.transport.send(frame)
             return
         }
         let frame = try await sendReturningResponse(method: method)
@@ -265,7 +264,7 @@ extension Channel {
             properties: contentProps
         )
         let contentFrame = ContentBodyFrame(channelId: self.id, fragment: [UInt8].init(body.utf8))
-        await connection.send(frames: [frame, contentHeaderFrame, contentFrame])
+        _ = connection.transport.send([frame, contentHeaderFrame, contentFrame])
     }
 
     public func basicConsume(queue: String, tag: String) async throws -> AsyncStream<Message> {
@@ -286,7 +285,7 @@ extension Channel {
         let connection = try ensureOpen()
         let method = Spec.Basic.Ack(deliveryTag: deliveryTag, multiple: multiple)
         let frame = makeFrame(with: method)
-        await connection.send(frame: frame)
+        _ = connection.transport.send(frame)
     }
 
     /// Sends nack for one or more messages on this channel.
@@ -304,7 +303,7 @@ extension Channel {
             requeue: requeue
         )
         let frame = makeFrame(with: method)
-        await connection.send(frame: frame)
+        _ = connection.transport.send(frame)
     }
 
     // this will start receiving the messages from Transport too

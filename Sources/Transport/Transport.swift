@@ -13,7 +13,6 @@ final class Transport: TransportProtocol, Sendable {
     // can only be nil if Transport is throwing at init
     private let asyncNIOChannel: NIOAsyncChannel<any Frame, any Frame>?
 
-    private let outboundLock: NIOLock = .init()
     private let outboundContinuation: AsyncStream<any Frame>.Continuation
     private let outboundFrames: AsyncStream<any Frame>
     private let inboundContinuation: AsyncStream<any Frame>.Continuation
@@ -99,39 +98,21 @@ extension Transport {
         self.asyncNIOChannel?.channel.isActive ?? false
     }
 
-    // sends a frame to the broker throught the established connection,
+    // sends a frame to the broker through the established connection,
     // the caller is responsible for making sure that the `Transport.isActive`
     func send(_ frame: any Frame) -> EventLoopPromise<any Frame> {
         let promise = eventLoopGroup.any().makePromise(of: (any Frame).self)
-        outboundLock.withLockVoid {
-            outboundContinuation.yield(frame)
-        }
+        outboundContinuation.yield(frame)
         return promise
     }
 
+    // same as send(_ frame: Frame) but for multiple frames
     func send(_ frames: [any Frame]) -> EventLoopPromise<any Frame> {
         let promise = eventLoopGroup.any().makePromise(of: (any Frame).self)
-        outboundLock.withLockVoid {
-            frames.forEach {
-                outboundContinuation.yield($0)
-            }
+        frames.forEach {
+            outboundContinuation.yield($0)
         }
         return promise
-    }
-
-    // same as send, but doesn't return any promises to be called later
-    func sendAsync(_ frame: any Frame) {
-        outboundLock.withLockVoid {
-            outboundContinuation.yield(frame)
-        }
-    }
-
-    func sendAsync(_ frames: [any Frame]) {
-        outboundLock.withLockVoid {
-            frames.forEach {
-                outboundContinuation.yield($0)
-            }
-        }
     }
 
     /// Receives and sends out frames as they come through the AsyncStream's passed on construction of the object

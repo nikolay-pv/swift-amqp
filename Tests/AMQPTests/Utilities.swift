@@ -5,7 +5,7 @@ import Foundation
 func makeTestEnv(with actions: [TransportMock.Action]) -> Environment {
     var env = Environment.shared
     env.setTransportFactory {
-        var transportStub = try await TransportMock(
+        let transportStub = try await TransportMock(
             host: $0,
             port: $1,
             logger: $2,

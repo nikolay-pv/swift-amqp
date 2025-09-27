@@ -33,20 +33,20 @@ struct ChannelIDs {
 public actor Connection {
     private var logger: Logger
     // MARK: - transport management
-    private let transport: TransportProtocol
+    internal let transport: TransportProtocol
     private var transportExecutor: Task<Void?, Never>?
 
     private var inboundFramesDispatcher: Task<Void?, Never>?
 
     func send(frame: any Frame) {
         if isOpen {
-            transport.sendAsync(frame)
+            _ = transport.send(frame)
         }
     }
 
     func send(frames: [any Frame]) {
         if isOpen {
-            transport.sendAsync(frames)
+            _ = transport.send(frames)
         }
     }
 
