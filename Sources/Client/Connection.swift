@@ -1,5 +1,6 @@
 import Collections
 import Logging
+import NIOConcurrencyHelpers
 import NIOCore
 import NIOPosix
 
@@ -30,25 +31,13 @@ struct ChannelIDs {
     }
 }
 
-public actor Connection {
-    private var logger: Logger
+public final class Connection: @unchecked Sendable {
+    private let logger: Logger
     // MARK: - transport management
-    internal let transport: TransportProtocol
-    private var transportExecutor: Task<Void?, Never>?
+    private let transport: TransportProtocol
+    private let transportExecutor: Task<Void?, Never>
 
     private var inboundFramesDispatcher: Task<Void?, Never>?
-
-    func send(frame: any Frame) {
-        if isOpen {
-            _ = transport.send(frame)
-        }
-    }
-
-    func send(frames: [any Frame]) {
-        if isOpen {
-            _ = transport.send(frames)
-        }
-    }
 
     private func handleChannel0(frame: any Frame) async {
         guard let frame = frame as? MethodFrame else {
@@ -60,8 +49,8 @@ public actor Connection {
         }
         if let payload = frame.payload as? Spec.Connection.Close {
             // eat exceptions as it doesn't make sense to throw here (broker already closed the connection)
-            try? await self.channel0.connectionCloseOk()
-            transportExecutor?.cancel()
+            await self.channel0.connectionCloseOk()
+            transportExecutor.cancel()
             if payload.replyCode != 0 {
                 logger.error(
                     "Connection closed by broker with code \(payload.replyCode): \(payload.replyText)"
@@ -78,15 +67,20 @@ public actor Connection {
     // MARK: - channel management
     // channel0 is special and is used for communications before any channel exists
     // it never explicitly created on the server side (so no requestOpen call is made for it)
-    private lazy var channel0: Channel = { Channel(connection: self, id: 0, logger: self.logger) }()
+    private let channel0: Channel
+
+    private let channelsLock = NIOLock()
     private var channels: [UInt16: Channel] = [:]
     private var channelIDs: ChannelIDs = .init()
 
     public func makeChannel() async throws -> Channel {
         try ensureOpen()
-        let id = UInt16(channelIDs.next())
-        let channel = Channel.init(connection: self, id: id, logger: self.logger)
-        channels[id] = channel
+        let channel: Channel = channelsLock.withLock {
+            let id = UInt16(channelIDs.next())
+            let channel = Channel.init(transport: self.transport, id: id, logger: self.logger)
+            channels[id] = channel
+            return channel
+        }
         try await channel.requestOpen()
         return channel
     }
@@ -97,7 +91,7 @@ public actor Connection {
     public func close() async throws {
         try await self.channel0.connectionClose()
         // from now on no more frames will be sent out
-        transportExecutor?.cancel()
+        transportExecutor.cancel()
     }
 
     private func ensureOpen() throws {
@@ -107,7 +101,7 @@ public actor Connection {
     }
 
     // MARK: - init
-    public init(with configuration: Configuration = .default) async throws {
+    public convenience init(with configuration: Configuration = .default) async throws {
         try await self.init(with: configuration, env: Environment.shared)
     }
 
@@ -152,6 +146,8 @@ public actor Connection {
             await sharedTransport.execute()
         }
 
+        self.channel0 = .init(transport: sharedTransport, id: 0, logger: self.logger)
+
         // create a task to distribute incoming frames
         self.inboundFramesDispatcher = Task {
             for await frame in inboundFrames {
@@ -159,14 +155,18 @@ public actor Connection {
                 if channelId == 0 {
                     await self.handleChannel0(frame: frame)
                 } else {
-                    await self.channels[channelId]?.dispatch(frame: frame)
+                    let channel: Channel? = self.channelsLock.withLock {
+                        return self.channels[channelId]
+                    }
+                    // TODO: receiving frame for non-existing channel is probably a protocol violation
+                    await channel?.dispatch(frame: frame)
                 }
             }
         }
     }
 
     deinit {
-        transportExecutor?.cancel()
+        transportExecutor.cancel()
         inboundFramesDispatcher?.cancel()
     }
 }

@@ -1,7 +1,7 @@
 import Logging
 import NIOCore
 
-protocol TransportProtocol: Sendable {
+protocol TransportProtocol: Sendable, AnyObject {
     init(
         host: String,
         port: Int,
