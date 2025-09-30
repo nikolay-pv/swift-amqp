@@ -35,6 +35,6 @@ import Testing
         #expect(connection != nil)
         let channel = try await connection?.makeChannel()
         #expect(channel != nil)
-        #expect(await channel!.id == expectedChannelId)
+        #expect(channel!.id == expectedChannelId)
     }
 }

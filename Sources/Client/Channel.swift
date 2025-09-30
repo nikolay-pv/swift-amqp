@@ -1,58 +1,51 @@
+import Atomics
 import Logging
+import NIOConcurrencyHelpers
 import NIOCore
 
 /// Channel can be created off the Connection instance, by calling makeChannel method
 ///
 /// @note Channel can't outlive the Connection which made it
-public actor Channel {
+public class Channel: @unchecked Sendable {
     public let id: UInt16
-    private(set) var isOpen = true
+    let isOpen = ManagedAtomic(true)
+    // in swift 6.2 this can be weak let (which it is semantically today)
     private weak var transportWeak: (any TransportProtocol)?
     private let logger: Logger
-    private var promises: [EventLoopPromise<any Frame>] = .init()
     private let messages: AsyncStream<Message>
     private let continuation: AsyncStream<Message>.Continuation?
-    private var content: Message?
-    private var expectedContentSize: UInt64?
-    private var deliverMethod: Spec.Basic.Deliver?
+    private let promisesLock = NIOLock()
+    private var promises: [EventLoopPromise<any Frame>] = .init()
 
     /// method to handle incoming frames from a Broker
     internal func dispatch(frame: any Frame) {
-        if let methodFrame = frame as? MethodFrame,
-            let method = methodFrame.payload as? Spec.Basic.Deliver
-        {
-            self.deliverMethod = method
-            return
-        }
-        if isContent(frame) {
-            if let header = frame as? ContentHeaderFrame {
-                guard let deliverMethod = self.deliverMethod else {
-                    preconditionFailure("Received content frame without prior deliver method")
-                }
-                self.expectedContentSize = header.bodySize
-                self.content = .init(
-                    body: [],
-                    properties: header.properties,
-                    channel: self,
-                    deliveryTag: deliverMethod.deliveryTag
-                )
-            } else if let body = frame as? ContentBodyFrame {
-                self.content?.body.append(contentsOf: body.fragment)
-            }
-            if self.expectedContentSize == UInt64(self.content?.body.count ?? .max) {
-                continuation?.yield(self.content!)
-                self.content = nil
-                self.deliverMethod = nil
-            }
-            return
-        }
-        // ideally will handle other frames too, but for now only ones it expects
-        guard !promises.isEmpty else {
-            return
-        }
         precondition(!promises.isEmpty, "channel got an unexpected frame")
-        let promise = promises.removeFirst()
+        let promise = promisesLock.withLock { promises.removeFirst() }
         promise.succeed(frame)
+    }
+
+    internal func dispatch(content: [any Frame]) {
+        precondition(
+            content.count > 2,
+            "Content should have at least 3 frames (deliver, header, body)"
+        )
+        let deliverFrame = content[0] as! MethodFrame
+        let headerFrame = content[1] as! ContentHeaderFrame
+        var message = Message(
+            body: [],
+            properties: headerFrame.properties,
+            channel: self,
+            deliveryTag: (deliverFrame.payload as! Spec.Basic.Deliver).deliveryTag
+        )
+        content[2...]
+            .forEach {
+                if let bodyFrame = $0 as? ContentBodyFrame {
+                    message.body.append(contentsOf: bodyFrame.fragment)
+                } else {
+                    preconditionFailure("Expected ContentBodyFrame but got \(type(of: $0))")
+                }
+            }
+        continuation?.yield(message)
     }
 
     // MARK: - init
@@ -79,7 +72,7 @@ extension Channel {
     /// - Parameter closure: A closure that takes the transport and returns a value of type `T`.
     /// - Returns: The result of the closure executed with the transport.
     private func withTransport<T>(_ closure: (any TransportProtocol) -> T) throws -> T {
-        guard isOpen else {
+        guard isOpen.load(ordering: .acquiring) else {
             throw ConnectionError.channelIsClosed
         }
         guard let transport = self.transportWeak, transport.isActive else {
@@ -95,6 +88,11 @@ extension Channel {
     }
 
     internal func handleConnectionError(_ error: Error) {
+        let promises = promisesLock.withLock {
+            let current = self.promises
+            self.promises.removeAll()
+            return current
+        }
         for promise in promises {
             promise.fail(error)
         }
@@ -107,7 +105,9 @@ extension Channel {
         let promise = try withTransport {
             $0.send(frame)
         }
-        promises.append(promise)
+        promisesLock.withLock {
+            promises.append(promise)
+        }
         let response = try await promise.futureResult.get() as? MethodFrame
         return response
     }
@@ -124,7 +124,7 @@ extension Channel {
             frame?.payload is Spec.Channel.CloseOk,
             "close expects Spec.Channel.CloseOk but got \(String(describing: frame))"
         )
-        self.isOpen = false
+        self.isOpen.store(false, ordering: .releasing)
     }
 
     // this is only used on channel0
