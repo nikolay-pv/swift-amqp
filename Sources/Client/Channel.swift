@@ -1,22 +1,26 @@
+import Atomics
 import Logging
+import NIOConcurrencyHelpers
 import NIOCore
 
 /// Channel can be created off the Connection instance, by calling makeChannel method
 ///
 /// @note Channel can't outlive the Connection which made it
-public actor Channel {
+public class Channel: @unchecked Sendable {
     public let id: UInt16
-    private(set) var isOpen = true
+    let isOpen = ManagedAtomic(true)
+    // in swift 6.2 this can be weak let (which it is semantically today)
     private weak var transportWeak: (any TransportProtocol)?
     private let logger: Logger
-    private var promises: [EventLoopPromise<any Frame>] = .init()
     private let messages: AsyncStream<Message>
     private let continuation: AsyncStream<Message>.Continuation?
+    private let promisesLock = NIOLock()
+    private var promises: [EventLoopPromise<any Frame>] = .init()
 
     /// method to handle incoming frames from a Broker
     internal func dispatch(frame: any Frame) {
         precondition(!promises.isEmpty, "channel got an unexpected frame")
-        let promise = promises.removeFirst()
+        let promise = promisesLock.withLock { promises.removeFirst() }
         promise.succeed(frame)
     }
 
@@ -68,7 +72,7 @@ extension Channel {
     /// - Parameter closure: A closure that takes the transport and returns a value of type `T`.
     /// - Returns: The result of the closure executed with the transport.
     private func withTransport<T>(_ closure: (any TransportProtocol) -> T) throws -> T {
-        guard isOpen else {
+        guard isOpen.load(ordering: .acquiring) else {
             throw ConnectionError.channelIsClosed
         }
         guard let transport = self.transportWeak, transport.isActive else {
@@ -84,6 +88,11 @@ extension Channel {
     }
 
     internal func handleConnectionError(_ error: Error) {
+        let promises = promisesLock.withLock {
+            let current = self.promises
+            self.promises.removeAll()
+            return current
+        }
         for promise in promises {
             promise.fail(error)
         }
@@ -96,7 +105,9 @@ extension Channel {
         let promise = try withTransport {
             $0.send(frame)
         }
-        promises.append(promise)
+        promisesLock.withLock {
+            promises.append(promise)
+        }
         let response = try await promise.futureResult.get() as? MethodFrame
         return response
     }
@@ -113,7 +124,7 @@ extension Channel {
             frame?.payload is Spec.Channel.CloseOk,
             "close expects Spec.Channel.CloseOk but got \(String(describing: frame))"
         )
-        self.isOpen = false
+        self.isOpen.store(false, ordering: .releasing)
     }
 
     // this is only used on channel0

@@ -77,19 +77,19 @@ public final class Connection: @unchecked Sendable {
             preconditionFailure("Unexpected frame type in channel 0: \(type(of: frame))")
         }
         if frame.payload as? Spec.Connection.CloseOk != nil {
-            await self.channel0.dispatch(frame: frame)
+            self.channel0.dispatch(frame: frame)
             return
         }
         if let payload = frame.payload as? Spec.Connection.Close {
             // eat exceptions as it doesn't make sense to throw here (broker already closed the connection)
-            await self.channel0.connectionCloseOk()
+            self.channel0.connectionCloseOk()
             transportExecutor.cancel()
             if payload.replyCode != 0 {
                 logger.error(
                     "Connection closed by broker with code \(payload.replyCode): \(payload.replyText)"
                 )
                 for channel in channels.values {
-                    await channel.handleConnectionError(ConnectionError.connectionIsClosed)
+                    channel.handleConnectionError(ConnectionError.connectionIsClosed)
                 }
             }
             return
@@ -208,7 +208,7 @@ public final class Connection: @unchecked Sendable {
                         let channel: Channel? = self.channelsLock.withLock {
                             return self.channels[contentContext.channelId]
                         }
-                        await channel?.dispatch(content: contentContext.contentFrames)
+                        channel?.dispatch(content: contentContext.contentFrames)
                         contentContext.reset()
                     }
                     continue
@@ -221,7 +221,7 @@ public final class Connection: @unchecked Sendable {
                         return self.channels[channelId]
                     }
                     // TODO: receiving frame for non-existing channel is probably a protocol violation
-                    await channel?.dispatch(frame: frame)
+                    channel?.dispatch(frame: frame)
                 }
             }
         }
