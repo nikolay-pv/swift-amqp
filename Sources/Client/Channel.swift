@@ -12,47 +12,36 @@ public actor Channel {
     private var promises: [EventLoopPromise<any Frame>] = .init()
     private let messages: AsyncStream<Message>
     private let continuation: AsyncStream<Message>.Continuation?
-    private var content: Message?
-    private var expectedContentSize: UInt64?
-    private var deliverMethod: Spec.Basic.Deliver?
 
     /// method to handle incoming frames from a Broker
     internal func dispatch(frame: any Frame) {
-        if let methodFrame = frame as? MethodFrame,
-            let method = methodFrame.payload as? Spec.Basic.Deliver
-        {
-            self.deliverMethod = method
-            return
-        }
-        if isContent(frame) {
-            if let header = frame as? ContentHeaderFrame {
-                guard let deliverMethod = self.deliverMethod else {
-                    preconditionFailure("Received content frame without prior deliver method")
-                }
-                self.expectedContentSize = header.bodySize
-                self.content = .init(
-                    body: [],
-                    properties: header.properties,
-                    channel: self,
-                    deliveryTag: deliverMethod.deliveryTag
-                )
-            } else if let body = frame as? ContentBodyFrame {
-                self.content?.body.append(contentsOf: body.fragment)
-            }
-            if self.expectedContentSize == UInt64(self.content?.body.count ?? .max) {
-                continuation?.yield(self.content!)
-                self.content = nil
-                self.deliverMethod = nil
-            }
-            return
-        }
-        // ideally will handle other frames too, but for now only ones it expects
-        guard !promises.isEmpty else {
-            return
-        }
         precondition(!promises.isEmpty, "channel got an unexpected frame")
         let promise = promises.removeFirst()
         promise.succeed(frame)
+    }
+
+    internal func dispatch(content: [any Frame]) {
+        precondition(
+            content.count > 2,
+            "Content should have at least 3 frames (deliver, header, body)"
+        )
+        let deliverFrame = content[0] as! MethodFrame
+        let headerFrame = content[1] as! ContentHeaderFrame
+        var message = Message(
+            body: [],
+            properties: headerFrame.properties,
+            channel: self,
+            deliveryTag: (deliverFrame.payload as! Spec.Basic.Deliver).deliveryTag
+        )
+        content[2...]
+            .forEach {
+                if let bodyFrame = $0 as? ContentBodyFrame {
+                    message.body.append(contentsOf: bodyFrame.fragment)
+                } else {
+                    preconditionFailure("Expected ContentBodyFrame but got \(type(of: $0))")
+                }
+            }
+        continuation?.yield(message)
     }
 
     // MARK: - init

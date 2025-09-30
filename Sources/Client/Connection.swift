@@ -31,6 +31,39 @@ struct ChannelIDs {
     }
 }
 
+struct ContentContext {
+    private(set) var channelId: UInt16 = 0
+    private(set) var expectedBodyBytes: UInt64 = 0
+    private(set) var actualBodyBytes: UInt64 = 0
+    private(set) var contentFrames = [any Frame]()
+
+    // channel 0 can't wait for content frames
+    func waitForContent() -> Bool { channelId != 0 }
+    func isComplete() -> Bool { actualBodyBytes == expectedBodyBytes }
+
+    mutating func push(deliver: any Frame) {
+        channelId = deliver.channelId
+        contentFrames.append(deliver)
+    }
+
+    mutating func push(header: ContentHeaderFrame) {
+        expectedBodyBytes = header.bodySize
+        contentFrames.append(header)
+    }
+
+    mutating func push(body: ContentBodyFrame) {
+        contentFrames.append(body)
+        actualBodyBytes += UInt64(body.fragment.count)
+    }
+
+    mutating func reset() {
+        channelId = 0
+        expectedBodyBytes = 0
+        actualBodyBytes = 0
+        contentFrames.removeAll()
+    }
+}
+
 public final class Connection: @unchecked Sendable {
     private let logger: Logger
     // MARK: - transport management
@@ -150,7 +183,36 @@ public final class Connection: @unchecked Sendable {
 
         // create a task to distribute incoming frames
         self.inboundFramesDispatcher = Task {
+            var contentContext = ContentContext()
             for await frame in inboundFrames {
+                if let methodFrame = frame as? MethodFrame,
+                    methodFrame.payload as? Spec.Basic.Deliver != nil
+                {
+                    contentContext.push(deliver: frame)
+                    continue
+                }
+                if isContent(frame) {
+                    guard contentContext.waitForContent() else {
+                        preconditionFailure(
+                            "Received content frame without prior deliver method"
+                        )
+                    }
+                    if let header = frame as? ContentHeaderFrame {
+                        contentContext.push(header: header)
+                        continue
+                    }
+                    if let body = frame as? ContentBodyFrame {
+                        contentContext.push(body: body)
+                    }
+                    if contentContext.isComplete() {
+                        let channel: Channel? = self.channelsLock.withLock {
+                            return self.channels[contentContext.channelId]
+                        }
+                        await channel?.dispatch(content: contentContext.contentFrames)
+                        contentContext.reset()
+                    }
+                    continue
+                }
                 let channelId = frame.channelId
                 if channelId == 0 {
                     await self.handleChannel0(frame: frame)
