@@ -115,6 +115,16 @@ extension Transport {
         return promise
     }
 
+    func sendAsync(_ frame: any Frame) {
+        outboundContinuation.yield(frame)
+    }
+
+    func sendAsync(_ frames: [any Frame]) {
+        frames.forEach {
+            outboundContinuation.yield($0)
+        }
+    }
+
     /// Receives and sends out frames as they come through the AsyncStream's passed on construction of the object
     ///
     /// - Throws: Any error that occurs during task execution.

@@ -15,4 +15,6 @@ protocol TransportProtocol: Sendable, AnyObject {
 
     func send(_ frame: any Frame) -> EventLoopPromise<any Frame>
     func send(_ frames: [any Frame]) -> EventLoopPromise<any Frame>
+    func sendAsync(_ frame: any Frame)
+    func sendAsync(_ frames: [any Frame])
 }

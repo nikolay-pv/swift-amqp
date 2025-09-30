@@ -152,7 +152,7 @@ extension Channel {
         let method = Spec.Connection.CloseOk()
         let frame = makeFrame(with: method)
         // if transport was already destroyed nothing can be done then
-        _ = transportWeak?.send(frame)
+        transportWeak?.sendAsync(frame)
     }
 
     /// Requests a specific quality of service (QoS) for this `Channel` or for all channels on the `Connection`.
@@ -247,8 +247,8 @@ extension Channel {
         )
         if nowait {
             let frame = makeFrame(with: method)
-            _ = try withTransport {
-                $0.send(frame)
+            try withTransport {
+                $0.sendAsync(frame)
             }
             return
         }
@@ -270,8 +270,8 @@ extension Channel {
             properties: contentProps
         )
         let contentFrame = ContentBodyFrame(channelId: self.id, fragment: [UInt8].init(body.utf8))
-        _ = try withTransport {
-            $0.send([frame, contentHeaderFrame, contentFrame])
+        try withTransport {
+            $0.sendAsync([frame, contentHeaderFrame, contentFrame])
         }
     }
 
@@ -292,8 +292,8 @@ extension Channel {
     public func basicAck(deliveryTag: Int64, multiple: Bool = false) async throws {
         let method = Spec.Basic.Ack(deliveryTag: deliveryTag, multiple: multiple)
         let frame = makeFrame(with: method)
-        _ = try withTransport {
-            $0.send(frame)
+        try withTransport {
+            $0.sendAsync(frame)
         }
     }
 
@@ -311,8 +311,8 @@ extension Channel {
             requeue: requeue
         )
         let frame = makeFrame(with: method)
-        _ = try withTransport {
-            $0.send(frame)
+        try withTransport {
+            $0.sendAsync(frame)
         }
     }
 
