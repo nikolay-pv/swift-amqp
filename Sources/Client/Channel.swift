@@ -1,6 +1,5 @@
 import Logging
 import NIOCore
-import NIOPosix
 
 /// Channel can be created off the Connection instance, by calling makeChannel method
 ///
@@ -8,10 +7,9 @@ import NIOPosix
 public actor Channel {
     public let id: UInt16
     private(set) var isOpen = true
-    private weak var connection: Connection?
+    private weak var transportWeak: (any TransportProtocol)?
     private let logger: Logger
     private var promises: [EventLoopPromise<any Frame>] = .init()
-    private let eventLoop: EventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1).next()
     private let messages: AsyncStream<Message>
     private let continuation: AsyncStream<Message>.Continuation?
     private var content: Message?
@@ -58,9 +56,9 @@ public actor Channel {
     }
 
     // MARK: - init
-    internal init(connection: Connection, id: UInt16, logger: Logger) {
+    internal init(transport: any TransportProtocol, id: UInt16, logger: Logger) {
         self.id = id
-        self.connection = connection
+        self.transportWeak = transport
         var decoratedLogger = logger
         decoratedLogger[metadataKey: "channel-id"] = "\(id)"
         self.logger = decoratedLogger
@@ -74,14 +72,20 @@ public actor Channel {
 
 // MARK: - Spec methods
 extension Channel {
-    private func ensureOpen() throws -> Connection {
+    /// Returns the owned transport for use in closures, or throws if the channel or connection is closed.
+    ///
+    /// - Throws: `ConnectionError.channelIsClosed` if the channel is closed, or
+    ///   `ConnectionError.connectionIsClosed` if the transport is closed.
+    /// - Parameter closure: A closure that takes the transport and returns a value of type `T`.
+    /// - Returns: The result of the closure executed with the transport.
+    private func withTransport<T>(_ closure: (any TransportProtocol) -> T) throws -> T {
         guard isOpen else {
             throw ConnectionError.channelIsClosed
         }
-        guard let connection = self.connection else {
+        guard let transport = self.transportWeak, transport.isActive else {
             throw ConnectionError.connectionIsClosed
         }
-        return connection
+        return closure(transport)
     }
 
     nonisolated internal func makeFrame(
@@ -99,11 +103,11 @@ extension Channel {
     private func sendReturningResponse(
         method: some AMQPMethodProtocol & FrameCodable,
     ) async throws -> MethodFrame? {
-        let connection = try ensureOpen()
-        let frame = MethodFrame(channelId: id, payload: method)
-        let promise = eventLoop.makePromise(of: (any Frame).self)
+        let frame = makeFrame(with: method)
+        let promise = try withTransport {
+            $0.send(frame)
+        }
         promises.append(promise)
-        await connection.send(frame: frame)
         let response = try await promise.futureResult.get() as? MethodFrame
         return response
     }
@@ -144,10 +148,11 @@ extension Channel {
     }
 
     // this is only used on channel0
-    internal func connectionCloseOk() async throws {
+    internal func connectionCloseOk() {
         let method = Spec.Connection.CloseOk()
-        let frame = MethodFrame(channelId: id, payload: method)
-        await connection?.send(frame: frame)
+        let frame = makeFrame(with: method)
+        // if transport was already destroyed nothing can be done then
+        transportWeak?.sendAsync(frame)
     }
 
     /// Requests a specific quality of service (QoS) for this `Channel` or for all channels on the `Connection`.
@@ -241,9 +246,10 @@ extension Channel {
             arguments: arguments
         )
         if nowait {
-            let connection = try ensureOpen()
-            let frame = MethodFrame(channelId: self.id, payload: method)
-            await connection.send(frame: frame)
+            let frame = makeFrame(with: method)
+            try withTransport {
+                $0.sendAsync(frame)
+            }
             return
         }
         let frame = try await sendReturningResponse(method: method)
@@ -254,9 +260,8 @@ extension Channel {
     }
 
     public func basicPublish(exchange: String, routingKey: String, body: String) async throws {
-        let connection = try ensureOpen()
         let method = Spec.Basic.Publish(exchange: exchange, routingKey: routingKey)
-        let frame = MethodFrame(channelId: self.id, payload: method)
+        let frame = makeFrame(with: method)
         let contentProps = Spec.BasicProperties()
         let contentHeaderFrame = ContentHeaderFrame(
             channelId: self.id,
@@ -265,7 +270,9 @@ extension Channel {
             properties: contentProps
         )
         let contentFrame = ContentBodyFrame(channelId: self.id, fragment: [UInt8].init(body.utf8))
-        await connection.send(frames: [frame, contentHeaderFrame, contentFrame])
+        try withTransport {
+            $0.sendAsync([frame, contentHeaderFrame, contentFrame])
+        }
     }
 
     public func basicConsume(queue: String, tag: String) async throws -> AsyncStream<Message> {
@@ -283,10 +290,11 @@ extension Channel {
     ///   - deliveryTag: the delivery tag of the message to acknowledge.
     ///   - multiple: if true, acknowledges all messages up to and including this one.
     public func basicAck(deliveryTag: Int64, multiple: Bool = false) async throws {
-        let connection = try ensureOpen()
         let method = Spec.Basic.Ack(deliveryTag: deliveryTag, multiple: multiple)
         let frame = makeFrame(with: method)
-        await connection.send(frame: frame)
+        try withTransport {
+            $0.sendAsync(frame)
+        }
     }
 
     /// Sends nack for one or more messages on this channel.
@@ -297,14 +305,15 @@ extension Channel {
     public func basicNack(deliveryTag: Int64, multiple: Bool = false, requeue: Bool = true)
         async throws
     {
-        let connection = try ensureOpen()
         let method = Spec.Basic.Nack(
             deliveryTag: deliveryTag,
             multiple: multiple,
             requeue: requeue
         )
         let frame = makeFrame(with: method)
-        await connection.send(frame: frame)
+        try withTransport {
+            $0.sendAsync(frame)
+        }
     }
 
     // this will start receiving the messages from Transport too

@@ -2,23 +2,6 @@ import Testing
 
 @testable import AMQP
 
-func makeTestEnv(with actions: [TransportMock.Action]) -> Environment {
-    var env = Environment.shared
-    env.setTransportFactory {
-        var transportStub = try await TransportMock(
-            host: $0,
-            port: $1,
-            logger: $2,
-            inboundContinuation: $3,
-            outboundFrames: $4,
-            negotiatorFactory: $5
-        )
-        transportStub.expecting(sequenceOf: actions)
-        return transportStub
-    }
-    return env
-}
-
 @Suite struct MakingObjects {
 
     @Test("Make Connection")
