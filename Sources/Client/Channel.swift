@@ -228,13 +228,11 @@ extension Channel {
     ///   - queue: the name of the queue.
     ///   - exchange: the name of the exchange.
     ///   - routingKey: the routing key to use. If not provided, the queue name will be used as the routing key.
-    ///   - nowait: doesn't wait for a response from the broker, but let broker to raise exception if it didn't work.
-    ///  - Throws: if sending fails or the broker responds with an error.
+    ///  - Throws: if connection or this channel has been already closed or the broker responds with an error.
     public func queueBind(
         queue: String,
         exchange: String,
         routingKey: String? = nil,
-        nowait: Bool = false,
         arguments: Spec.Table = .init()
     ) async throws {
         let method = Spec.Queue.Bind(
@@ -242,21 +240,40 @@ extension Channel {
             queue: queue,
             exchange: exchange,
             routingKey: routingKey ?? queue,
-            nowait: nowait,
+            nowait: false,
             arguments: arguments
         )
-        if nowait {
-            let frame = makeFrame(with: method)
-            try withTransport {
-                $0.sendAsync(frame)
-            }
-            return
-        }
         let frame = try await sendReturningResponse(method: method)
         precondition(
             frame?.payload is Spec.Queue.BindOk,
             "queueBind expects Spec.Queue.BindOk but got \(String(describing: frame)))"
         )
+    }
+
+    // asks broker to bind the queue to exchange doesn't wait for a response from the broker, but let broker to raise exception if the binding didn't work.
+    /// - Parameters:
+    ///   - queue: the name of the queue.
+    ///   - exchange: the name of the exchange.
+    ///   - routingKey: the routing key to use. If not provided, the queue name will be used as the routing key.
+    ///  - Throws: if connection or this channel has been already closed.
+    public func queueBindNoWait(
+        queue: String,
+        exchange: String,
+        routingKey: String? = nil,
+        arguments: Spec.Table = .init()
+    ) throws {
+        let method = Spec.Queue.Bind(
+            ticket: 0,
+            queue: queue,
+            exchange: exchange,
+            routingKey: routingKey ?? queue,
+            nowait: true,
+            arguments: arguments
+        )
+        let frame = makeFrame(with: method)
+        try withTransport {
+            $0.sendAsync(frame)
+        }
     }
 
     public func basicPublish(exchange: String, routingKey: String, body: String) async throws {
