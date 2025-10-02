@@ -17,11 +17,41 @@ public class Channel: @unchecked Sendable {
     private let promisesLock = NIOLock()
     private var promises: [EventLoopPromise<any Frame>] = .init()
 
+    internal func dispatch0(frame: any Frame) -> Result<Bool, ConnectionError> {
+        precondition(frame.channelId == 0, "dispatch0 called with non-zero channel id")
+        precondition(frame is MethodFrame, "Unexpected frame type in channel 0: \(type(of: frame))")
+        let frame = frame as! MethodFrame
+        if frame.payload is Spec.Connection.CloseOk {
+            precondition(!promises.isEmpty, "channel got an unexpected frame")
+            let promise = promisesLock.withLock { promises.removeFirst() }
+            promise.succeed(frame)
+            return .success(false)
+        }
+        if let payload = frame.payload as? Spec.Connection.Close {
+            // eat exceptions as it doesn't make sense to throw here (broker already closed the connection)
+            self.connectionCloseOk()
+            if payload.replyCode != 0 {
+                logger.error(
+                    "Connection closed by broker with code \(payload.replyCode): \(payload.replyText)"
+                )
+                return .failure(ConnectionError.connectionIsClosed)
+            }
+            return .success(false)
+        }
+        fatalError("unreachable: in dispatch0 with frame \(frame)")
+    }
+
     /// method to handle incoming frames from a Broker
-    internal func dispatch(frame: any Frame) {
-        precondition(!promises.isEmpty, "channel got an unexpected frame")
+    /// returns the error if broker returned a non zero reply code in Connection.Close
+    /// otherwise true if connection should stay open (i.e. process frames), and false otherwise
+    internal func dispatch(frame: any Frame) -> Result<Bool, ConnectionError> {
+        if frame.channelId == 0 {
+            return dispatch0(frame: frame)
+        }
+        precondition(!promises.isEmpty, "channel got an unexpected frame \(frame)")
         let promise = promisesLock.withLock { promises.removeFirst() }
         promise.succeed(frame)
+        return .success(true)
     }
 
     internal func dispatch(content: [any Frame]) {

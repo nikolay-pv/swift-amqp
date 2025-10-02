@@ -64,56 +64,74 @@ struct ContentContext {
     }
 }
 
-public final class Connection: @unchecked Sendable {
-    private let logger: Logger
-    // MARK: - transport management
-    private let transport: TransportProtocol
-    private let transportExecutor: Task<Void?, Never>
-
-    private var inboundFramesDispatcher: Task<Void?, Never>?
-
-    private func handleChannel0(frame: any Frame) async {
-        guard let frame = frame as? MethodFrame else {
-            preconditionFailure("Unexpected frame type in channel 0: \(type(of: frame))")
-        }
-        if frame.payload as? Spec.Connection.CloseOk != nil {
-            self.channel0.dispatch(frame: frame)
-            return
-        }
-        if let payload = frame.payload as? Spec.Connection.Close {
-            // eat exceptions as it doesn't make sense to throw here (broker already closed the connection)
-            self.channel0.connectionCloseOk()
-            transportExecutor.cancel()
-            if payload.replyCode != 0 {
-                logger.error(
-                    "Connection closed by broker with code \(payload.replyCode): \(payload.replyText)"
-                )
-                for channel in channels.values {
-                    channel.handleConnectionError(ConnectionError.connectionIsClosed)
-                }
-            }
-            return
-        }
-        fatalError("unreachable: in handleChannel0 with frame \(frame)")
-    }
-
-    // MARK: - channel management
+// in charge of bookkeeping track of channels, allows making them and finding
+// them by id, as well as removing them
+final class ChannelManager: @unchecked Sendable {
     // channel0 is special and is used for communications before any channel exists
     // it never explicitly created on the server side (so no requestOpen call is made for it)
-    private let channel0: Channel
+    let channel0: Channel
 
     private let channelsLock = NIOLock()
     private var channels: [UInt16: Channel] = [:]
     private var channelIDs: ChannelIDs = .init()
 
-    public func makeChannel() async throws -> Channel {
-        try ensureOpen()
+    func makeChannel(transport: TransportProtocol, logger: Logger) -> Channel {
         let channel: Channel = channelsLock.withLock {
             let id = UInt16(channelIDs.next())
-            let channel = Channel.init(transport: self.transport, id: id, logger: self.logger)
+            let channel = Channel.init(transport: transport, id: id, logger: logger)
             channels[id] = channel
             return channel
         }
+        return channel
+    }
+
+    func removeChannel(id: UInt16) {
+        channelsLock.withLock {
+            precondition(channels.keys.contains(id), "Trying to destroy non-existing channel \(id)")
+            channels.removeValue(forKey: id)
+            channelIDs.remove(id: Int(id))
+        }
+    }
+
+    func findChannel(id: UInt16) -> Channel? {
+        if id == 0 {
+            return channel0
+        }
+        return channelsLock.withLock {
+            return channels[id]
+        }
+    }
+
+    func broadcastConnectionError() {
+        channelsLock.withLock {
+            for channel in channels.values {
+                channel.handleConnectionError(ConnectionError.connectionIsClosed)
+            }
+        }
+    }
+
+    // MARK: - init
+
+    // initializes the channel0 with given transport and the logger
+    init(transport: TransportProtocol, logger: Logger) {
+        self.channel0 = .init(transport: transport, id: 0, logger: logger)
+    }
+}
+
+public final class Connection: Sendable {
+    private let logger: Logger
+    // MARK: - transport management
+    private let transport: TransportProtocol
+    private let transportExecutor: Task<Void?, Never>
+
+    private let inboundFramesDispatcher: Task<Void?, Never>
+
+    // MARK: - channel management
+    private let channels: ChannelManager
+
+    public func makeChannel() async throws -> Channel {
+        try ensureOpen()
+        let channel = channels.makeChannel(transport: self.transport, logger: self.logger)
         try await channel.requestOpen()
         return channel
     }
@@ -122,7 +140,7 @@ public final class Connection: @unchecked Sendable {
     public var isOpen: Bool { transport.isActive }
 
     public func close() async throws {
-        try await self.channel0.connectionClose()
+        try await self.channels.channel0.connectionClose()
         // from now on no more frames will be sent out
         transportExecutor.cancel()
     }
@@ -179,9 +197,10 @@ public final class Connection: @unchecked Sendable {
             await sharedTransport.execute()
         }
 
-        self.channel0 = .init(transport: sharedTransport, id: 0, logger: self.logger)
+        self.channels = .init(transport: sharedTransport, logger: self.logger)
 
         // create a task to distribute incoming frames
+        let sharedChannels = self.channels
         self.inboundFramesDispatcher = Task {
             var contentContext = ContentContext()
             for await frame in inboundFrames {
@@ -205,30 +224,38 @@ public final class Connection: @unchecked Sendable {
                         contentContext.push(body: body)
                     }
                     if contentContext.isComplete() {
-                        let channel: Channel? = self.channelsLock.withLock {
-                            return self.channels[contentContext.channelId]
+                        guard let channel = sharedChannels.findChannel(id: frame.channelId) else {
+                            preconditionFailure(
+                                "Received frame for non-existing channel \(frame.channelId)"
+                            )
                         }
-                        channel?.dispatch(content: contentContext.contentFrames)
+                        channel.dispatch(content: contentContext.contentFrames)
                         contentContext.reset()
                     }
                     continue
                 }
-                let channelId = frame.channelId
-                if channelId == 0 {
-                    await self.handleChannel0(frame: frame)
-                } else {
-                    let channel: Channel? = self.channelsLock.withLock {
-                        return self.channels[channelId]
-                    }
-                    // TODO: receiving frame for non-existing channel is probably a protocol violation
-                    channel?.dispatch(frame: frame)
+                guard let channel = sharedChannels.findChannel(id: frame.channelId) else {
+                    preconditionFailure(
+                        "Received frame for non-existing channel \(frame.channelId)"
+                    )
                 }
+                let res = channel.dispatch(frame: frame)
+                switch res {
+                case .failure:
+                    sharedChannels.broadcastConnectionError()
+                case .success(let keepGoing):
+                    guard keepGoing else {
+                        break
+                    }
+                    continue
+                }
+                break  // stop processing any further frames
             }
         }
     }
 
     deinit {
         transportExecutor.cancel()
-        inboundFramesDispatcher?.cancel()
+        inboundFramesDispatcher.cancel()
     }
 }
