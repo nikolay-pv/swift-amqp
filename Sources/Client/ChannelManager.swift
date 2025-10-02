@@ -2,7 +2,7 @@ import Collections
 import Logging
 import NIOConcurrencyHelpers
 
-struct ChannelIDs {
+private struct ChannelIDs {
     private var nextFree: Int = 1
     private var occupied: OrderedSet<Int> = []
     private var freed: OrderedSet<Int> = []

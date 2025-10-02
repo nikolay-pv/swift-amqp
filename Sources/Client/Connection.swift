@@ -1,38 +1,5 @@
 import Logging
 
-struct ContentContext {
-    private(set) var channelId: UInt16 = 0
-    private(set) var expectedBodyBytes: UInt64 = 0
-    private(set) var actualBodyBytes: UInt64 = 0
-    private(set) var contentFrames = [any Frame]()
-
-    // channel 0 can't wait for content frames
-    func waitForContent() -> Bool { channelId != 0 }
-    func isComplete() -> Bool { actualBodyBytes == expectedBodyBytes }
-
-    mutating func push(deliver: any Frame) {
-        channelId = deliver.channelId
-        contentFrames.append(deliver)
-    }
-
-    mutating func push(header: ContentHeaderFrame) {
-        expectedBodyBytes = header.bodySize
-        contentFrames.append(header)
-    }
-
-    mutating func push(body: ContentBodyFrame) {
-        contentFrames.append(body)
-        actualBodyBytes += UInt64(body.fragment.count)
-    }
-
-    mutating func reset() {
-        channelId = 0
-        expectedBodyBytes = 0
-        actualBodyBytes = 0
-        contentFrames.removeAll()
-    }
-}
-
 public final class Connection: Sendable {
     private let logger: Logger
     // MARK: - transport management
@@ -115,57 +82,12 @@ public final class Connection: Sendable {
         self.channels = .init(transport: sharedTransport, logger: self.logger)
 
         // create a task to distribute incoming frames
-        let sharedChannels = self.channels
+        let framesRouter = FramesRouter(
+            inboundFrames: inboundFrames,
+            channels: self.channels
+        )
         self.inboundFramesDispatcher = Task {
-            var contentContext = ContentContext()
-            for await frame in inboundFrames {
-                if let methodFrame = frame as? MethodFrame,
-                    methodFrame.payload as? Spec.Basic.Deliver != nil
-                {
-                    contentContext.push(deliver: frame)
-                    continue
-                }
-                if isContent(frame) {
-                    guard contentContext.waitForContent() else {
-                        preconditionFailure(
-                            "Received content frame without prior deliver method"
-                        )
-                    }
-                    if let header = frame as? ContentHeaderFrame {
-                        contentContext.push(header: header)
-                        continue
-                    }
-                    if let body = frame as? ContentBodyFrame {
-                        contentContext.push(body: body)
-                    }
-                    if contentContext.isComplete() {
-                        guard let channel = sharedChannels.findChannel(id: frame.channelId) else {
-                            preconditionFailure(
-                                "Received frame for non-existing channel \(frame.channelId)"
-                            )
-                        }
-                        channel.dispatch(content: contentContext.contentFrames)
-                        contentContext.reset()
-                    }
-                    continue
-                }
-                guard let channel = sharedChannels.findChannel(id: frame.channelId) else {
-                    preconditionFailure(
-                        "Received frame for non-existing channel \(frame.channelId)"
-                    )
-                }
-                let res = channel.dispatch(frame: frame)
-                switch res {
-                case .failure:
-                    sharedChannels.broadcastConnectionError()
-                case .success(let keepGoing):
-                    guard keepGoing else {
-                        break
-                    }
-                    continue
-                }
-                break  // stop processing any further frames
-            }
+            await framesRouter.execute()
         }
     }
 
