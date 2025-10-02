@@ -102,11 +102,12 @@ extension Channel {
         method: some AMQPMethodProtocol & FrameCodable,
     ) async throws -> MethodFrame? {
         let frame = makeFrame(with: method)
-        let promise = try withTransport {
-            $0.send(frame)
-        }
-        promisesLock.withLock {
+        let promise = try promisesLock.withLock {
+            let promise = try withTransport {
+                $0.send(frame)
+            }
             promises.append(promise)
+            return promise
         }
         let response = try await promise.futureResult.get() as? MethodFrame
         return response
