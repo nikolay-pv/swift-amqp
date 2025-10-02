@@ -10,6 +10,7 @@ public class Channel: @unchecked Sendable {
     public let id: UInt16
     let isOpen = ManagedAtomic(true)
     // in swift 6.2 this can be weak let (which it is semantically today)
+    private weak var manager: ChannelManager?
     private weak var transportWeak: (any TransportProtocol)?
     private let logger: Logger
     private let messages: AsyncStream<Message>
@@ -79,8 +80,14 @@ public class Channel: @unchecked Sendable {
     }
 
     // MARK: - init
-    internal init(transport: any TransportProtocol, id: UInt16, logger: Logger) {
+    internal init(
+        transport: any TransportProtocol,
+        id: UInt16,
+        logger: Logger,
+        manager: ChannelManager? = nil
+    ) {
         self.id = id
+        self.manager = manager
         self.transportWeak = transport
         var decoratedLogger = logger
         decoratedLogger[metadataKey: "channel-id"] = "\(id)"
@@ -90,6 +97,10 @@ public class Channel: @unchecked Sendable {
             messagesContinuation = continuation
         }
         self.continuation = messagesContinuation
+    }
+
+    deinit {
+        self.manager?.removeChannel(id: id)
     }
 }
 
@@ -364,7 +375,7 @@ extension Channel {
         }
     }
 
-    // this will start receiving the messages from Transport too
+    /// Communicates to broker to open this channel, doesn't check for isOpen status and always does the communication.
     internal func requestOpen() async throws {
         let method = Spec.Channel.Open()
         let frame = try await sendReturningResponse(method: method)
@@ -372,5 +383,16 @@ extension Channel {
             frame?.payload is Spec.Channel.OpenOk,
             "Channel.requestOpen expects Spec.Channel.OpenOk but got \(String(describing: frame))"
         )
+    }
+
+    // this will communicate to broker to open this channel, it is called
+    // automatically by the init, calling it again has no effect, but it allows
+    // to reopen closed channel
+    public func open() async throws {
+        if isOpen.load(ordering: .acquiring) {
+            return
+        }
+        try await requestOpen()
+        isOpen.store(true, ordering: .releasing)
     }
 }

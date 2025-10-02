@@ -87,9 +87,9 @@ final class ChannelManager: @unchecked Sendable {
 
     func removeChannel(id: UInt16) {
         channelsLock.withLock {
-            precondition(channels.keys.contains(id), "Trying to destroy non-existing channel \(id)")
-            channels.removeValue(forKey: id)
-            channelIDs.remove(id: Int(id))
+            if channels.removeValue(forKey: id) != nil {
+                channelIDs.remove(id: Int(id))
+            }
         }
     }
 
