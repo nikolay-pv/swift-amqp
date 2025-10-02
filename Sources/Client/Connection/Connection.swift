@@ -4,9 +4,9 @@ public final class Connection: Sendable {
     private let logger: Logger
     // MARK: - transport management
     private let transport: TransportProtocol
-    private let transportExecutor: Task<Void?, Never>
+    private let transportExecutor: Task<Void, Never>
 
-    private let inboundFramesDispatcher: Task<Void?, Never>
+    private let inboundFramesDispatcher: Task<Void, Never>
 
     // MARK: - channel management
     private let channels: ChannelManager
@@ -84,7 +84,8 @@ public final class Connection: Sendable {
         // create a task to distribute incoming frames
         let framesRouter = FramesRouter(
             inboundFrames: inboundFrames,
-            channels: self.channels
+            channels: self.channels,
+            transportTask: self.transportExecutor
         )
         self.inboundFramesDispatcher = Task {
             await framesRouter.execute()

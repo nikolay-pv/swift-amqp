@@ -36,6 +36,7 @@ private struct ContentContext {
 final class FramesRouter: Sendable {
     private let inboundFrames: AsyncStream<any Frame>
     private let channels: ChannelManager
+    private let transportTask: Task<Void, Never>
 
     func execute() async {
         var contentContext = ContentContext()
@@ -85,12 +86,18 @@ final class FramesRouter: Sendable {
                 }
                 continue
             }
+            transportTask.cancel()  // drops the connection
             break  // stop processing any further frames
         }
     }
 
-    init(inboundFrames: AsyncStream<any Frame>, channels: ChannelManager) {
+    init(
+        inboundFrames: AsyncStream<any Frame>,
+        channels: ChannelManager,
+        transportTask: Task<Void, Never>
+    ) {
         self.inboundFrames = inboundFrames
         self.channels = channels
+        self.transportTask = transportTask
     }
 }
