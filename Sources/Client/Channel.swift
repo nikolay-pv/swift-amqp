@@ -10,6 +10,7 @@ public class Channel: @unchecked Sendable {
     public let id: UInt16
     let isOpen = ManagedAtomic(true)
     // in swift 6.2 this can be weak let (which it is semantically today)
+    private weak var manager: ChannelManager?
     private weak var transportWeak: (any TransportProtocol)?
     private let logger: Logger
     private let messages: AsyncStream<Message>
@@ -17,11 +18,41 @@ public class Channel: @unchecked Sendable {
     private let promisesLock = NIOLock()
     private var promises: [EventLoopPromise<any Frame>] = .init()
 
+    internal func dispatch0(frame: any Frame) -> Result<Bool, ConnectionError> {
+        precondition(frame.channelId == 0, "dispatch0 called with non-zero channel id")
+        precondition(frame is MethodFrame, "Unexpected frame type in channel 0: \(type(of: frame))")
+        let frame = frame as! MethodFrame
+        if frame.payload is Spec.Connection.CloseOk {
+            precondition(!promises.isEmpty, "channel got an unexpected frame")
+            let promise = promisesLock.withLock { promises.removeFirst() }
+            promise.succeed(frame)
+            return .success(false)
+        }
+        if let payload = frame.payload as? Spec.Connection.Close {
+            // eat exceptions as it doesn't make sense to throw here (broker already closed the connection)
+            self.connectionCloseOk()
+            if payload.replyCode != 0 {
+                logger.error(
+                    "Connection closed by broker with code \(payload.replyCode): \(payload.replyText)"
+                )
+                return .failure(ConnectionError.connectionIsClosed)
+            }
+            return .success(false)
+        }
+        fatalError("unreachable: in dispatch0 with frame \(frame)")
+    }
+
     /// method to handle incoming frames from a Broker
-    internal func dispatch(frame: any Frame) {
-        precondition(!promises.isEmpty, "channel got an unexpected frame")
+    /// returns the error if broker returned a non zero reply code in Connection.Close
+    /// otherwise true if connection should stay open (i.e. process frames), and false otherwise
+    internal func dispatch(frame: any Frame) -> Result<Bool, ConnectionError> {
+        if frame.channelId == 0 {
+            return dispatch0(frame: frame)
+        }
+        precondition(!promises.isEmpty, "channel got an unexpected frame \(frame)")
         let promise = promisesLock.withLock { promises.removeFirst() }
         promise.succeed(frame)
+        return .success(true)
     }
 
     internal func dispatch(content: [any Frame]) {
@@ -49,8 +80,14 @@ public class Channel: @unchecked Sendable {
     }
 
     // MARK: - init
-    internal init(transport: any TransportProtocol, id: UInt16, logger: Logger) {
+    internal init(
+        transport: any TransportProtocol,
+        id: UInt16,
+        logger: Logger,
+        manager: ChannelManager? = nil
+    ) {
         self.id = id
+        self.manager = manager
         self.transportWeak = transport
         var decoratedLogger = logger
         decoratedLogger[metadataKey: "channel-id"] = "\(id)"
@@ -60,6 +97,10 @@ public class Channel: @unchecked Sendable {
             messagesContinuation = continuation
         }
         self.continuation = messagesContinuation
+    }
+
+    deinit {
+        self.manager?.removeChannel(id: id)
     }
 }
 
@@ -102,11 +143,12 @@ extension Channel {
         method: some AMQPMethodProtocol & FrameCodable,
     ) async throws -> MethodFrame? {
         let frame = makeFrame(with: method)
-        let promise = try withTransport {
-            $0.send(frame)
-        }
-        promisesLock.withLock {
+        let promise = try promisesLock.withLock {
+            let promise = try withTransport {
+                $0.send(frame)
+            }
             promises.append(promise)
+            return promise
         }
         let response = try await promise.futureResult.get() as? MethodFrame
         return response
@@ -333,7 +375,7 @@ extension Channel {
         }
     }
 
-    // this will start receiving the messages from Transport too
+    /// Communicates to broker to open this channel, doesn't check for isOpen status and always does the communication.
     internal func requestOpen() async throws {
         let method = Spec.Channel.Open()
         let frame = try await sendReturningResponse(method: method)
@@ -341,5 +383,16 @@ extension Channel {
             frame?.payload is Spec.Channel.OpenOk,
             "Channel.requestOpen expects Spec.Channel.OpenOk but got \(String(describing: frame))"
         )
+    }
+
+    // this will communicate to broker to open this channel, it is called
+    // automatically by the init, calling it again has no effect, but it allows
+    // to reopen closed channel
+    public func open() async throws {
+        if isOpen.load(ordering: .acquiring) {
+            return
+        }
+        try await requestOpen()
+        isOpen.store(true, ordering: .releasing)
     }
 }
