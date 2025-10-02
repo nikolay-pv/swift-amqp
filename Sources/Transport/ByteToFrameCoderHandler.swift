@@ -49,3 +49,5 @@ struct ByteToFrameCoderHandler: ByteToMessageDecoder, MessageToByteEncoder {
         out = ByteBuffer(data: try data.asData())
     }
 }
+
+extension ByteToFrameCoderHandler: Sendable {}

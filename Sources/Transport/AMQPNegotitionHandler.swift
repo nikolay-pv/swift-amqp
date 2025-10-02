@@ -11,9 +11,9 @@ class AMQPNegotiationHandler: ChannelInboundHandler,
 
     static let handlerName = "AMQPNegotiationHandler"
 
-    let negotiator: any AMQPNegotiationDelegateProtocol
+    private let negotiator: any AMQPNegotiationDelegateProtocol
     // fulfilled when the negotiation is successful
-    let complete: EventLoopPromise<Void>
+    private let complete: EventLoopPromise<Void>
 
     private func handle(action: TransportAction, on context: ChannelHandlerContext) {
         switch action {
@@ -31,6 +31,8 @@ class AMQPNegotiationHandler: ChannelInboundHandler,
         }
     }
 
+    // MARK: - ChannelInboundHandler
+
     func channelActive(context: ChannelHandlerContext) {
         context.fireChannelActive()
         handle(action: negotiator.start(), on: context)
@@ -44,6 +46,8 @@ class AMQPNegotiationHandler: ChannelInboundHandler,
         let action = negotiator.negotiate(frame: frame)
         handle(action: action, on: context)
     }
+
+    // MARK: - init
 
     init(negotiator: any AMQPNegotiationDelegateProtocol, done: EventLoopPromise<Void>) {
         self.negotiator = negotiator

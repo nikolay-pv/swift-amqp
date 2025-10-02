@@ -1,3 +1,4 @@
+import Atomics
 import Logging
 import NIOCore
 import NIOPosix
@@ -5,7 +6,7 @@ import Testing
 
 @testable import AMQP  // testable to be able to use TransportProtocol
 
-// Warning: this is not strictly sendable
+// Warning: this is not strictly sendable, make sure that expecting method is executed before MT context
 final class TransportMock: TransportProtocol, @unchecked Sendable {
 
     enum Action {
@@ -80,11 +81,16 @@ final class TransportMock: TransportProtocol, @unchecked Sendable {
                 break
             }
         }
+        isActiveShadow.store(false, ordering: .sequentiallyConsistent)
     }
+
+    var isActiveShadow = ManagedAtomic(true)
 }
 
 extension TransportMock {
-    var isActive: Bool { true }
+    var isActive: Bool {
+        return isActiveShadow.load(ordering: .sequentiallyConsistent)
+    }
 
     func send(_ frame: any AMQP.Frame) -> NIOCore.EventLoopPromise<any AMQP.Frame> {
         let promise = eventLoop.makePromise(of: (any Frame).self)
