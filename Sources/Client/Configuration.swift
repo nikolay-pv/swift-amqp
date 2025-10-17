@@ -5,18 +5,21 @@ public struct Configuration: Sendable {
     public var port: Int
 
     public enum AuthType: Sendable {
-        case basic(username: String, password: String)
+        case plain(username: String, password: String)
+        case external
 
         var mechanism: String {
             switch self {
-            case .basic: "PLAIN"
+            case .plain: "PLAIN"
+            case .external: "EXTERNAL"
             }
         }
 
         /// returns response as required by Connection.StartOk method for this type of AuthType
         var response: String {
             switch self {
-            case .basic(let username, let password): "\0\(username)\0\(password)"
+            case .plain(let username, let password): "\0\(username)\0\(password)"
+            case .external: ""
             }
         }
     }
@@ -34,6 +37,6 @@ public struct Configuration: Sendable {
         .init(
             host: "localhost",
             port: 5672,
-            credentials: .basic(username: "guest", password: "guest")
+            credentials: .plain(username: "guest", password: "guest")
         )
 }
