@@ -29,7 +29,7 @@ private struct ChannelIDs {
     }
 }
 
-// in charge of bookkeeping track of channels, allows making them and finding
+// in charge of bookkeeping the channels, allows making them and finding
 // them by id, as well as removing them
 final class ChannelManager: @unchecked Sendable {
     // channel0 is special and is used for communications before any channel exists
@@ -67,10 +67,10 @@ final class ChannelManager: @unchecked Sendable {
         }
     }
 
-    func broadcastConnectionError() {
+    func forEach(_ body: (Channel) -> Void) {
         channelsLock.withLock {
             for channel in channels.values {
-                channel.handleConnectionError(ConnectionError.connectionIsClosed)
+                body(channel)
             }
         }
     }

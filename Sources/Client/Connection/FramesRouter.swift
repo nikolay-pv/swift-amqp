@@ -79,7 +79,9 @@ final class FramesRouter: Sendable {
             let res = channel.dispatch(frame: frame)
             switch res {
             case .failure:
-                channels.broadcastConnectionError()
+                channels.forEach {
+                    $0.handleConnectionError(ConnectionError.connectionIsClosed)
+                }
             case .success(let keepGoing):
                 guard keepGoing else {
                     break
