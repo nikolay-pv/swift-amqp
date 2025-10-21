@@ -1,9 +1,6 @@
 import Logging
 
 public struct Configuration: Sendable {
-    public var host: String
-    public var port: Int
-
     public enum AuthType: Sendable {
         case plain(username: String, password: String)
         case external
@@ -24,19 +21,23 @@ public struct Configuration: Sendable {
         }
     }
 
-    public var credentials: AuthType
-    public var logger = Logger(label: "swift.amqp")
-    public var channelMax: Int = 0
+    public var host: String = "localhost"
+    public var port: Int = 5672
+    public var vHost: String = "/"
+
+    public var credentials: AuthType = .plain(username: "guest", password: "guest")
+    public var channelMax: UInt16 = .max
+    // 0 bytes means no limit
     public var frameMax: Int = 0
 
-    // public var bytesMax: Int {
-    //     return max(0, frameMax - AMQP.Spec.FrameHeaderSize - AMQP.Spec.FrameEndSize)
-    // }
+    public enum HeartbeatValue: Sendable {
+        case disabled
+        case serverDefault
+        case seconds(UInt)
+    }
+    public var heartbeat: HeartbeatValue = .serverDefault
 
-    public static let `default`: Configuration =
-        .init(
-            host: "localhost",
-            port: 5672,
-            credentials: .plain(username: "guest", password: "guest")
-        )
+    public var logger = Logger(label: "swift.amqp")
+
+    public static let `default`: Configuration = .init()
 }

@@ -1,5 +1,21 @@
 import Logging
 
+internal let defaultCapabilities: Spec.FieldValue = .table([
+    "authentication_failure_close": .bool(true),
+    "basic.nack": .bool(true),
+    "connection.blocked": .bool(true),
+    "consumer_cancel_notify": .bool(true),
+    "publisher_confirms": .bool(true),
+])
+
+internal let defaultProperties: [String: Spec.FieldValue] = [
+    "product": .longstr("AMQP 0.9.1 Client"),
+    "platform": .longstr("swift"),
+    // "version": .longstr("0.1.0"),
+    // "information": .longstr("link to docs"),
+    "capabilities": defaultCapabilities,
+]
+
 public final class Connection: Sendable {
     private let logger: Logger
     // MARK: - transport management
@@ -34,25 +50,18 @@ public final class Connection: Sendable {
     }
 
     // MARK: - init
-    public convenience init(with configuration: Configuration = .default) async throws {
-        try await self.init(with: configuration, env: Environment.shared)
+    public convenience init(
+        with configuration: Configuration = .default,
+        andWith properties: Spec.Table = [:]
+    ) async throws {
+        try await self.init(with: configuration, properties: properties, env: Environment.shared)
     }
 
     // swiftlint:disable:next function_body_length
-    init(with configuration: Configuration, env: Environment) async throws {
+    init(with configuration: Configuration, properties: Spec.Table, env: Environment) async throws {
         self.logger = configuration.logger
-        let properties: Spec.Table = [
-            "product": .longstr("swift-amqp"),
-            "platform": .longstr("swift"),
-            "capabilities": .table([
-                "authentication_failure_close": .bool(true),
-                "basic.nack": .bool(true),
-                "connection.blocked": .bool(true),
-                "consumer_cancel_notify": .bool(true),
-                "publisher_confirms": .bool(true),
-            ]),
-            "information": .longstr("website here"),
-        ]
+        // extend the default properties with user-provided ones
+        let properties = defaultProperties.merging(properties) { _, new in new }
 
         // create inbound AsyncStream
         var inboundContinuation: AsyncStream<any Frame>.Continuation?
