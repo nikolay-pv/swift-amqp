@@ -2,7 +2,7 @@ enum TransportAction {
     case reply(any AMQPNegotiationHandler.OutboundOut)
     case replySeveral([any AMQPNegotiationHandler.OutboundOut])
     case error(Error)
-    case complete
+    case complete(Configuration, Spec.Table)
 }
 
 /// A delegate for AMQPNegotiationHandler

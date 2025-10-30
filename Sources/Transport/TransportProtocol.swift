@@ -6,9 +6,12 @@ protocol TransportProtocol: Sendable, AnyObject {
         host: String,
         port: Int,
         logger: Logger,
-        inboundContinuation: AsyncStream<any Frame>.Continuation,
-        negotiatorFactory: @escaping @Sendable () -> any AMQPNegotiationDelegateProtocol
+        inboundContinuation: AsyncStream<any Frame>.Continuation
     ) async throws
+
+    func negotiate(
+        negotiatorFactory: @escaping @Sendable () -> any AMQPNegotiationDelegateProtocol
+    ) async throws -> (Configuration, Spec.Table)
 
     var isActive: Bool { get }
     func execute() async

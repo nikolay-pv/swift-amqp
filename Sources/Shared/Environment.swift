@@ -12,8 +12,7 @@ struct Environment: Sendable {
 
     typealias TransportFactoryT =
         @Sendable (
-            String, Int, Logger, AsyncStream<any Frame>.Continuation,
-            @escaping @Sendable () -> any AMQPNegotiationDelegateProtocol
+            String, Int, Logger, AsyncStream<any Frame>.Continuation
         ) async throws -> any TransportProtocol & Sendable
     private(set) var transportFactory: TransportFactoryT = Transport.init
 

@@ -52,13 +52,15 @@ public final class Connection: Sendable {
     // MARK: - init
     public convenience init(
         with configuration: Configuration = .default,
-        andWith properties: Spec.Table = [:]
+        andWith properties: Spec.Table = .init()
     ) async throws {
-        try await self.init(with: configuration, properties: properties, env: Environment.shared)
+        try await self.init(with: configuration, env: Environment.shared, properties: properties)
     }
 
     // swiftlint:disable:next function_body_length
-    init(with configuration: Configuration, properties: Spec.Table, env: Environment) async throws {
+    init(with configuration: Configuration, env: Environment, properties: Spec.Table = .init())
+        async throws
+    {
         self.logger = configuration.logger
         // extend the default properties with user-provided ones
         let properties = defaultProperties.merging(properties) { _, new in new }
@@ -78,11 +80,11 @@ public final class Connection: Sendable {
             configuration.host,
             configuration.port,
             self.logger,
-            inboundContinuation,
-            {
-                return env.negotiationFactory(configuration, properties)
-            }
+            inboundContinuation
         )
+        let negotiatedConfig = try await self.transport.negotiate {
+            return env.negotiationFactory(configuration, properties)
+        }
         let sharedTransport = self.transport
         self.transportExecutor = Task {
             await sharedTransport.execute()

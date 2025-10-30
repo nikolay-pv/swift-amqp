@@ -10,7 +10,6 @@ func makeTestEnv(with actions: [TransportMock.Action]) -> Environment {
             port: $1,
             logger: $2,
             inboundContinuation: $3,
-            negotiatorFactory: $4
         )
         transportStub.expecting(sequenceOf: actions)
         return transportStub
