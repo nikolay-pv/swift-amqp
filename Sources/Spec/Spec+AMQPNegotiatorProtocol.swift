@@ -9,18 +9,23 @@ extension Spec {
         }
 
         private var state: State = .waitingStart
+        let clientConfig: Configuration
+        // will store negotiated configuration here
         var config: Configuration
-        let properties: Spec.Table
+        let clientProperties: Spec.Table
+        var serverProperties: Spec.Table
 
         init(config: Configuration, properties: Spec.Table) {
+            self.clientConfig = config
             self.config = config
-            self.properties = properties
+            self.clientProperties = properties
+            self.serverProperties = [:]
         }
     }
 }
 
 extension Spec.AMQPNegotiator {
-    fileprivate static func decide(server: Int, client: Int) -> Int {
+    fileprivate static func decide<T>(server: T, client: T) -> T where T: Numeric & Comparable {
         if server == 0 || client == 0 {
             return max(server, client)
         }
@@ -58,16 +63,17 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
             // save server information somehow
             // self._set_server_information(method_frame)
             // self._send_connection_start_ok(*self._get_credentials(method_frame))
-            if !method.mechanisms.contains(self.config.credentials.mechanism) {
-                let msg = "\(self.config.credentials.mechanism) is not supported by the server"
+            if !method.mechanisms.contains(self.clientConfig.credentials.mechanism) {
+                let msg =
+                    "\(self.clientConfig.credentials.mechanism) is not supported by the server"
                 return .error(NegotiationError.unsupportedAuthMechanism(msg))
             }
+            self.serverProperties = method.serverProperties
             // send Start-Ok method with selected security mechanism
             let response = AMQP.Spec.Connection.StartOk(
-                // clientProperties: properties,
-                clientProperties: ["product": .longstr("pika")],
-                mechanism: self.config.credentials.mechanism,
-                response: self.config.credentials.response
+                clientProperties: self.clientProperties,
+                mechanism: self.clientConfig.credentials.mechanism,
+                response: self.clientConfig.credentials.response
             )
             let startOkFrame = MethodFrame(
                 channelId: 0,
@@ -87,16 +93,16 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
             }
             // picking correct values
             self.config.channelMax = Self.decide(
-                server: Int(method.channelMax),
-                client: self.config.channelMax
+                server: method.channelMax,
+                client: self.clientConfig.channelMax
             )
             self.config.frameMax = Self.decide(
-                server: Int(method.frameMax),
-                client: self.config.frameMax
+                server: method.frameMax,
+                client: self.clientConfig.frameMax
             )
             let response = AMQP.Spec.Connection.TuneOk(
-                channelMax: Int16(self.config.channelMax),
-                frameMax: Int32(self.config.frameMax),
+                channelMax: self.config.channelMax,
+                frameMax: self.config.frameMax,
                 heartbeat: 0
             )
             let frame = MethodFrame(
@@ -105,7 +111,7 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
             )
             let connectData = MethodFrame(
                 channelId: 0,
-                payload: Spec.Connection.Open()
+                payload: Spec.Connection.Open(virtualHost: self.config.vHost)
             )
             self.state = .waitingOpenOk
             return .replySeveral([frame, connectData])
@@ -114,7 +120,7 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
                 return .error(NegotiationError.unexpectedMethod)
             }
             self.state = .complete
-            return .complete
+            return .complete(self.config, self.serverProperties)
         case .complete:
             fatalError("should have been removed from the channel's pipeline")
         }

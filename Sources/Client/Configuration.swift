@@ -26,9 +26,9 @@ public struct Configuration: Sendable {
     public var vHost: String = "/"
 
     public var credentials: AuthType = .plain(username: "guest", password: "guest")
-    public var channelMax: UInt16 = .max
+    public var channelMax: Int16 = .max
     // 0 bytes means no limit
-    public var frameMax: Int = 0
+    public var frameMax: Int32 = 0
 
     public enum HeartbeatValue: Sendable {
         case disabled
