@@ -111,7 +111,7 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
             )
             let connectData = MethodFrame(
                 channelId: 0,
-                payload: Spec.Connection.Open(virtualHost: self.config.vHost)
+                payload: Spec.Connection.Open(virtualHost: self.config.vHost, insist: true)
             )
             self.state = .waitingOpenOk
             return .replySeveral([frame, connectData])
