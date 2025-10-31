@@ -100,7 +100,8 @@ public final class Connection: Sendable {
         let framesRouter = FramesRouter(
             inboundFrames: inboundFrames,
             channels: self.channels,
-            transportTask: self.transportExecutor
+            transportTask: self.transportExecutor,
+            maxFrameSize: negotiatedConfig.frameMax
         )
         self.inboundFramesDispatcher = Task {
             await framesRouter.execute()

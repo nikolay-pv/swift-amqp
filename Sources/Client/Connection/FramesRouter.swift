@@ -59,6 +59,25 @@ final class FramesRouter: Sendable {
                     continue
                 }
                 if let body = frame as? ContentBodyFrame {
+                    // only ContentBodyFrame is checked for maxFrameSize
+                    // because there is no way to split other frames into smaller pieces
+                    // see also: https://www.rabbitmq.com/amqp-0-9-1-errata#section_11
+                    // check for exceeding expected body size
+                    // as per "2.3.3 Protocol Negotiation"
+                    // in case maxFrameSize is exceeded the connection must be
+                    // closed
+                    if maxFrameSize != 0 && body.bytesCount > UInt32(maxFrameSize) {
+                        channels.forEach {
+                            $0.handleConnectionError(
+                                ConnectionError.frameSizeLimitExceeded(
+                                    maxFrameSize: UInt32(maxFrameSize),
+                                    actualSize: body.bytesCount
+                                )
+                            )
+                        }
+                        transportTask.cancel()  // drops the connection
+                        break  // stop processing any further frames
+                    }
                     contentContext.push(body: body)
                 }
                 if contentContext.isComplete() {
@@ -84,10 +103,9 @@ final class FramesRouter: Sendable {
                     $0.handleConnectionError(ConnectionError.connectionIsClosed)
                 }
             case .success(let keepGoing):
-                guard keepGoing else {
-                    break
+                if keepGoing {
+                    continue
                 }
-                continue
             }
             transportTask.cancel()  // drops the connection
             break  // stop processing any further frames

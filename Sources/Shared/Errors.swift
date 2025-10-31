@@ -1,5 +1,9 @@
 enum ConnectionError: Error {
     case connectionIsClosed
+    case frameSizeLimitExceeded(
+        maxFrameSize: UInt32,
+        actualSize: UInt32
+    )
     case channelIsClosed
 }
 
