@@ -82,7 +82,7 @@ public final class Connection: Sendable {
             self.logger,
             inboundContinuation
         )
-        let (negotiatedConfig, props) = try await self.transport.negotiate {
+        let (negotiatedConfig, _) = try await self.transport.negotiate {
             return env.negotiationFactory(configuration, properties)
         }
         let sharedTransport = self.transport
