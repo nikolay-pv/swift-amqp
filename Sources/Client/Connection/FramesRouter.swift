@@ -37,6 +37,7 @@ final class FramesRouter: Sendable {
     private let inboundFrames: AsyncStream<any Frame>
     private let channels: ChannelManager
     private let transportTask: Task<Void, Never>
+    private let maxFrameSize: Int32
 
     func execute() async {
         var contentContext = ContentContext()
@@ -96,10 +97,12 @@ final class FramesRouter: Sendable {
     init(
         inboundFrames: AsyncStream<any Frame>,
         channels: ChannelManager,
-        transportTask: Task<Void, Never>
+        transportTask: Task<Void, Never>,
+        maxFrameSize: Int32 = 0  // no limit
     ) {
         self.inboundFrames = inboundFrames
         self.channels = channels
         self.transportTask = transportTask
+        self.maxFrameSize = maxFrameSize
     }
 }

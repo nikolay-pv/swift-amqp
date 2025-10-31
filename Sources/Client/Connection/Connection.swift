@@ -82,7 +82,7 @@ public final class Connection: Sendable {
             self.logger,
             inboundContinuation
         )
-        let negotiatedConfig = try await self.transport.negotiate {
+        let (negotiatedConfig, props) = try await self.transport.negotiate {
             return env.negotiationFactory(configuration, properties)
         }
         let sharedTransport = self.transport
@@ -90,7 +90,11 @@ public final class Connection: Sendable {
             await sharedTransport.execute()
         }
 
-        self.channels = .init(transport: sharedTransport, logger: self.logger)
+        self.channels = .init(
+            transport: sharedTransport,
+            logger: self.logger,
+            maxChannels: negotiatedConfig.channelMax
+        )
 
         // create a task to distribute incoming frames
         let framesRouter = FramesRouter(

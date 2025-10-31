@@ -3,13 +3,15 @@ import Logging
 import NIOConcurrencyHelpers
 
 private struct ChannelIDs {
-    private var nextFree: Int = 1
-    private var occupied: OrderedSet<Int> = []
-    private var freed: OrderedSet<Int> = []
+    typealias IDType = UInt16
+    private(set) var maxID: IDType
+    private(set) var nextFree: IDType = 1
+    private(set) var occupied: OrderedSet<IDType> = []
+    private(set) var freed: OrderedSet<IDType> = []
 
-    func isFree(_ id: Int) -> Bool { !occupied.contains(id) && nextFree <= id }
+    func isFree(_ id: IDType) -> Bool { !occupied.contains(id) && nextFree <= id }
 
-    mutating func remove(id: Int) {
+    mutating func remove(id: IDType) {
         if id == nextFree - 1 {
             nextFree -= 1
         } else {
@@ -18,7 +20,7 @@ private struct ChannelIDs {
         occupied.remove(id)
     }
 
-    mutating func next() -> Int {
+    mutating func next() -> IDType {
         if !freed.isEmpty {
             let id = freed.removeFirst()
             return id
@@ -38,11 +40,11 @@ final class ChannelManager: @unchecked Sendable {
 
     private let channelsLock = NIOLock()
     private var channels: [UInt16: Channel] = [:]
-    private var channelIDs: ChannelIDs = .init()
+    private var channelIDs: ChannelIDs
 
     func makeChannel(transport: TransportProtocol, logger: Logger) -> Channel {
         let channel: Channel = channelsLock.withLock {
-            let id = UInt16(channelIDs.next())
+            let id = channelIDs.next()
             let channel = Channel.init(transport: transport, id: id, logger: logger)
             channels[id] = channel
             return channel
@@ -53,7 +55,7 @@ final class ChannelManager: @unchecked Sendable {
     func removeChannel(id: UInt16) {
         channelsLock.withLock {
             if channels.removeValue(forKey: id) != nil {
-                channelIDs.remove(id: Int(id))
+                channelIDs.remove(id: id)
             }
         }
     }
@@ -78,7 +80,8 @@ final class ChannelManager: @unchecked Sendable {
     // MARK: - init
 
     // initializes the channel0 with given transport and the logger
-    init(transport: TransportProtocol, logger: Logger) {
+    init(transport: TransportProtocol, logger: Logger, maxChannels: UInt16 = .max) {
         self.channel0 = .init(transport: transport, id: 0, logger: logger)
+        self.channelIDs = .init(maxID: maxChannels)
     }
 }

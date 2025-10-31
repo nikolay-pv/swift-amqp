@@ -154,7 +154,7 @@ extension Channel {
         return response
     }
 
-    public func close(replyCode: Int16 = 0, replyText: String = "") async throws {
+    public func close(replyCode: UInt16 = 0, replyText: String = "") async throws {
         let method = Spec.Channel.Close(
             replyCode: replyCode,
             replyText: replyText,
@@ -171,10 +171,10 @@ extension Channel {
 
     // this is only used on channel0
     internal func connectionClose(
-        replyCode: Int16 = 0,
+        replyCode: UInt16 = 0,
         replyText: String = "",
-        classId: Int16 = 0,
-        methodId: Int16 = 0
+        classId: UInt16 = 0,
+        methodId: UInt16 = 0
     ) async throws {
         let method = Spec.Connection.Close(
             replyCode: replyCode,
@@ -223,12 +223,12 @@ extension Channel {
             "prefetchSize should be within [0, Int32.max]"
         )
         precondition(
-            prefetchCount >= 0 && prefetchCount <= Int16.max,
+            prefetchCount >= 0 && prefetchCount <= UInt16.max,
             "prefetchCount should be within [0, Int16.max]"
         )
         let method = Spec.Basic.Qos(
             prefetchSize: Int32(prefetchSize),
-            prefetchCount: Int16(prefetchCount),
+            prefetchCount: UInt16(prefetchCount),
             global: global
         )
         let frame = try await sendReturningResponse(method: method)
