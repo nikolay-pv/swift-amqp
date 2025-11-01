@@ -1,11 +1,21 @@
 enum ConnectionError: Error {
+    // means that this connection can't be used anymore and should be recreated
     case connectionIsClosed
+    // when this is thrown the connection will be dropped to the server, so one
+    // must recreate the Connection object
     case frameSizeLimitExceeded(
         maxFrameSize: UInt32,
         actualSize: UInt32
     )
+    // this means that Channel has been closed and should be recreated
     case channelIsClosed
+    // thrown when trying to create more channels than allowed in negotiation
+    // (everything can be still used as normal, but new channel can be made only
+    // if some are closed)
+    case maxChannelsLimitReached
 }
+
+extension ConnectionError: Equatable {}
 
 enum NegotiationError: Error {
     case protocolVersionMismatch(server: String, client: String)

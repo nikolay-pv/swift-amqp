@@ -20,10 +20,15 @@ private struct ChannelIDs {
         occupied.remove(id)
     }
 
-    mutating func next() -> IDType {
+    // throws ConnectionError.maxChannelsLimitReached if no more ids are
+    // available
+    mutating func next() throws -> IDType {
         if !freed.isEmpty {
             let id = freed.removeFirst()
             return id
+        }
+        if nextFree == maxID {
+            throw ConnectionError.maxChannelsLimitReached
         }
         let id = nextFree
         nextFree += 1
@@ -42,9 +47,11 @@ final class ChannelManager: @unchecked Sendable {
     private var channels: [UInt16: Channel] = [:]
     private var channelIDs: ChannelIDs
 
-    func makeChannel(transport: TransportProtocol, logger: Logger) -> Channel {
-        let channel: Channel = channelsLock.withLock {
-            let id = channelIDs.next()
+    // throws ConnectionError.maxChannelsLimitReached if no more channels can be
+    // created (within agreed limits)
+    func makeChannel(transport: TransportProtocol, logger: Logger) throws -> Channel {
+        let channel: Channel = try channelsLock.withLock {
+            let id = try channelIDs.next()
             let channel = Channel.init(transport: transport, id: id, logger: logger)
             channels[id] = channel
             return channel

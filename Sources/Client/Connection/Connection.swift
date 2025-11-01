@@ -27,9 +27,11 @@ public final class Connection: Sendable {
     // MARK: - channel management
     private let channels: ChannelManager
 
+    // throw ConnectionError.connectionIsClosed if connection is closed
+    // throw ConnectionError.maxChannelsLimitReached if no more channels can be created
     public func makeChannel() async throws -> Channel {
         try ensureOpen()
-        let channel = channels.makeChannel(transport: self.transport, logger: self.logger)
+        let channel = try channels.makeChannel(transport: self.transport, logger: self.logger)
         try await channel.requestOpen()
         return channel
     }
