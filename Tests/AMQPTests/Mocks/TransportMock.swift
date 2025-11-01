@@ -30,7 +30,8 @@ final class TransportMock: TransportProtocol, @unchecked Sendable {
         host: String,
         port: Int,
         logger: Logger,
-        inboundContinuation: AsyncStream<any AMQP.Frame>.Continuation
+        inboundContinuation: AsyncStream<any AMQP.Frame>.Continuation,
+        negotiatorFactory: @escaping () -> any AMQPNegotiationDelegateProtocol
     ) async throws {
         self.inboundContinuation = inboundContinuation
         var outboundContinuation: AsyncStream<any Frame>.Continuation?
@@ -44,10 +45,8 @@ final class TransportMock: TransportProtocol, @unchecked Sendable {
         self.outboundContinuation = outboundContinuation
     }
 
-    func negotiate(negotiatorFactory: @escaping () -> any AMQPNegotiationDelegateProtocol)
-        async throws -> (Configuration, Spec.Table)
-    {
-        (.default, [:])
+    var negotiatedProperties: (Configuration, Spec.Table) {
+        return (.default, Spec.Table())
     }
 
     /// Sends out all inbound actions starting `from` the given index.

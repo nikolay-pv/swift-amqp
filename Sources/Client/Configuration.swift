@@ -19,6 +19,10 @@ public struct Configuration: Sendable {
             case .external: ""
             }
         }
+
+        mutating func reset() {
+            self = .plain(username: "guest", password: "guest")
+        }
     }
 
     public var host: String = "localhost"

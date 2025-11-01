@@ -16,12 +16,14 @@ final class Transport: TransportProtocol, Sendable {
     private let outboundContinuation: AsyncStream<any Frame>.Continuation
     private let outboundFrames: AsyncStream<any Frame>
     private let inboundContinuation: AsyncStream<any Frame>.Continuation
+    let negotiatedProperties: (Configuration, Spec.Table)
 
     init(
         host: String = "localhost",
         port: Int = 5672,
         logger: Logger,
-        inboundContinuation: AsyncStream<any Frame>.Continuation
+        inboundContinuation: AsyncStream<any Frame>.Continuation,
+        negotiatorFactory: @escaping @Sendable () -> any AMQPNegotiationDelegateProtocol
     ) async throws {
         // one event loop per connection
         self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
@@ -38,6 +40,9 @@ final class Transport: TransportProtocol, Sendable {
         self.outboundContinuation = outboundContinuation
 
         self.inboundContinuation = inboundContinuation
+
+        let negotiationComplete = eventLoopGroup.any()
+            .makePromise(of: (Configuration, Spec.Table).self)
         self.asyncNIOChannel = try await ClientBootstrap(group: eventLoopGroup)
             .connect(host: host, port: port) { channel in
                 return channel.pipeline
@@ -62,12 +67,25 @@ final class Transport: TransportProtocol, Sendable {
                             )
                         }
                     #endif  // canImport(NIOExtras)
+                    .flatMap {
+                        return channel.pipeline.addHandler(
+                            AMQPNegotiationHandler(
+                                negotiator: negotiatorFactory(),
+                                done: negotiationComplete
+                            ),
+                            name: AMQPNegotiationHandler.handlerName
+                        )
+                    }
                     .flatMapThrowing {
                         return try NIOAsyncChannel<any Frame, any Frame>(
                             wrappingChannelSynchronously: channel
                         )
                     }
             }
+        var negotiationResult = try await negotiationComplete.futureResult.get()
+        // for security reasons reset credentials after negotiation
+        negotiationResult.0.credentials.reset()
+        negotiatedProperties = negotiationResult
     }
 
     deinit {
@@ -76,22 +94,6 @@ final class Transport: TransportProtocol, Sendable {
 }
 
 extension Transport {
-    func negotiate(
-        negotiatorFactory: @escaping @Sendable () -> any AMQPNegotiationDelegateProtocol
-    ) async throws -> (Configuration, Spec.Table) {
-        let negotiationComplete = eventLoopGroup.any()
-            .makePromise(of: (Configuration, Spec.Table).self)
-        try await self.asyncNIOChannel?.channel.pipeline
-            .addHandler(
-                AMQPNegotiationHandler(
-                    negotiator: negotiatorFactory(),
-                    done: negotiationComplete
-                ),
-                name: AMQPNegotiationHandler.handlerName
-            )
-        return try await negotiationComplete.futureResult.get()
-    }
-
     var isActive: Bool {
         self.asyncNIOChannel?.channel.isActive ?? false
     }

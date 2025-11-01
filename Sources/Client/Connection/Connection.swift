@@ -80,11 +80,12 @@ public final class Connection: Sendable {
             configuration.host,
             configuration.port,
             self.logger,
-            inboundContinuation
+            inboundContinuation,
+            {
+                return env.negotiationFactory(configuration, properties)
+            }
         )
-        let (negotiatedConfig, _) = try await self.transport.negotiate {
-            return env.negotiationFactory(configuration, properties)
-        }
+        let (negotiatedConfig, _) = self.transport.negotiatedProperties
         let sharedTransport = self.transport
         self.transportExecutor = Task {
             await sharedTransport.execute()
