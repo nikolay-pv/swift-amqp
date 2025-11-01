@@ -10,8 +10,7 @@ import NIOPosix
 
 final class Transport: TransportProtocol, Sendable {
     private let eventLoopGroup: MultiThreadedEventLoopGroup
-    // can only be nil if Transport is throwing at init
-    private let asyncNIOChannel: NIOAsyncChannel<any Frame, any Frame>?
+    private let asyncNIOChannel: NIOAsyncChannel<any Frame, any Frame>
 
     private let outboundContinuation: AsyncStream<any Frame>.Continuation
     private let outboundFrames: AsyncStream<any Frame>
@@ -89,13 +88,13 @@ final class Transport: TransportProtocol, Sendable {
     }
 
     deinit {
-        try? asyncNIOChannel?.channel.close().wait()
+        try? asyncNIOChannel.channel.close().wait()
     }
 }
 
 extension Transport {
     var isActive: Bool {
-        self.asyncNIOChannel?.channel.isActive ?? false
+        self.asyncNIOChannel.channel.isActive
     }
 
     // sends a frame to the broker through the established connection,
@@ -129,14 +128,9 @@ extension Transport {
     ///
     /// - Throws: Any error that occurs during task execution.
     func execute() async {
-        // this only happens if the Transport throws an exception
-        precondition(
-            self.asyncNIOChannel != nil,
-            "Transport wasn't properly initialized and has invalid NIOChannel"
-        )
         do {
             try await withThrowingTaskGroup { group in
-                try await asyncNIOChannel?
+                try await asyncNIOChannel
                     .executeThenClose { inbound, outbound in
                         let continuation = self.inboundContinuation
                         group.addTask {
