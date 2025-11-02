@@ -44,7 +44,7 @@ let consumer = Task {
         queue: queueName,
         tag: "somerandomtag"
     )
-    for await message in messages {
+    for try await message in messages {
         print("======= Consumer got message: \(message)")
         if String(bytes: message.body, encoding: .utf8) == "stop" {
             try await message.ack()

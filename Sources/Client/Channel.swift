@@ -13,8 +13,9 @@ public class Channel: @unchecked Sendable {
     private weak var manager: ChannelManager?
     private weak var transportWeak: (any TransportProtocol)?
     private let logger: Logger
-    private let messages: AsyncStream<Message>
-    private let continuation: AsyncStream<Message>.Continuation?
+    typealias MessageStreamT = AsyncThrowingStream<Message, Error>
+    private let messages: MessageStreamT
+    private let continuation: MessageStreamT.Continuation?
     private let promisesLock = NIOLock()
     private var promises: [EventLoopPromise<any Frame>] = .init()
 
@@ -92,8 +93,8 @@ public class Channel: @unchecked Sendable {
         var decoratedLogger = logger
         decoratedLogger[metadataKey: "channel-id"] = "\(id)"
         self.logger = decoratedLogger
-        var messagesContinuation: AsyncStream<Message>.Continuation?
-        self.messages = AsyncStream { continuation in
+        var messagesContinuation: MessageStreamT.Continuation?
+        self.messages = MessageStreamT { continuation in
             messagesContinuation = continuation
         }
         self.continuation = messagesContinuation
@@ -137,6 +138,7 @@ extension Channel {
         for promise in promises {
             promise.fail(error)
         }
+        continuation?.finish(throwing: error)
     }
 
     private func sendReturningResponse(
@@ -334,7 +336,9 @@ extension Channel {
         }
     }
 
-    public func basicConsume(queue: String, tag: String) async throws -> AsyncStream<Message> {
+    public func basicConsume(queue: String, tag: String) async throws -> AsyncThrowingStream<
+        Message, Error
+    > {
         let method = Spec.Basic.Consume(queue: queue, consumerTag: tag)
         let frame = try await sendReturningResponse(method: method)
         precondition(

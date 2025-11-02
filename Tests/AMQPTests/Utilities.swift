@@ -2,7 +2,12 @@ import Foundation
 
 @testable import AMQP
 
-func makeTestEnv(with actions: [TransportMock.Action]) -> Environment {
+func makeTestEnv(
+    with actions: [TransportMock.Action],
+    customizingNegotiatedProperties:
+        @Sendable @escaping ((Configuration, Spec.Table)) ->
+        (Configuration, Spec.Table) = { $0 }
+) -> Environment {
     var env = Environment.shared
     env.setTransportFactory {
         let transportStub = try await TransportMock(
@@ -13,6 +18,8 @@ func makeTestEnv(with actions: [TransportMock.Action]) -> Environment {
             negotiatorFactory: $4
         )
         transportStub.expecting(sequenceOf: actions)
+        let props = transportStub.negotiatedPropertiesShadow
+        transportStub.negotiatedPropertiesShadow = customizingNegotiatedProperties(props)
         return transportStub
     }
     return env

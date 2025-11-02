@@ -96,7 +96,7 @@ public final class Connection: Sendable {
         self.channels = .init(
             transport: sharedTransport,
             logger: self.logger,
-            maxChannels: negotiatedConfig.channelMax
+            maxChannels: negotiatedConfig.maxChannelCount
         )
 
         // create a task to distribute incoming frames
@@ -104,7 +104,7 @@ public final class Connection: Sendable {
             inboundFrames: inboundFrames,
             channels: self.channels,
             transportTask: self.transportExecutor,
-            maxFrameSize: negotiatedConfig.frameMax
+            maxFrameSize: negotiatedConfig.maxFrameSize
         )
         self.inboundFramesDispatcher = Task {
             await framesRouter.execute()

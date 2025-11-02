@@ -45,8 +45,10 @@ final class TransportMock: TransportProtocol, @unchecked Sendable {
         self.outboundContinuation = outboundContinuation
     }
 
+    public var negotiatedPropertiesShadow: (Configuration, Spec.Table) = (.default, Spec.Table())
+
     var negotiatedProperties: (Configuration, Spec.Table) {
-        return (.default, Spec.Table())
+        return negotiatedPropertiesShadow
     }
 
     /// Sends out all inbound actions starting `from` the given index.

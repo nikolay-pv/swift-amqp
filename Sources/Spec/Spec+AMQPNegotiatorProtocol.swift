@@ -92,17 +92,17 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
                 return .error(NegotiationError.unexpectedMethod)
             }
             // picking correct values
-            self.config.channelMax = Self.decide(
+            self.config.maxChannelCount = Self.decide(
                 server: method.channelMax,
-                client: self.clientConfig.channelMax
+                client: self.clientConfig.maxChannelCount
             )
-            self.config.frameMax = Self.decide(
+            self.config.maxFrameSize = Self.decide(
                 server: method.frameMax,
-                client: self.clientConfig.frameMax
+                client: self.clientConfig.maxFrameSize
             )
             let response = AMQP.Spec.Connection.TuneOk(
-                channelMax: self.config.channelMax,
-                frameMax: self.config.frameMax,
+                channelMax: self.config.maxChannelCount,
+                frameMax: self.config.maxFrameSize,
                 heartbeat: 0
             )
             let frame = MethodFrame(
