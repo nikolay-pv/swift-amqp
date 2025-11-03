@@ -27,12 +27,17 @@ private struct ChannelIDs {
             let id = freed.removeFirst()
             return id
         }
-        if nextFree == maxID {
+        if nextFree > maxID {
             throw ConnectionError.maxChannelsLimitReached
         }
         let id = nextFree
         nextFree += 1
         return id
+    }
+
+    init(maxID: IDType) {
+        // ensure > will work without overflow by sacrificing the last ID
+        self.maxID = maxID == .max ? .max - 1 : maxID
     }
 }
 
@@ -43,8 +48,13 @@ final class ChannelManager: @unchecked Sendable {
     // it never explicitly created on the server side (so no requestOpen call is made for it)
     let channel0: Channel
 
+    struct ChannelHandle {
+        // manager shouldn't increase the ref count of Channels, but only keep them in books (channel will call to be removed)
+        unowned var channel: Channel
+    }
+
     private let channelsLock = NIOLock()
-    private var channels: [UInt16: Channel] = [:]
+    private var channels: [UInt16: ChannelHandle] = [:]
     private var channelIDs: ChannelIDs
 
     // throws ConnectionError.maxChannelsLimitReached if no more channels can be
@@ -52,8 +62,8 @@ final class ChannelManager: @unchecked Sendable {
     func makeChannel(transport: TransportProtocol, logger: Logger) throws -> Channel {
         let channel: Channel = try channelsLock.withLock {
             let id = try channelIDs.next()
-            let channel = Channel.init(transport: transport, id: id, logger: logger)
-            channels[id] = channel
+            let channel = Channel.init(transport: transport, id: id, logger: logger, manager: self)
+            channels[id] = ChannelHandle(channel: channel)
             return channel
         }
         return channel
@@ -72,14 +82,14 @@ final class ChannelManager: @unchecked Sendable {
             return channel0
         }
         return channelsLock.withLock {
-            return channels[id]
+            return channels[id]?.channel
         }
     }
 
     func forEach(_ body: (Channel) -> Void) {
         channelsLock.withLock {
-            for channel in channels.values {
-                body(channel)
+            for handle in channels.values {
+                body(handle.channel)
             }
         }
     }

@@ -105,6 +105,114 @@ import Testing
         }
     }
 
+    @Test("Can't create more channels than negotiated limit")
+    func cannotCreateMoreChannelsThanNegotiatedLimit() async throws {
+        let expectedChannelId: UInt16 = 1
+        let actions: [TransportMock.Action] = [
+            .outbound(
+                MethodFrame(
+                    channelId: expectedChannelId,
+                    payload: Spec.Channel.Open()
+                )
+            ),
+            .inbound(
+                MethodFrame(
+                    channelId: expectedChannelId,
+                    payload: Spec.Channel.OpenOk()
+                )
+            ),
+            .keepAlive,
+        ]
+        let env = makeTestEnv(
+            with: actions,
+            customizingNegotiatedProperties: {
+                var (config, props) = $0
+                config.maxChannelCount = 1
+                return (config, props)
+            }
+        )
+        let connection = try await Connection(with: .default, env: env)
+        let channel = try await connection.makeChannel()
+
+        #expect(connection.isOpen)
+        try await #require(
+            throws: ConnectionError.maxChannelsLimitReached
+        ) {
+            let _ = try await connection.makeChannel()
+        }
+        // the connection should remain open
+        #expect(connection.isOpen)
+    }
+
+    @Test("Can recreate more channels within negotiated limit")
+    func recreateChannelsWithinNegotiatedLimit() async throws {
+        let expectedChannelId: UInt16 = 1
+        let actions: [TransportMock.Action] = [
+            .outbound(
+                MethodFrame(
+                    channelId: expectedChannelId,
+                    payload: Spec.Channel.Open()
+                )
+            ),
+            .inbound(
+                MethodFrame(
+                    channelId: expectedChannelId,
+                    payload: Spec.Channel.OpenOk()
+                )
+            ),
+            .outbound(
+                MethodFrame(
+                    channelId: expectedChannelId,
+                    payload: Spec.Channel.Close(
+                        replyCode: 0,
+                        replyText: "",
+                        classId: 0,
+                        methodId: 0
+                    )
+                )
+            ),
+            .inbound(
+                MethodFrame(
+                    channelId: expectedChannelId,
+                    payload: Spec.Channel.CloseOk()
+                )
+            ),
+            // reuse same id
+            .outbound(
+                MethodFrame(
+                    channelId: expectedChannelId,
+                    payload: Spec.Channel.Open()
+                )
+            ),
+            .inbound(
+                MethodFrame(
+                    channelId: expectedChannelId,
+                    payload: Spec.Channel.OpenOk()
+                )
+            ),
+            .keepAlive,
+        ]
+        let env = makeTestEnv(
+            with: actions,
+            customizingNegotiatedProperties: {
+                var (config, props) = $0
+                config.maxChannelCount = 1
+                return (config, props)
+            }
+        )
+        let connection = try await Connection(with: .default, env: env)
+        #expect(connection.isOpen)
+        do {
+            let channel = try await connection.makeChannel()
+            try await channel.close()
+        }
+        #expect(connection.isOpen)
+        // create channel again
+        let _ = try await connection.makeChannel()
+        // the connection should remain open
+        #expect(connection.isOpen)
+    }
+
     @Test("Can't receive frames larger the agreed frame size limit")
     func connectionDropsUponExceedingFrameSizeLimit() async throws {
         let expectedChannelId: UInt16 = 1

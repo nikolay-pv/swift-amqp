@@ -12,6 +12,7 @@ final class TransportMock: TransportProtocol, @unchecked Sendable {
     enum Action {
         case inbound(any Frame)
         case outbound(any Frame)
+        case keepAlive  // no-op action to make sure transport is not closed
     }
 
     private let eventLoop: EventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1).next()
@@ -80,6 +81,8 @@ final class TransportMock: TransportProtocol, @unchecked Sendable {
                 self.inboundContinuation.yield(frame)
             case .outbound(let expectedFrame):
                 #expect(testedFrame.isEqual(to: expectedFrame))
+            case .keepAlive:
+                #expect(Bool(false), "keepAlive action should not be matched on outbound frame")
             }
             idx = idx.advanced(by: 1)
             idx = sendInboundActionsStarting(from: idx)
