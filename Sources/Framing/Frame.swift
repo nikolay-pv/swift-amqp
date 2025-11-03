@@ -264,3 +264,10 @@ extension ContentBodyFrame: Frame {
 
     var bytesCount: UInt32 { 1 + 2 + 4 + UInt32(fragment.count) + 1 }
 }
+
+extension ContentBodyFrame {
+    static func maxPossibleFragmentSize(for maxFrameSize: Int32) -> Int32 {
+        // maxFrameSize - type(1) - channelId(2) - size(4) - frameEnd(1)
+        return maxFrameSize - 8
+    }
+}

@@ -11,6 +11,9 @@ public class Channel: @unchecked Sendable {
     let isOpen = ManagedAtomic(true)
     // in swift 6.2 this can be weak let (which it is semantically today)
     private weak var manager: ChannelManager?
+    // maximum possible fragment size for content body frames on this channel
+    // calculated from negotiated frame size
+    private let maxFragmentSize: Int32
     private weak var transportWeak: (any TransportProtocol)?
     private let logger: Logger
     typealias MessageStreamT = AsyncThrowingStream<Message, Error>
@@ -89,6 +92,9 @@ public class Channel: @unchecked Sendable {
     ) {
         self.id = id
         self.manager = manager
+        self.maxFragmentSize = ContentBodyFrame.maxPossibleFragmentSize(
+            for: transport.negotiatedProperties.0.maxFrameSize
+        )
         self.transportWeak = transport
         var decoratedLogger = logger
         decoratedLogger[metadataKey: "channel-id"] = "\(id)"
@@ -330,9 +336,30 @@ extension Channel {
             bodySize: UInt64(body.utf8.count),
             properties: contentProps
         )
-        let contentFrame = ContentBodyFrame(channelId: self.id, fragment: [UInt8].init(body.utf8))
+        var framesToPublish: [any Frame] = [frame, contentHeaderFrame]
+        if body.utf8.count > self.maxFragmentSize {
+            forEachChunk(
+                of: body.utf8,
+                maxChunkSize: Int(self.maxFragmentSize),
+                perform: {
+                    framesToPublish.append(
+                        ContentBodyFrame(
+                            channelId: self.id,
+                            fragment: [UInt8].init($0)
+                        )
+                    )
+                }
+            )
+        } else {
+            framesToPublish.append(
+                ContentBodyFrame(
+                    channelId: self.id,
+                    fragment: [UInt8].init(body.utf8)
+                )
+            )
+        }
         try withTransport {
-            $0.sendAsync([frame, contentHeaderFrame, contentFrame])
+            $0.sendAsync(framesToPublish)
         }
     }
 
