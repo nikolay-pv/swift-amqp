@@ -31,6 +31,17 @@ extension Spec.AMQPNegotiator {
         }
         return min(server, client)
     }
+
+    fileprivate static func decide(server: UInt16, client: Configuration.HeartbeatValue) -> UInt16 {
+        switch client {
+        case .serverDefault:
+            return server
+        case .disabled:
+            return 0
+        case .seconds(let clientSeconds):
+            return min(server, clientSeconds)
+        }
+    }
 }
 
 extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
@@ -88,22 +99,27 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
             // then wait on Tune
             fatalError("not implemented")
         case .waitingTune:
-            guard let method = frame.payload as? AMQP.Spec.Connection.Tune else {
+            guard let tuneMethod = frame.payload as? AMQP.Spec.Connection.Tune else {
                 return .error(NegotiationError.unexpectedMethod)
             }
             // picking correct values
             self.config.maxChannelCount = Self.decide(
-                server: method.channelMax,
+                server: tuneMethod.channelMax,
                 client: self.clientConfig.maxChannelCount
             )
             self.config.maxFrameSize = Self.decide(
-                server: method.frameMax,
+                server: tuneMethod.frameMax,
                 client: self.clientConfig.maxFrameSize
             )
+            let heartbeat = Self.decide(
+                server: tuneMethod.heartbeat,
+                client: self.clientConfig.heartbeat
+            )
+            self.config.heartbeat = Configuration.HeartbeatValue.make(heartbeat)
             let response = AMQP.Spec.Connection.TuneOk(
                 channelMax: self.config.maxChannelCount,
                 frameMax: self.config.maxFrameSize,
-                heartbeat: 0
+                heartbeat: heartbeat
             )
             let frame = MethodFrame(
                 channelId: 0,
