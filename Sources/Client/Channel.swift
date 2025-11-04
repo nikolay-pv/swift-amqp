@@ -8,7 +8,10 @@ import NIOCore
 /// @note Channel can't outlive the Connection which made it
 public class Channel: @unchecked Sendable {
     public let id: UInt16
-    let isOpen = ManagedAtomic(true)
+    private let isOpenShadow = ManagedAtomic(true)
+    public var isOpen: Bool {
+        return isOpenShadow.load(ordering: .acquiring)
+    }
     // in swift 6.2 this can be weak let (which it is semantically today)
     private weak var manager: ChannelManager?
     // maximum possible fragment size for content body frames on this channel
@@ -120,7 +123,7 @@ extension Channel {
     /// - Parameter closure: A closure that takes the transport and returns a value of type `T`.
     /// - Returns: The result of the closure executed with the transport.
     private func withTransport<T>(_ closure: (any TransportProtocol) -> T) throws -> T {
-        guard isOpen.load(ordering: .acquiring) else {
+        guard isOpenShadow.load(ordering: .acquiring) else {
             throw ConnectionError.channelIsClosed
         }
         guard let transport = self.transportWeak, transport.isActive else {
@@ -174,7 +177,7 @@ extension Channel {
             frame?.payload is Spec.Channel.CloseOk,
             "close expects Spec.Channel.CloseOk but got \(String(describing: frame))"
         )
-        self.isOpen.store(false, ordering: .releasing)
+        self.isOpenShadow.store(false, ordering: .releasing)
     }
 
     // this is only used on channel0
@@ -420,10 +423,10 @@ extension Channel {
     // automatically by the init, calling it again has no effect, but it allows
     // to reopen closed channel
     public func open() async throws {
-        if isOpen.load(ordering: .acquiring) {
+        if isOpenShadow.load(ordering: .acquiring) {
             return
         }
         try await requestOpen()
-        isOpen.store(true, ordering: .releasing)
+        isOpenShadow.store(true, ordering: .releasing)
     }
 }
