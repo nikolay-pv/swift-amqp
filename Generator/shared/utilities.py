@@ -4,7 +4,7 @@ SPEC_TYPE_TO_SWIFT = {
     "octet": "Int8",
     "shortstr": "String",
     "longstr": "String",
-    "short": "Int16",
+    "short": "UInt16",
     "long": "Int32",
     "longlong": "Int64",
     "bit": "Bool",
@@ -63,6 +63,8 @@ def get_bytes_count(spec, arg_name: str, domain: str):
         return f"{variable_name(arg_name, False)}.bytesCount"
     if t.startswith("Int"):
         return f"{int(t.lstrip('Int')) // 8}"
+    if t.startswith("UInt"):
+        return f"{int(t.lstrip('UInt')) // 8}"
     if t == "Bool":
         return "1"
     if t == "Date":

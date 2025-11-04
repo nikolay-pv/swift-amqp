@@ -37,6 +37,7 @@ final class FramesRouter: Sendable {
     private let inboundFrames: AsyncStream<any Frame>
     private let channels: ChannelManager
     private let transportTask: Task<Void, Never>
+    private let maxFrameSize: Int32
 
     func execute() async {
         var contentContext = ContentContext()
@@ -58,6 +59,25 @@ final class FramesRouter: Sendable {
                     continue
                 }
                 if let body = frame as? ContentBodyFrame {
+                    // only ContentBodyFrame is checked for maxFrameSize
+                    // because there is no way to split other frames into smaller pieces
+                    // see also: https://www.rabbitmq.com/amqp-0-9-1-errata#section_11
+                    // check for exceeding expected body size
+                    // as per "2.3.3 Protocol Negotiation"
+                    // in case maxFrameSize is exceeded the connection must be
+                    // closed
+                    if maxFrameSize != 0 && body.bytesCount > UInt32(maxFrameSize) {
+                        channels.forEach {
+                            $0.handleConnectionError(
+                                ConnectionError.frameSizeLimitExceeded(
+                                    maxFrameSize: UInt32(maxFrameSize),
+                                    actualSize: body.bytesCount
+                                )
+                            )
+                        }
+                        transportTask.cancel()  // drops the connection
+                        break  // stop processing any further frames
+                    }
                     contentContext.push(body: body)
                 }
                 if contentContext.isComplete() {
@@ -79,12 +99,13 @@ final class FramesRouter: Sendable {
             let res = channel.dispatch(frame: frame)
             switch res {
             case .failure:
-                channels.broadcastConnectionError()
-            case .success(let keepGoing):
-                guard keepGoing else {
-                    break
+                channels.forEach {
+                    $0.handleConnectionError(ConnectionError.connectionIsClosed)
                 }
-                continue
+            case .success(let keepGoing):
+                if keepGoing {
+                    continue
+                }
             }
             transportTask.cancel()  // drops the connection
             break  // stop processing any further frames
@@ -94,10 +115,12 @@ final class FramesRouter: Sendable {
     init(
         inboundFrames: AsyncStream<any Frame>,
         channels: ChannelManager,
-        transportTask: Task<Void, Never>
+        transportTask: Task<Void, Never>,
+        maxFrameSize: Int32 = 0  // no limit
     ) {
         self.inboundFrames = inboundFrames
         self.channels = channels
         self.transportTask = transportTask
+        self.maxFrameSize = maxFrameSize
     }
 }

@@ -10,6 +10,7 @@ protocol TransportProtocol: Sendable, AnyObject {
         negotiatorFactory: @escaping @Sendable () -> any AMQPNegotiationDelegateProtocol
     ) async throws
 
+    var negotiatedProperties: (Configuration, Spec.Table) { get }
     var isActive: Bool { get }
     func execute() async
 

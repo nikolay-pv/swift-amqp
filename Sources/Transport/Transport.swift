@@ -10,12 +10,12 @@ import NIOPosix
 
 final class Transport: TransportProtocol, Sendable {
     private let eventLoopGroup: MultiThreadedEventLoopGroup
-    // can only be nil if Transport is throwing at init
-    private let asyncNIOChannel: NIOAsyncChannel<any Frame, any Frame>?
+    private let asyncNIOChannel: NIOAsyncChannel<any Frame, any Frame>
 
     private let outboundContinuation: AsyncStream<any Frame>.Continuation
     private let outboundFrames: AsyncStream<any Frame>
     private let inboundContinuation: AsyncStream<any Frame>.Continuation
+    let negotiatedProperties: (Configuration, Spec.Table)
 
     init(
         host: String = "localhost",
@@ -26,7 +26,6 @@ final class Transport: TransportProtocol, Sendable {
     ) async throws {
         // one event loop per connection
         self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-        let negotiationComplete = eventLoopGroup.any().makePromise(of: Void.self)
 
         // create outbound AsyncStream
         var outboundContinuation: AsyncStream<any Frame>.Continuation?
@@ -40,62 +39,62 @@ final class Transport: TransportProtocol, Sendable {
         self.outboundContinuation = outboundContinuation
 
         self.inboundContinuation = inboundContinuation
-        do {
-            self.asyncNIOChannel = try await ClientBootstrap(group: eventLoopGroup)
-                .connect(host: host, port: port) { channel in
-                    return channel.pipeline
-                        .addHandler(ByteToMessageHandler(ByteToFrameCoderHandler()))
+
+        let negotiationComplete = eventLoopGroup.any()
+            .makePromise(of: (Configuration, Spec.Table).self)
+        self.asyncNIOChannel = try await ClientBootstrap(group: eventLoopGroup)
+            .connect(host: host, port: port) { channel in
+                return channel.pipeline
+                    .addHandler(ByteToMessageHandler(ByteToFrameCoderHandler()))
+                    .flatMap {
+                        return channel.pipeline.addHandler(
+                            MessageToByteHandler(ByteToFrameCoderHandler())
+                        )
+                    }
+                    #if canImport(NIOExtras)
                         .flatMap {
                             return channel.pipeline.addHandler(
-                                MessageToByteHandler(ByteToFrameCoderHandler())
+                                DebugOutboundEventsHandler { event, _ in
+                                    logger.debug("\(event)")
+                                }
                             )
                         }
-                        #if canImport(NIOExtras)
-                            .flatMap {
-                                return channel.pipeline.addHandler(
-                                    DebugOutboundEventsHandler { event, _ in
-                                        logger.debug("\(event)")
-                                    }
-                                )
-                            }
-                            .flatMap {
-                                return channel.pipeline.addHandler(
-                                    DebugInboundEventsHandler { event, _ in logger.debug("\(event)")
-                                    }
-                                )
-                            }
-                        #endif  // canImport(NIOExtras)
                         .flatMap {
                             return channel.pipeline.addHandler(
-                                AMQPNegotiationHandler(
-                                    negotiator: negotiatorFactory(),
-                                    done: negotiationComplete
-                                ),
-                                name: AMQPNegotiationHandler.handlerName
+                                DebugInboundEventsHandler { event, _ in logger.debug("\(event)")
+                                }
                             )
                         }
-                        .flatMapThrowing {
-                            return try NIOAsyncChannel<any Frame, any Frame>(
-                                wrappingChannelSynchronously: channel
-                            )
-                        }
-                }
-        } catch {
-            // this will catch any error during connection establishment
-            self.asyncNIOChannel = nil
-            negotiationComplete.fail(error)
-        }
-        try await negotiationComplete.futureResult.get()
+                    #endif  // canImport(NIOExtras)
+                    .flatMap {
+                        return channel.pipeline.addHandler(
+                            AMQPNegotiationHandler(
+                                negotiator: negotiatorFactory(),
+                                done: negotiationComplete
+                            ),
+                            name: AMQPNegotiationHandler.handlerName
+                        )
+                    }
+                    .flatMapThrowing {
+                        return try NIOAsyncChannel<any Frame, any Frame>(
+                            wrappingChannelSynchronously: channel
+                        )
+                    }
+            }
+        var negotiationResult = try await negotiationComplete.futureResult.get()
+        // for security reasons reset credentials after negotiation
+        negotiationResult.0.credentials.reset()
+        negotiatedProperties = negotiationResult
     }
 
     deinit {
-        try? asyncNIOChannel?.channel.close().wait()
+        try? asyncNIOChannel.channel.close().wait()
     }
 }
 
 extension Transport {
     var isActive: Bool {
-        self.asyncNIOChannel?.channel.isActive ?? false
+        self.asyncNIOChannel.channel.isActive
     }
 
     // sends a frame to the broker through the established connection,
@@ -129,14 +128,9 @@ extension Transport {
     ///
     /// - Throws: Any error that occurs during task execution.
     func execute() async {
-        // this only happens if the Transport throws an exception
-        precondition(
-            self.asyncNIOChannel != nil,
-            "Transport wasn't properly initialized and has invalid NIOChannel"
-        )
         do {
             try await withThrowingTaskGroup { group in
-                try await asyncNIOChannel?
+                try await asyncNIOChannel
                     .executeThenClose { inbound, outbound in
                         let continuation = self.inboundContinuation
                         group.addTask {

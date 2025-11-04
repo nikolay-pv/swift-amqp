@@ -11,10 +11,14 @@ public class Channel: @unchecked Sendable {
     let isOpen = ManagedAtomic(true)
     // in swift 6.2 this can be weak let (which it is semantically today)
     private weak var manager: ChannelManager?
+    // maximum possible fragment size for content body frames on this channel
+    // calculated from negotiated frame size
+    private let maxFragmentSize: Int32
     private weak var transportWeak: (any TransportProtocol)?
     private let logger: Logger
-    private let messages: AsyncStream<Message>
-    private let continuation: AsyncStream<Message>.Continuation?
+    typealias MessageStreamT = AsyncThrowingStream<Message, Error>
+    private let messages: MessageStreamT
+    private let continuation: MessageStreamT.Continuation?
     private let promisesLock = NIOLock()
     private var promises: [EventLoopPromise<any Frame>] = .init()
 
@@ -88,12 +92,15 @@ public class Channel: @unchecked Sendable {
     ) {
         self.id = id
         self.manager = manager
+        self.maxFragmentSize = ContentBodyFrame.maxPossibleFragmentSize(
+            for: transport.negotiatedProperties.0.maxFrameSize
+        )
         self.transportWeak = transport
         var decoratedLogger = logger
         decoratedLogger[metadataKey: "channel-id"] = "\(id)"
         self.logger = decoratedLogger
-        var messagesContinuation: AsyncStream<Message>.Continuation?
-        self.messages = AsyncStream { continuation in
+        var messagesContinuation: MessageStreamT.Continuation?
+        self.messages = MessageStreamT { continuation in
             messagesContinuation = continuation
         }
         self.continuation = messagesContinuation
@@ -137,6 +144,7 @@ extension Channel {
         for promise in promises {
             promise.fail(error)
         }
+        continuation?.finish(throwing: error)
     }
 
     private func sendReturningResponse(
@@ -154,7 +162,7 @@ extension Channel {
         return response
     }
 
-    public func close(replyCode: Int16 = 0, replyText: String = "") async throws {
+    public func close(replyCode: UInt16 = 0, replyText: String = "") async throws {
         let method = Spec.Channel.Close(
             replyCode: replyCode,
             replyText: replyText,
@@ -171,10 +179,10 @@ extension Channel {
 
     // this is only used on channel0
     internal func connectionClose(
-        replyCode: Int16 = 0,
+        replyCode: UInt16 = 0,
         replyText: String = "",
-        classId: Int16 = 0,
-        methodId: Int16 = 0
+        classId: UInt16 = 0,
+        methodId: UInt16 = 0
     ) async throws {
         let method = Spec.Connection.Close(
             replyCode: replyCode,
@@ -223,12 +231,12 @@ extension Channel {
             "prefetchSize should be within [0, Int32.max]"
         )
         precondition(
-            prefetchCount >= 0 && prefetchCount <= Int16.max,
+            prefetchCount >= 0 && prefetchCount <= UInt16.max,
             "prefetchCount should be within [0, Int16.max]"
         )
         let method = Spec.Basic.Qos(
             prefetchSize: Int32(prefetchSize),
-            prefetchCount: Int16(prefetchCount),
+            prefetchCount: UInt16(prefetchCount),
             global: global
         )
         let frame = try await sendReturningResponse(method: method)
@@ -328,13 +336,36 @@ extension Channel {
             bodySize: UInt64(body.utf8.count),
             properties: contentProps
         )
-        let contentFrame = ContentBodyFrame(channelId: self.id, fragment: [UInt8].init(body.utf8))
+        var framesToPublish: [any Frame] = [frame, contentHeaderFrame]
+        if body.utf8.count > self.maxFragmentSize {
+            forEachChunk(
+                of: body.utf8,
+                maxChunkSize: Int(self.maxFragmentSize),
+                perform: {
+                    framesToPublish.append(
+                        ContentBodyFrame(
+                            channelId: self.id,
+                            fragment: [UInt8].init($0)
+                        )
+                    )
+                }
+            )
+        } else {
+            framesToPublish.append(
+                ContentBodyFrame(
+                    channelId: self.id,
+                    fragment: [UInt8].init(body.utf8)
+                )
+            )
+        }
         try withTransport {
-            $0.sendAsync([frame, contentHeaderFrame, contentFrame])
+            $0.sendAsync(framesToPublish)
         }
     }
 
-    public func basicConsume(queue: String, tag: String) async throws -> AsyncStream<Message> {
+    public func basicConsume(queue: String, tag: String) async throws -> AsyncThrowingStream<
+        Message, Error
+    > {
         let method = Spec.Basic.Consume(queue: queue, consumerTag: tag)
         let frame = try await sendReturningResponse(method: method)
         precondition(

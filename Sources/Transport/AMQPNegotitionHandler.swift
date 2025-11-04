@@ -13,13 +13,13 @@ class AMQPNegotiationHandler: ChannelInboundHandler,
 
     private let negotiator: any AMQPNegotiationDelegateProtocol
     // fulfilled when the negotiation is successful
-    private let complete: EventLoopPromise<Void>
+    private let complete: EventLoopPromise<(Configuration, Spec.Table)>
 
     private func handle(action: TransportAction, on context: ChannelHandlerContext) {
         switch action {
-        case .complete:
+        case .complete(let config, let serverProperties):
             context.pipeline.removeHandler(name: Self.handlerName, promise: nil)
-            complete.succeed()
+            complete.succeed((config, serverProperties))
         case .error(let error):
             complete.fail(error)
         case .reply(let frame):
@@ -49,7 +49,10 @@ class AMQPNegotiationHandler: ChannelInboundHandler,
 
     // MARK: - init
 
-    init(negotiator: any AMQPNegotiationDelegateProtocol, done: EventLoopPromise<Void>) {
+    init(
+        negotiator: any AMQPNegotiationDelegateProtocol,
+        done: EventLoopPromise<(Configuration, Spec.Table)>
+    ) {
         self.negotiator = negotiator
         self.complete = done
     }

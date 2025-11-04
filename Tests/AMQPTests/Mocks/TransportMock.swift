@@ -12,6 +12,7 @@ final class TransportMock: TransportProtocol, @unchecked Sendable {
     enum Action {
         case inbound(any Frame)
         case outbound(any Frame)
+        case keepAlive  // no-op action to make sure transport is not closed
     }
 
     private let eventLoop: EventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1).next()
@@ -31,7 +32,7 @@ final class TransportMock: TransportProtocol, @unchecked Sendable {
         port: Int,
         logger: Logger,
         inboundContinuation: AsyncStream<any AMQP.Frame>.Continuation,
-        negotiatorFactory: @escaping @Sendable () -> any AMQP.AMQPNegotiationDelegateProtocol
+        negotiatorFactory: @escaping () -> any AMQPNegotiationDelegateProtocol
     ) async throws {
         self.inboundContinuation = inboundContinuation
         var outboundContinuation: AsyncStream<any Frame>.Continuation?
@@ -43,6 +44,12 @@ final class TransportMock: TransportProtocol, @unchecked Sendable {
         }
         // save continuation for later use
         self.outboundContinuation = outboundContinuation
+    }
+
+    public var negotiatedPropertiesShadow: (Configuration, Spec.Table) = (.default, Spec.Table())
+
+    var negotiatedProperties: (Configuration, Spec.Table) {
+        return negotiatedPropertiesShadow
     }
 
     /// Sends out all inbound actions starting `from` the given index.
@@ -74,6 +81,8 @@ final class TransportMock: TransportProtocol, @unchecked Sendable {
                 self.inboundContinuation.yield(frame)
             case .outbound(let expectedFrame):
                 #expect(testedFrame.isEqual(to: expectedFrame))
+            case .keepAlive:
+                #expect(Bool(false), "keepAlive action should not be matched on outbound frame")
             }
             idx = idx.advanced(by: 1)
             idx = sendInboundActionsStarting(from: idx)

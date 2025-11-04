@@ -22,7 +22,7 @@ def gen_swift_tests(spec: AmqpSpec):
             return f'"FooBar"'
         if t == "[String: FieldValue]":
             return ".init()"
-        if t.startswith("Int"):
+        if t.startswith("Int") or t.startswith("UInt"):
             return "1"
         if t == "Bool":
             return "true"
@@ -75,7 +75,7 @@ def gen_swift_verify_tests(spec: AmqpSpec):
             return f'"FooBar"'
         if t == "[String: FieldValue]":
             return ".init()"
-        if t.startswith("Int"):
+        if t.startswith("Int") or t.startswith("UInt"):
             return "1"
         if t == "Bool":
             return "true"

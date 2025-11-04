@@ -24,7 +24,7 @@ extension Spec.Basic.Qos: FrameCodable {
 
     init(from decoder: FrameDecoderProtocol) throws {
         let prefetchSize = try decoder.decode(Int32.self)
-        let prefetchCount = try decoder.decode(Int16.self)
+        let prefetchCount = try decoder.decode(UInt16.self)
         let global = try decoder.decode(Bool.self)
         self.init(
             prefetchSize: prefetchSize,
@@ -62,7 +62,7 @@ extension Spec.Basic.Consume: FrameCodable {
     }
 
     init(from decoder: FrameDecoderProtocol) throws {
-        let ticket = try decoder.decode(Int16.self)
+        let ticket = try decoder.decode(UInt16.self)
         let queue = try decoder.decode(String.self, isLong: false)
         let consumerTag = try decoder.decode(String.self, isLong: false)
         let bitPack: UInt8 = try decoder.decode(UInt8.self)
@@ -149,7 +149,7 @@ extension Spec.Basic.Publish: FrameCodable {
     }
 
     init(from decoder: FrameDecoderProtocol) throws {
-        let ticket = try decoder.decode(Int16.self)
+        let ticket = try decoder.decode(UInt16.self)
         let exchange = try decoder.decode(String.self, isLong: false)
         let routingKey = try decoder.decode(String.self, isLong: false)
         let bitPack: UInt8 = try decoder.decode(UInt8.self)
@@ -178,7 +178,7 @@ extension Spec.Basic.Return: FrameCodable {
     }
 
     init(from decoder: FrameDecoderProtocol) throws {
-        let replyCode = try decoder.decode(Int16.self)
+        let replyCode = try decoder.decode(UInt16.self)
         let replyText = try decoder.decode(String.self, isLong: false)
         let exchange = try decoder.decode(String.self, isLong: false)
         let routingKey = try decoder.decode(String.self, isLong: false)
@@ -234,7 +234,7 @@ extension Spec.Basic.Get: FrameCodable {
     }
 
     init(from decoder: FrameDecoderProtocol) throws {
-        let ticket = try decoder.decode(Int16.self)
+        let ticket = try decoder.decode(UInt16.self)
         let queue = try decoder.decode(String.self, isLong: false)
         let noAck = try decoder.decode(Bool.self)
         self.init(
@@ -486,9 +486,9 @@ extension Spec.Connection.Tune: FrameCodable {
     }
 
     init(from decoder: FrameDecoderProtocol) throws {
-        let channelMax = try decoder.decode(Int16.self)
+        let channelMax = try decoder.decode(UInt16.self)
         let frameMax = try decoder.decode(Int32.self)
-        let heartbeat = try decoder.decode(Int16.self)
+        let heartbeat = try decoder.decode(UInt16.self)
         self.init(
             channelMax: channelMax,
             frameMax: frameMax,
@@ -507,9 +507,9 @@ extension Spec.Connection.TuneOk: FrameCodable {
     }
 
     init(from decoder: FrameDecoderProtocol) throws {
-        let channelMax = try decoder.decode(Int16.self)
+        let channelMax = try decoder.decode(UInt16.self)
         let frameMax = try decoder.decode(Int32.self)
-        let heartbeat = try decoder.decode(Int16.self)
+        let heartbeat = try decoder.decode(UInt16.self)
         self.init(
             channelMax: channelMax,
             frameMax: frameMax,
@@ -567,10 +567,10 @@ extension Spec.Connection.Close: FrameCodable {
     }
 
     init(from decoder: FrameDecoderProtocol) throws {
-        let replyCode = try decoder.decode(Int16.self)
+        let replyCode = try decoder.decode(UInt16.self)
         let replyText = try decoder.decode(String.self, isLong: false)
-        let classId = try decoder.decode(Int16.self)
-        let methodId = try decoder.decode(Int16.self)
+        let classId = try decoder.decode(UInt16.self)
+        let methodId = try decoder.decode(UInt16.self)
         self.init(
             replyCode: replyCode,
             replyText: replyText,
@@ -717,10 +717,10 @@ extension Spec.Channel.Close: FrameCodable {
     }
 
     init(from decoder: FrameDecoderProtocol) throws {
-        let replyCode = try decoder.decode(Int16.self)
+        let replyCode = try decoder.decode(UInt16.self)
         let replyText = try decoder.decode(String.self, isLong: false)
-        let classId = try decoder.decode(Int16.self)
-        let methodId = try decoder.decode(Int16.self)
+        let classId = try decoder.decode(UInt16.self)
+        let methodId = try decoder.decode(UInt16.self)
         self.init(
             replyCode: replyCode,
             replyText: replyText,
@@ -782,7 +782,7 @@ extension Spec.Access.RequestOk: FrameCodable {
     }
 
     init(from decoder: FrameDecoderProtocol) throws {
-        let ticket = try decoder.decode(Int16.self)
+        let ticket = try decoder.decode(UInt16.self)
         self.init(
             ticket: ticket
         )
@@ -807,7 +807,7 @@ extension Spec.Exchange.Declare: FrameCodable {
     }
 
     init(from decoder: FrameDecoderProtocol) throws {
-        let ticket = try decoder.decode(Int16.self)
+        let ticket = try decoder.decode(UInt16.self)
         let exchange = try decoder.decode(String.self, isLong: false)
         let type = try decoder.decode(String.self, isLong: false)
         let bitPack: UInt8 = try decoder.decode(UInt8.self)
@@ -858,7 +858,7 @@ extension Spec.Exchange.Delete: FrameCodable {
     }
 
     init(from decoder: FrameDecoderProtocol) throws {
-        let ticket = try decoder.decode(Int16.self)
+        let ticket = try decoder.decode(UInt16.self)
         let exchange = try decoder.decode(String.self, isLong: false)
         let bitPack: UInt8 = try decoder.decode(UInt8.self)
         let ifUnused: Bool = ((bitPack & (1 << 0)) != 0)
@@ -896,7 +896,7 @@ extension Spec.Exchange.Bind: FrameCodable {
     }
 
     init(from decoder: FrameDecoderProtocol) throws {
-        let ticket = try decoder.decode(Int16.self)
+        let ticket = try decoder.decode(UInt16.self)
         let destination = try decoder.decode(String.self, isLong: false)
         let source = try decoder.decode(String.self, isLong: false)
         let routingKey = try decoder.decode(String.self, isLong: false)
@@ -940,7 +940,7 @@ extension Spec.Exchange.Unbind: FrameCodable {
     }
 
     init(from decoder: FrameDecoderProtocol) throws {
-        let ticket = try decoder.decode(Int16.self)
+        let ticket = try decoder.decode(UInt16.self)
         let destination = try decoder.decode(String.self, isLong: false)
         let source = try decoder.decode(String.self, isLong: false)
         let routingKey = try decoder.decode(String.self, isLong: false)
@@ -988,7 +988,7 @@ extension Spec.Queue.Declare: FrameCodable {
     }
 
     init(from decoder: FrameDecoderProtocol) throws {
-        let ticket = try decoder.decode(Int16.self)
+        let ticket = try decoder.decode(UInt16.self)
         let queue = try decoder.decode(String.self, isLong: false)
         let bitPack: UInt8 = try decoder.decode(UInt8.self)
         let passive: Bool = ((bitPack & (1 << 0)) != 0)
@@ -1044,7 +1044,7 @@ extension Spec.Queue.Bind: FrameCodable {
     }
 
     init(from decoder: FrameDecoderProtocol) throws {
-        let ticket = try decoder.decode(Int16.self)
+        let ticket = try decoder.decode(UInt16.self)
         let queue = try decoder.decode(String.self, isLong: false)
         let exchange = try decoder.decode(String.self, isLong: false)
         let routingKey = try decoder.decode(String.self, isLong: false)
@@ -1085,7 +1085,7 @@ extension Spec.Queue.Purge: FrameCodable {
     }
 
     init(from decoder: FrameDecoderProtocol) throws {
-        let ticket = try decoder.decode(Int16.self)
+        let ticket = try decoder.decode(UInt16.self)
         let queue = try decoder.decode(String.self, isLong: false)
         let nowait = try decoder.decode(Bool.self)
         self.init(
@@ -1125,7 +1125,7 @@ extension Spec.Queue.Delete: FrameCodable {
     }
 
     init(from decoder: FrameDecoderProtocol) throws {
-        let ticket = try decoder.decode(Int16.self)
+        let ticket = try decoder.decode(UInt16.self)
         let queue = try decoder.decode(String.self, isLong: false)
         let bitPack: UInt8 = try decoder.decode(UInt8.self)
         let ifUnused: Bool = ((bitPack & (1 << 0)) != 0)
@@ -1168,7 +1168,7 @@ extension Spec.Queue.Unbind: FrameCodable {
     }
 
     init(from decoder: FrameDecoderProtocol) throws {
-        let ticket = try decoder.decode(Int16.self)
+        let ticket = try decoder.decode(UInt16.self)
         let queue = try decoder.decode(String.self, isLong: false)
         let exchange = try decoder.decode(String.self, isLong: false)
         let routingKey = try decoder.decode(String.self, isLong: false)

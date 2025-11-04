@@ -3,13 +3,15 @@ import Logging
 import NIOConcurrencyHelpers
 
 private struct ChannelIDs {
-    private var nextFree: Int = 1
-    private var occupied: OrderedSet<Int> = []
-    private var freed: OrderedSet<Int> = []
+    typealias IDType = UInt16
+    private(set) var maxID: IDType
+    private(set) var nextFree: IDType = 1
+    private(set) var occupied: OrderedSet<IDType> = []
+    private(set) var freed: OrderedSet<IDType> = []
 
-    func isFree(_ id: Int) -> Bool { !occupied.contains(id) && nextFree <= id }
+    func isFree(_ id: IDType) -> Bool { !occupied.contains(id) && nextFree <= id }
 
-    mutating func remove(id: Int) {
+    mutating func remove(id: IDType) {
         if id == nextFree - 1 {
             nextFree -= 1
         } else {
@@ -18,33 +20,50 @@ private struct ChannelIDs {
         occupied.remove(id)
     }
 
-    mutating func next() -> Int {
+    // throws ConnectionError.maxChannelsLimitReached if no more ids are
+    // available
+    mutating func next() throws -> IDType {
         if !freed.isEmpty {
             let id = freed.removeFirst()
             return id
+        }
+        if nextFree > maxID {
+            throw ConnectionError.maxChannelsLimitReached
         }
         let id = nextFree
         nextFree += 1
         return id
     }
+
+    init(maxID: IDType) {
+        // ensure > will work without overflow by sacrificing the last ID
+        self.maxID = maxID == .max ? .max - 1 : maxID
+    }
 }
 
-// in charge of bookkeeping track of channels, allows making them and finding
+// in charge of bookkeeping the channels, allows making them and finding
 // them by id, as well as removing them
 final class ChannelManager: @unchecked Sendable {
     // channel0 is special and is used for communications before any channel exists
     // it never explicitly created on the server side (so no requestOpen call is made for it)
     let channel0: Channel
 
-    private let channelsLock = NIOLock()
-    private var channels: [UInt16: Channel] = [:]
-    private var channelIDs: ChannelIDs = .init()
+    struct ChannelHandle {
+        // manager shouldn't increase the ref count of Channels, but only keep them in books (channel will call to be removed)
+        unowned var channel: Channel
+    }
 
-    func makeChannel(transport: TransportProtocol, logger: Logger) -> Channel {
-        let channel: Channel = channelsLock.withLock {
-            let id = UInt16(channelIDs.next())
-            let channel = Channel.init(transport: transport, id: id, logger: logger)
-            channels[id] = channel
+    private let channelsLock = NIOLock()
+    private var channels: [UInt16: ChannelHandle] = [:]
+    private var channelIDs: ChannelIDs
+
+    // throws ConnectionError.maxChannelsLimitReached if no more channels can be
+    // created (within agreed limits)
+    func makeChannel(transport: TransportProtocol, logger: Logger) throws -> Channel {
+        let channel: Channel = try channelsLock.withLock {
+            let id = try channelIDs.next()
+            let channel = Channel.init(transport: transport, id: id, logger: logger, manager: self)
+            channels[id] = ChannelHandle(channel: channel)
             return channel
         }
         return channel
@@ -53,7 +72,7 @@ final class ChannelManager: @unchecked Sendable {
     func removeChannel(id: UInt16) {
         channelsLock.withLock {
             if channels.removeValue(forKey: id) != nil {
-                channelIDs.remove(id: Int(id))
+                channelIDs.remove(id: id)
             }
         }
     }
@@ -63,14 +82,14 @@ final class ChannelManager: @unchecked Sendable {
             return channel0
         }
         return channelsLock.withLock {
-            return channels[id]
+            return channels[id]?.channel
         }
     }
 
-    func broadcastConnectionError() {
+    func forEach(_ body: (Channel) -> Void) {
         channelsLock.withLock {
-            for channel in channels.values {
-                channel.handleConnectionError(ConnectionError.connectionIsClosed)
+            for handle in channels.values {
+                body(handle.channel)
             }
         }
     }
@@ -78,7 +97,8 @@ final class ChannelManager: @unchecked Sendable {
     // MARK: - init
 
     // initializes the channel0 with given transport and the logger
-    init(transport: TransportProtocol, logger: Logger) {
+    init(transport: TransportProtocol, logger: Logger, maxChannels: UInt16 = .max) {
         self.channel0 = .init(transport: transport, id: 0, logger: logger)
+        self.channelIDs = .init(maxID: maxChannels)
     }
 }

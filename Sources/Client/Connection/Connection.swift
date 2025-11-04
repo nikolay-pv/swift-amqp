@@ -1,5 +1,21 @@
 import Logging
 
+internal let defaultCapabilities: Spec.FieldValue = .table([
+    "authentication_failure_close": .bool(true),
+    "basic.nack": .bool(true),
+    "connection.blocked": .bool(true),
+    "consumer_cancel_notify": .bool(true),
+    "publisher_confirms": .bool(true),
+])
+
+internal let defaultProperties: [String: Spec.FieldValue] = [
+    "product": .longstr("AMQP 0.9.1 Client"),
+    "platform": .longstr("swift"),
+    // "version": .longstr("0.1.0"),
+    // "information": .longstr("link to docs"),
+    "capabilities": defaultCapabilities,
+]
+
 public final class Connection: Sendable {
     private let logger: Logger
     // MARK: - transport management
@@ -11,9 +27,11 @@ public final class Connection: Sendable {
     // MARK: - channel management
     private let channels: ChannelManager
 
+    // throw ConnectionError.connectionIsClosed if connection is closed
+    // throw ConnectionError.maxChannelsLimitReached if no more channels can be created
     public func makeChannel() async throws -> Channel {
         try ensureOpen()
-        let channel = channels.makeChannel(transport: self.transport, logger: self.logger)
+        let channel = try channels.makeChannel(transport: self.transport, logger: self.logger)
         try await channel.requestOpen()
         return channel
     }
@@ -34,25 +52,20 @@ public final class Connection: Sendable {
     }
 
     // MARK: - init
-    public convenience init(with configuration: Configuration = .default) async throws {
-        try await self.init(with: configuration, env: Environment.shared)
+    public convenience init(
+        with configuration: Configuration = .default,
+        andWith properties: Spec.Table = .init()
+    ) async throws {
+        try await self.init(with: configuration, env: Environment.shared, properties: properties)
     }
 
     // swiftlint:disable:next function_body_length
-    init(with configuration: Configuration, env: Environment) async throws {
+    init(with configuration: Configuration, env: Environment, properties: Spec.Table = .init())
+        async throws
+    {
         self.logger = configuration.logger
-        let properties: Spec.Table = [
-            "product": .longstr("swift-amqp"),
-            "platform": .longstr("swift"),
-            "capabilities": .table([
-                "authentication_failure_close": .bool(true),
-                "basic.nack": .bool(true),
-                "connection.blocked": .bool(true),
-                "consumer_cancel_notify": .bool(true),
-                "publisher_confirms": .bool(true),
-            ]),
-            "information": .longstr("website here"),
-        ]
+        // extend the default properties with user-provided ones
+        let properties = defaultProperties.merging(properties) { _, new in new }
 
         // create inbound AsyncStream
         var inboundContinuation: AsyncStream<any Frame>.Continuation?
@@ -74,18 +87,24 @@ public final class Connection: Sendable {
                 return env.negotiationFactory(configuration, properties)
             }
         )
+        let (negotiatedConfig, _) = self.transport.negotiatedProperties
         let sharedTransport = self.transport
         self.transportExecutor = Task {
             await sharedTransport.execute()
         }
 
-        self.channels = .init(transport: sharedTransport, logger: self.logger)
+        self.channels = .init(
+            transport: sharedTransport,
+            logger: self.logger,
+            maxChannels: negotiatedConfig.maxChannelCount
+        )
 
         // create a task to distribute incoming frames
         let framesRouter = FramesRouter(
             inboundFrames: inboundFrames,
             channels: self.channels,
-            transportTask: self.transportExecutor
+            transportTask: self.transportExecutor,
+            maxFrameSize: negotiatedConfig.maxFrameSize
         )
         self.inboundFramesDispatcher = Task {
             await framesRouter.execute()
