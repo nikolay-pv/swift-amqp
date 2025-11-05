@@ -22,16 +22,18 @@ public class Channel: @unchecked Sendable {
     typealias MessageStreamT = AsyncThrowingStream<Message, Error>
     private let messages: MessageStreamT
     private let continuation: MessageStreamT.Continuation?
-    private let promisesLock = NIOLock()
-    private var promises: [EventLoopPromise<any Frame>] = .init()
+    private var promises: NIOLockedValueBox<[EventLoopPromise<any Frame>]> = .init([])
 
     internal func dispatch0(frame: any Frame) -> Result<Bool, ConnectionError> {
         precondition(frame.channelId == 0, "dispatch0 called with non-zero channel id")
         precondition(frame is MethodFrame, "Unexpected frame type in channel 0: \(type(of: frame))")
         let frame = frame as! MethodFrame
         if frame.payload is Spec.Connection.CloseOk {
-            precondition(!promises.isEmpty, "channel got an unexpected frame")
-            let promise = promisesLock.withLock { promises.removeFirst() }
+            precondition(
+                promises.withLockedValue { !$0.isEmpty },
+                "channel got an unexpected frame \(frame)"
+            )
+            let promise = promises.withLockedValue { $0.removeFirst() }
             promise.succeed(frame)
             return .success(false)
         }
@@ -56,8 +58,11 @@ public class Channel: @unchecked Sendable {
         if frame.channelId == 0 {
             return dispatch0(frame: frame)
         }
-        precondition(!promises.isEmpty, "channel got an unexpected frame \(frame)")
-        let promise = promisesLock.withLock { promises.removeFirst() }
+        precondition(
+            promises.withLockedValue { !$0.isEmpty },
+            "channel got an unexpected frame \(frame)"
+        )
+        let promise = promises.withLockedValue { $0.removeFirst() }
         promise.succeed(frame)
         return .success(true)
     }
@@ -139,9 +144,9 @@ extension Channel {
     }
 
     internal func handleConnectionError(_ error: Error) {
-        let promises = promisesLock.withLock {
-            let current = self.promises
-            self.promises.removeAll()
+        let promises = promises.withLockedValue {
+            let current = $0
+            $0.removeAll()
             return current
         }
         for promise in promises {
@@ -154,11 +159,11 @@ extension Channel {
         method: some AMQPMethodProtocol & FrameCodable,
     ) async throws -> MethodFrame? {
         let frame = makeFrame(with: method)
-        let promise = try promisesLock.withLock {
-            let promise = try withTransport {
-                $0.send(frame)
+        let promise = try promises.withLockedValue {
+            let promise = try withTransport { transport in
+                transport.send(frame)
             }
-            promises.append(promise)
+            $0.append(promise)
             return promise
         }
         let response = try await promise.futureResult.get() as? MethodFrame
