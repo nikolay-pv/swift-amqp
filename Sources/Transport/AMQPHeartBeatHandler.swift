@@ -44,22 +44,23 @@ final class AMQPHeartbeatHandler: ChannelDuplexHandler, Sendable {
     func handlerAdded(context: ChannelHandlerContext) {
         self.lastInboundActivity.resetValue()
         self.lastOutboundActivity.resetValue()
+        let channel = context.channel
         self.heartbeatTask.withLockedValue {
             $0 = context.eventLoop.scheduleRepeatedTask(
                 initialDelay: .zero,
                 delay: self.heartbeatInterval
-            ) { task in
-                if self.elapsedInbound > self.maxInterval {
+            ) { [weak self] task in
+                guard let handler = self else { return }
+                if handler.elapsedInbound > handler.maxInterval {
                     // drop the connection due to inactivity of the server
-                    _ = context.close()
-                    task.cancel()
-                    return
+                    try? channel.close().map { task.cancel() }.wait()
                 }
-                if self.elapsedOutbound >= self.heartbeatInterval {
-                    // construct heartbeat frame according to your Frame API and send
-                    let heartbeat = self.wrapOutboundOut(HeartbeatFrame())
-                    _ = context.writeAndFlush(heartbeat, promise: nil)
-                    self.lastOutboundActivity.resetValue()
+                if handler.elapsedOutbound >= handler.heartbeatInterval {
+                    try? channel.write(HeartbeatFrame())
+                        .map {
+                            handler.lastOutboundActivity.resetValue()
+                        }
+                        .wait()
                 }
             }
         }

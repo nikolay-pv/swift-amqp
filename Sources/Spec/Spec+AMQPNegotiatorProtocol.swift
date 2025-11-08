@@ -115,6 +115,10 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
                 server: tuneMethod.heartbeat,
                 client: self.clientConfig.heartbeat
             )
+            // 4.2.7
+            // The client should start sending heartbeats after receiving a
+            // Connection.Tune method, and start monitoring heartbeats after
+            // receiving Connection.Open.
             self.config.heartbeat = Configuration.HeartbeatValue.make(heartbeat)
             let response = AMQP.Spec.Connection.TuneOk(
                 channelMax: self.config.maxChannelCount,
