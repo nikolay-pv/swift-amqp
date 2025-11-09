@@ -2,7 +2,7 @@ import NIOConcurrencyHelpers
 import NIOCore
 
 extension NIOLockedValueBox where Value == NIODeadline {
-    func resetValue() {
+    fileprivate func setToNow() {
         self.withLockedValue {
             $0 = NIODeadline.now()
         }
@@ -42,8 +42,8 @@ final class AMQPHeartbeatHandler: ChannelDuplexHandler, Sendable {
     }
 
     func handlerAdded(context: ChannelHandlerContext) {
-        self.lastInboundActivity.resetValue()
-        self.lastOutboundActivity.resetValue()
+        self.lastInboundActivity.setToNow()
+        self.lastOutboundActivity.setToNow()
         let channel = context.channel
         self.heartbeatTask.withLockedValue {
             $0 = context.eventLoop.scheduleRepeatedTask(
@@ -58,7 +58,7 @@ final class AMQPHeartbeatHandler: ChannelDuplexHandler, Sendable {
                 if handler.elapsedOutbound >= handler.heartbeatInterval {
                     try? channel.write(HeartbeatFrame())
                         .map {
-                            handler.lastOutboundActivity.resetValue()
+                            handler.lastOutboundActivity.setToNow()
                         }
                         .wait()
                 }
@@ -84,12 +84,17 @@ final class AMQPHeartbeatHandler: ChannelDuplexHandler, Sendable {
     }
 
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        self.lastInboundActivity.resetValue()
+        self.lastInboundActivity.setToNow()
+        if unwrapInboundIn(data) as? HeartbeatFrame != nil {
+            // consume the frame
+            return
+        }
+        // propagate any other frames
         context.fireChannelRead(data)
     }
 
     func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
-        self.lastOutboundActivity.resetValue()
+        self.lastOutboundActivity.setToNow()
         context.write(data, promise: promise)
     }
 }
