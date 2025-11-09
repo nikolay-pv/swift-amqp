@@ -53,19 +53,23 @@ final class AMQPHeartbeatHandler: ChannelDuplexHandler, Sendable {
                 guard let handler = self else { return }
                 if handler.elapsedInbound > handler.maxInterval {
                     // drop the connection due to inactivity of the server
-                    try? channel.close().map { task.cancel() }.wait()
+                    _ = channel.close().map { task.cancel() }
                 }
                 if handler.elapsedOutbound >= handler.heartbeatInterval {
-                    try? channel.write(HeartbeatFrame())
+                    _ = channel.writeAndFlush(HeartbeatFrame())
                         .map {
                             handler.lastOutboundActivity.setToNow()
                         }
-                        .wait()
                 }
             }
         }
+    }
 
-        context.fireChannelActive()
+    func handlerRemoved(context: ChannelHandlerContext) {
+        self.heartbeatTask.withLockedValue {
+            $0?.cancel()
+            $0 = nil
+        }
     }
 
     func channelInactive(context: ChannelHandlerContext) {
@@ -74,13 +78,6 @@ final class AMQPHeartbeatHandler: ChannelDuplexHandler, Sendable {
             $0 = nil
         }
         context.fireChannelInactive()
-    }
-
-    func handlerRemoved(context: ChannelHandlerContext) {
-        self.heartbeatTask.withLockedValue {
-            $0?.cancel()
-            $0 = nil
-        }
     }
 
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
