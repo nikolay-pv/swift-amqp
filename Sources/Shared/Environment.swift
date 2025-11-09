@@ -3,7 +3,7 @@ import Logging
 struct Environment: Sendable {
     typealias NegotiationFactoryT =
         @Sendable
-    (Configuration, Spec.Table) -> any AMQPNegotiationDelegateProtocol
+    (Configuration, Spec.Table) -> any AMQPNegotiationDelegateProtocol & Sendable
     private(set) var negotiationFactory: NegotiationFactoryT = Spec.AMQPNegotiator.init
 
     mutating func setNegotiationFactory(factory: @escaping NegotiationFactoryT) {
@@ -13,7 +13,7 @@ struct Environment: Sendable {
     typealias TransportFactoryT =
         @Sendable (
             String, Int, Logger, AsyncStream<any Frame>.Continuation,
-            @escaping @Sendable () -> any AMQPNegotiationDelegateProtocol
+            @escaping @Sendable () -> any AMQPNegotiationDelegateProtocol & Sendable
         ) async throws -> any TransportProtocol & Sendable
     private(set) var transportFactory: TransportFactoryT = Transport.init
 

@@ -125,16 +125,22 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
                 frameMax: self.config.maxFrameSize,
                 heartbeat: heartbeat
             )
-            let frame = MethodFrame(
+            let tuneFrame = MethodFrame(
                 channelId: 0,
                 payload: response
             )
-            let connectData = MethodFrame(
+            let openFrame = MethodFrame(
                 channelId: 0,
                 payload: Spec.Connection.Open(virtualHost: self.config.vHost, insist: true)
             )
             self.state = .waitingOpenOk
-            return .replySeveral([frame, connectData])
+            var actions: [TransportAction] = [.reply(tuneFrame), .reply(openFrame)]
+            // seconds were negotiated, install the handler
+            if case .seconds = self.config.heartbeat {
+                let heartbeatHandler = AMQPHeartbeatHandler(timeout: heartbeat)
+                actions.insert(.installHandler(heartbeatHandler), at: 1)
+            }
+            return .several(actions)
         case .waitingOpenOk:
             guard frame.payload is AMQP.Spec.Connection.OpenOk else {
                 return .error(NegotiationError.unexpectedMethod)

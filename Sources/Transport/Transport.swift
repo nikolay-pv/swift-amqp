@@ -22,7 +22,7 @@ final class Transport: TransportProtocol, Sendable {
         port: Int = 5672,
         logger: Logger,
         inboundContinuation: AsyncStream<any Frame>.Continuation,
-        negotiatorFactory: @escaping @Sendable () -> any AMQPNegotiationDelegateProtocol
+        negotiatorFactory: @escaping @Sendable () -> any AMQPNegotiationDelegateProtocol & Sendable
     ) async throws {
         // one event loop per connection
         self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)

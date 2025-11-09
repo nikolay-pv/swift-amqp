@@ -7,7 +7,7 @@ protocol TransportProtocol: Sendable, AnyObject {
         port: Int,
         logger: Logger,
         inboundContinuation: AsyncStream<any Frame>.Continuation,
-        negotiatorFactory: @escaping @Sendable () -> any AMQPNegotiationDelegateProtocol
+        negotiatorFactory: @escaping @Sendable () -> any AMQPNegotiationDelegateProtocol & Sendable
     ) async throws
 
     var negotiatedProperties: (Configuration, Spec.Table) { get }
