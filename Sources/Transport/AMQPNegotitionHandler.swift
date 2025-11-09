@@ -3,7 +3,7 @@ import NIOCore
 /// Handler to be used in NIO to negotiate properties and constraints between the server and the client,
 /// it will be installed and perform the sequence dictated by a delegate (AMQPNegotiationDelegateProtocol),
 /// and on success will remove itself from the pipeline
-class AMQPNegotiationHandler: ChannelInboundHandler,
+final class AMQPNegotiationHandler: ChannelInboundHandler,
     RemovableChannelHandler
 {
     typealias InboundIn = Frame
@@ -11,23 +11,25 @@ class AMQPNegotiationHandler: ChannelInboundHandler,
 
     static let handlerName = "AMQPNegotiationHandler"
 
-    private let negotiator: any AMQPNegotiationDelegateProtocol
+    private let negotiator: any AMQPNegotiationDelegateProtocol & Sendable
     // fulfilled when the negotiation is successful
     private let complete: EventLoopPromise<(Configuration, Spec.Table)>
 
-    private func handle(action: TransportAction, on context: ChannelHandlerContext) {
+    private func handle(action: TransportAction, on context: ChannelHandlerContext) throws {
         switch action {
         case .complete(let config, let serverProperties):
             context.pipeline.removeHandler(name: Self.handlerName, promise: nil)
             complete.succeed((config, serverProperties))
         case .error(let error):
-            complete.fail(error)
+            throw error
         case .reply(let frame):
             context.writeAndFlush(wrapOutboundOut(frame), promise: nil)
-        case .replySeveral(let frames):
-            for frame in frames {
-                context.writeAndFlush(wrapOutboundOut(frame), promise: nil)
+        case .several(let actions):
+            for action in actions {
+                try self.handle(action: action, on: context)
             }
+        case .installHandler(let handler):
+            try context.pipeline.syncOperations.addHandler(handler, position: .before(self))
         }
     }
 
@@ -35,7 +37,11 @@ class AMQPNegotiationHandler: ChannelInboundHandler,
 
     func channelActive(context: ChannelHandlerContext) {
         context.fireChannelActive()
-        handle(action: negotiator.start(), on: context)
+        do {
+            try handle(action: negotiator.start(), on: context)
+        } catch {
+            complete.fail(error)
+        }
     }
 
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
@@ -44,16 +50,22 @@ class AMQPNegotiationHandler: ChannelInboundHandler,
             return
         }
         let action = negotiator.negotiate(frame: frame)
-        handle(action: action, on: context)
+        do {
+            try handle(action: action, on: context)
+        } catch {
+            complete.fail(error)
+        }
     }
 
     // MARK: - init
 
     init(
-        negotiator: any AMQPNegotiationDelegateProtocol,
+        negotiator: any AMQPNegotiationDelegateProtocol & Sendable,
         done: EventLoopPromise<(Configuration, Spec.Table)>
     ) {
         self.negotiator = negotiator
         self.complete = done
     }
 }
+
+extension AMQPNegotiationHandler: Sendable {}

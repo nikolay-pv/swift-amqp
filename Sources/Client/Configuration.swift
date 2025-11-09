@@ -34,10 +34,17 @@ public struct Configuration: Sendable {
     // 0 bytes means no limit
     public var maxFrameSize: Int32 = 0
 
-    public enum HeartbeatValue: Sendable {
+    public enum HeartbeatValue: Sendable, Equatable {
         case disabled
         case serverDefault
-        case seconds(UInt)
+        case seconds(UInt16)
+
+        static func make(_ value: UInt16) -> HeartbeatValue {
+            guard value == 0 else {
+                return .seconds(value)
+            }
+            return .disabled
+        }
     }
     public var heartbeat: HeartbeatValue = .serverDefault
 

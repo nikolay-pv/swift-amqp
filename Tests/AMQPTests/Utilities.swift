@@ -18,7 +18,9 @@ func makeTestEnv(
             negotiatorFactory: $4
         )
         transportStub.expecting(sequenceOf: actions)
-        let props = transportStub.negotiatedPropertiesShadow
+        var props = transportStub.negotiatedPropertiesShadow
+        // disable heartbeat by default in tests
+        props.0.heartbeat = .disabled
         transportStub.negotiatedPropertiesShadow = customizingNegotiatedProperties(props)
         return transportStub
     }

@@ -135,6 +135,7 @@ import Testing
         let channel = try await connection.makeChannel()
 
         #expect(connection.isOpen)
+        #expect(channel.isOpen)
         try await #require(
             throws: ConnectionError.maxChannelsLimitReached
         ) {

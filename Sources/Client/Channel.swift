@@ -8,7 +8,10 @@ import NIOCore
 /// @note Channel can't outlive the Connection which made it
 public class Channel: @unchecked Sendable {
     public let id: UInt16
-    let isOpen = ManagedAtomic(true)
+    private let isOpenShadow = ManagedAtomic(true)
+    public var isOpen: Bool {
+        return isOpenShadow.load(ordering: .acquiring)
+    }
     // in swift 6.2 this can be weak let (which it is semantically today)
     private weak var manager: ChannelManager?
     // maximum possible fragment size for content body frames on this channel
@@ -19,16 +22,18 @@ public class Channel: @unchecked Sendable {
     typealias MessageStreamT = AsyncThrowingStream<Message, Error>
     private let messages: MessageStreamT
     private let continuation: MessageStreamT.Continuation?
-    private let promisesLock = NIOLock()
-    private var promises: [EventLoopPromise<any Frame>] = .init()
+    private var promises: NIOLockedValueBox<[EventLoopPromise<any Frame>]> = .init([])
 
     internal func dispatch0(frame: any Frame) -> Result<Bool, ConnectionError> {
         precondition(frame.channelId == 0, "dispatch0 called with non-zero channel id")
         precondition(frame is MethodFrame, "Unexpected frame type in channel 0: \(type(of: frame))")
         let frame = frame as! MethodFrame
         if frame.payload is Spec.Connection.CloseOk {
-            precondition(!promises.isEmpty, "channel got an unexpected frame")
-            let promise = promisesLock.withLock { promises.removeFirst() }
+            precondition(
+                promises.withLockedValue { !$0.isEmpty },
+                "channel got an unexpected frame \(frame)"
+            )
+            let promise = promises.withLockedValue { $0.removeFirst() }
             promise.succeed(frame)
             return .success(false)
         }
@@ -53,8 +58,11 @@ public class Channel: @unchecked Sendable {
         if frame.channelId == 0 {
             return dispatch0(frame: frame)
         }
-        precondition(!promises.isEmpty, "channel got an unexpected frame \(frame)")
-        let promise = promisesLock.withLock { promises.removeFirst() }
+        precondition(
+            promises.withLockedValue { !$0.isEmpty },
+            "channel got an unexpected frame \(frame)"
+        )
+        let promise = promises.withLockedValue { $0.removeFirst() }
         promise.succeed(frame)
         return .success(true)
     }
@@ -120,7 +128,7 @@ extension Channel {
     /// - Parameter closure: A closure that takes the transport and returns a value of type `T`.
     /// - Returns: The result of the closure executed with the transport.
     private func withTransport<T>(_ closure: (any TransportProtocol) -> T) throws -> T {
-        guard isOpen.load(ordering: .acquiring) else {
+        guard isOpenShadow.load(ordering: .acquiring) else {
             throw ConnectionError.channelIsClosed
         }
         guard let transport = self.transportWeak, transport.isActive else {
@@ -136,9 +144,9 @@ extension Channel {
     }
 
     internal func handleConnectionError(_ error: Error) {
-        let promises = promisesLock.withLock {
-            let current = self.promises
-            self.promises.removeAll()
+        let promises = promises.withLockedValue {
+            let current = $0
+            $0.removeAll()
             return current
         }
         for promise in promises {
@@ -151,11 +159,11 @@ extension Channel {
         method: some AMQPMethodProtocol & FrameCodable,
     ) async throws -> MethodFrame? {
         let frame = makeFrame(with: method)
-        let promise = try promisesLock.withLock {
-            let promise = try withTransport {
-                $0.send(frame)
+        let promise = try promises.withLockedValue {
+            let promise = try withTransport { transport in
+                transport.send(frame)
             }
-            promises.append(promise)
+            $0.append(promise)
             return promise
         }
         let response = try await promise.futureResult.get() as? MethodFrame
@@ -174,7 +182,7 @@ extension Channel {
             frame?.payload is Spec.Channel.CloseOk,
             "close expects Spec.Channel.CloseOk but got \(String(describing: frame))"
         )
-        self.isOpen.store(false, ordering: .releasing)
+        self.isOpenShadow.store(false, ordering: .releasing)
     }
 
     // this is only used on channel0
@@ -420,10 +428,10 @@ extension Channel {
     // automatically by the init, calling it again has no effect, but it allows
     // to reopen closed channel
     public func open() async throws {
-        if isOpen.load(ordering: .acquiring) {
+        if isOpenShadow.load(ordering: .acquiring) {
             return
         }
         try await requestOpen()
-        isOpen.store(true, ordering: .releasing)
+        isOpenShadow.store(true, ordering: .releasing)
     }
 }

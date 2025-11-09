@@ -13,6 +13,13 @@ final class TransportMock: TransportProtocol, @unchecked Sendable {
         case inbound(any Frame)
         case outbound(any Frame)
         case keepAlive  // no-op action to make sure transport is not closed
+
+        var isKeepAlive: Bool {
+            if case .keepAlive = self {
+                return true
+            }
+            return false
+        }
     }
 
     private let eventLoop: EventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1).next()
@@ -21,9 +28,11 @@ final class TransportMock: TransportProtocol, @unchecked Sendable {
     private let inboundContinuation: AsyncStream<any Frame>.Continuation
     // Warning: the following variable is not Sendable
     private(set) var actions: [Action] = .init()
+    private(set) var lastUsedIdx: ManagedAtomic<[Action].Index> = .init(0)
 
     func expecting(sequenceOf actions: [Action]) {
         self.actions = actions
+        self.lastUsedIdx = .init(self.actions.startIndex)
     }
 
     // MARK: - TransportProtocol
@@ -32,7 +41,7 @@ final class TransportMock: TransportProtocol, @unchecked Sendable {
         port: Int,
         logger: Logger,
         inboundContinuation: AsyncStream<any AMQP.Frame>.Continuation,
-        negotiatorFactory: @escaping () -> any AMQPNegotiationDelegateProtocol
+        negotiatorFactory: @escaping () -> any AMQPNegotiationDelegateProtocol & Sendable
     ) async throws {
         self.inboundContinuation = inboundContinuation
         var outboundContinuation: AsyncStream<any Frame>.Continuation?
@@ -86,6 +95,7 @@ final class TransportMock: TransportProtocol, @unchecked Sendable {
             }
             idx = idx.advanced(by: 1)
             idx = sendInboundActionsStarting(from: idx)
+            lastUsedIdx.store(idx, ordering: .sequentiallyConsistent)
             if idx == actions.endIndex {
                 break
             }
@@ -94,6 +104,19 @@ final class TransportMock: TransportProtocol, @unchecked Sendable {
     }
 
     var isActiveShadow = ManagedAtomic(true)
+
+    deinit {
+        outboundContinuation.finish()
+        inboundContinuation.finish()
+        var lastUsedIdx = self.lastUsedIdx.load(ordering: .sequentiallyConsistent)
+        if let last = actions.last, last.isKeepAlive {
+            lastUsedIdx = lastUsedIdx.advanced(by: 1)
+        }
+        #expect(
+            lastUsedIdx == actions.endIndex,
+            "Not all expected frames were send/received in TransportMock"
+        )
+    }
 }
 
 extension TransportMock {
