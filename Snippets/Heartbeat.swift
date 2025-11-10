@@ -3,9 +3,12 @@ import Foundation
 
 // this example requires running AMQP server
 let publisher = Task {
+    let heartbeatTimeout: UInt16 = 5
+    var configuration = Configuration.default
+    configuration.heartbeat = .seconds(heartbeatTimeout)
     let connection: Connection
     do {
-        connection = try await Connection(with: .default)
+        connection = try await Connection(with: configuration)
     } catch {
         print("Failed to create connection: \(error)")
         return false
@@ -25,6 +28,9 @@ let publisher = Task {
         try await channel.queueBind(queue: queueName, exchange: exchangeName, routingKey: queueName)
         try await channel.basicPublish(exchange: exchangeName, routingKey: queueName, body: "ping")
         print("======= Publisher sent message: ping")
+        print("======= sleep for 3 times the timeout \(3 * heartbeatTimeout)")
+        // the connection will be dropped if Heartbeat frames are not sent or received
+        try await Task.sleep(nanoseconds: UInt64(3 * heartbeatTimeout) * 1000 * 1000 * 1000)  // convert to nanoseconds
     } catch {
         print("Failed to publish message: \(error)")
         return false
