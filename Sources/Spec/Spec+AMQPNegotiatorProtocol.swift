@@ -109,7 +109,7 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
                 server: tuneMethod.frameMax,
                 client: self.clientConfig.maxFrameSize
             )
-            let heartbeat = Self.decide(
+            let heartbeatTimeout = Self.decide(
                 server: tuneMethod.heartbeat,
                 client: self.clientConfig.heartbeat
             )
@@ -117,11 +117,11 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
             // The client should start sending heartbeats after receiving a
             // Connection.Tune method, and start monitoring heartbeats after
             // receiving Connection.Open.
-            self.config.heartbeat = Configuration.HeartbeatValue.make(heartbeat)
+            self.config.heartbeat = Configuration.HeartbeatValue.make(heartbeatTimeout)
             let response = AMQP.Spec.Connection.TuneOk(
                 channelMax: self.config.maxChannelCount,
                 frameMax: self.config.maxFrameSize,
-                heartbeat: heartbeat
+                heartbeat: heartbeatTimeout
             )
             let tuneFrame = MethodFrame(
                 channelId: 0,
@@ -135,8 +135,7 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
             var actions: [TransportAction] = [.reply(tuneFrame), .reply(openFrame)]
             // seconds were negotiated, install the handler
             if case .seconds = self.config.heartbeat {
-                let heartbeatHandler = AMQPHeartbeatHandler(timeout: heartbeat)
-                actions.insert(.installHandler(heartbeatHandler), at: 1)
+                actions.insert(.installHeartbeat(heartbeatTimeout), at: 1)
             }
             return .several(actions)
         case .waitingOpenOk:
