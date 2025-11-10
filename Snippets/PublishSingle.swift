@@ -25,10 +25,15 @@ let publisher = Task {
         try await channel.queueBind(queue: queueName, exchange: exchangeName, routingKey: queueName)
         try await channel.basicPublish(exchange: exchangeName, routingKey: queueName, body: "ping")
         print("======= Publisher sent message: ping")
+    } catch {
+        print("Failed to publish message: \(error)")
+        return false
+    }
+    do {
         try await channel.close()
         try await connection.close()
     } catch {
-        print("Failed to publish message: \(error)")
+        print("Failed to close connection and channel: \(error)")
         return false
     }
     return true

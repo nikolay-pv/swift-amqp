@@ -9,6 +9,10 @@ This is AMQP 0-9-1 client library written in Swift.
 - swift 6 by default
 - cross-platform
 
+### Missing protocol features
+
+- TLS (SSL) is not currently supported but should be possible to workaround
+
 ## Using swift-amqp in your project
 
 Add this package as a dependency in a SwiftPM project:

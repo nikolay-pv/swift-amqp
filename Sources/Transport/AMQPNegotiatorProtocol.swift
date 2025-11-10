@@ -1,10 +1,9 @@
-import NIOCore
-
 indirect enum TransportAction {
     case reply(any AMQPNegotiationHandler.OutboundOut)
     case error(Error)
     case complete(Configuration, Spec.Table)
-    case installHandler(any ChannelHandler & Sendable)
+    // carries heartbeat timeout
+    case installHeartbeat(UInt16)
     case several([TransportAction])
 }
 

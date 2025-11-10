@@ -9,11 +9,11 @@ extension Spec {
         }
 
         private var state: State = .waitingStart
-        let clientConfig: Configuration
+        private let clientConfig: Configuration
         // will store negotiated configuration here
-        var config: Configuration
-        let clientProperties: Spec.Table
-        var serverProperties: Spec.Table
+        private var config: Configuration
+        private let clientProperties: Spec.Table
+        private var serverProperties: Spec.Table
 
         init(config: Configuration, properties: Spec.Table) {
             self.clientConfig = config
@@ -72,8 +72,6 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
                 )
             }
             // save server information somehow
-            // self._set_server_information(method_frame)
-            // self._send_connection_start_ok(*self._get_credentials(method_frame))
             if !method.mechanisms.contains(self.clientConfig.credentials.mechanism) {
                 let msg =
                     "\(self.clientConfig.credentials.mechanism) is not supported by the server"
@@ -97,7 +95,7 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
             // SASL, challenge-response model = get Secure method
             // send Secure-Ok method
             // then wait on Tune
-            fatalError("not implemented")
+            fatalError("TLS is not implemented (yet?)")
         case .waitingTune:
             guard let tuneMethod = frame.payload as? AMQP.Spec.Connection.Tune else {
                 return .error(NegotiationError.unexpectedMethod)
@@ -111,7 +109,7 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
                 server: tuneMethod.frameMax,
                 client: self.clientConfig.maxFrameSize
             )
-            let heartbeat = Self.decide(
+            let heartbeatTimeout = Self.decide(
                 server: tuneMethod.heartbeat,
                 client: self.clientConfig.heartbeat
             )
@@ -119,11 +117,11 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
             // The client should start sending heartbeats after receiving a
             // Connection.Tune method, and start monitoring heartbeats after
             // receiving Connection.Open.
-            self.config.heartbeat = Configuration.HeartbeatValue.make(heartbeat)
+            self.config.heartbeat = Configuration.HeartbeatValue.make(heartbeatTimeout)
             let response = AMQP.Spec.Connection.TuneOk(
                 channelMax: self.config.maxChannelCount,
                 frameMax: self.config.maxFrameSize,
-                heartbeat: heartbeat
+                heartbeat: heartbeatTimeout
             )
             let tuneFrame = MethodFrame(
                 channelId: 0,
@@ -137,8 +135,7 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
             var actions: [TransportAction] = [.reply(tuneFrame), .reply(openFrame)]
             // seconds were negotiated, install the handler
             if case .seconds = self.config.heartbeat {
-                let heartbeatHandler = AMQPHeartbeatHandler(timeout: heartbeat)
-                actions.insert(.installHandler(heartbeatHandler), at: 1)
+                actions.insert(.installHeartbeat(heartbeatTimeout), at: 1)
             }
             return .several(actions)
         case .waitingOpenOk:

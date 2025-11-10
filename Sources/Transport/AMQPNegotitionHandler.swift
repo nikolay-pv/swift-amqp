@@ -28,7 +28,8 @@ final class AMQPNegotiationHandler: ChannelInboundHandler,
             for action in actions {
                 try self.handle(action: action, on: context)
             }
-        case .installHandler(let handler):
+        case .installHeartbeat(let timeout):
+            let handler = AMQPHeartbeatHandler(timeout: timeout)
             try context.pipeline.syncOperations.addHandler(handler, position: .before(self))
         }
     }
