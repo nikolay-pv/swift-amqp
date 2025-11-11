@@ -13,6 +13,7 @@ extension NIOLockedValueBox where Value == NIODeadline {
 // - if traffic happened then no heartbeat is required
 // - if there is no traffic or heartbeats for 2 heartbeat intervals or longer,
 // connection should be closed without any handshake
+// it is Sendable because it is capturing itself in the timer handler
 final class AMQPHeartbeatHandler: ChannelDuplexHandler, Sendable {
     typealias InboundIn = Frame
     typealias OutboundIn = Frame
