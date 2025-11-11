@@ -8,8 +8,7 @@ func makeTestEnv(
         @Sendable @escaping ((Configuration, Spec.Table)) ->
         (Configuration, Spec.Table) = { $0 }
 ) -> Environment {
-    var env = Environment.shared
-    env.setTransportFactory {
+    Environment(transportFactory: {
         let transportStub = try await TransportMock(
             host: $0,
             port: $1,
@@ -23,8 +22,7 @@ func makeTestEnv(
         props.0.heartbeat = .disabled
         transportStub.negotiatedPropertiesShadow = customizingNegotiatedProperties(props)
         return transportStub
-    }
-    return env
+    })
 }
 
 func fixtureData(for fixture: String) throws -> Data {
