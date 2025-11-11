@@ -42,7 +42,7 @@ import Testing
         let decoded = try FrameDecoder().decode(MethodFrame.self, from: binary)
         #expect(binary.count == object.bytesCount)
         #expect(decoded.channelId == object.channelId)
-        let decodedMethod = decoded.payload as? Spec.Basic.Ack
+        let decodedMethod = decoded.unwrapPayload(as: Spec.Basic.Ack.self)
         #expect(decodedMethod != nil)
         #expect(decodedMethod! == method)
     }

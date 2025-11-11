@@ -57,7 +57,7 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
         switch state {
         case .waitingStart:
             // expected to get Connection.Start
-            guard let method = frame.payload as? AMQP.Spec.Connection.Start else {
+            guard let method = frame.unwrapPayload(as: Spec.Connection.Start.self) else {
                 return .error(NegotiationError.unexpectedMethod)
             }
             // check protocol versions mismatch
@@ -97,7 +97,7 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
             // then wait on Tune
             fatalError("TLS is not implemented (yet?)")
         case .waitingTune:
-            guard let tuneMethod = frame.payload as? AMQP.Spec.Connection.Tune else {
+            guard let tuneMethod = frame.unwrapPayload(as: Spec.Connection.Tune.self) else {
                 return .error(NegotiationError.unexpectedMethod)
             }
             // picking correct values
@@ -118,7 +118,7 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
             // Connection.Tune method, and start monitoring heartbeats after
             // receiving Connection.Open.
             self.config.heartbeat = Configuration.HeartbeatValue.make(heartbeatTimeout)
-            let response = AMQP.Spec.Connection.TuneOk(
+            let response = Spec.Connection.TuneOk(
                 channelMax: self.config.maxChannelCount,
                 frameMax: self.config.maxFrameSize,
                 heartbeat: heartbeatTimeout
@@ -139,7 +139,7 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
             }
             return .several(actions)
         case .waitingOpenOk:
-            guard frame.payload is AMQP.Spec.Connection.OpenOk else {
+            guard frame.isPayload(of: Spec.Connection.OpenOk.self) else {
                 return .error(NegotiationError.unexpectedMethod)
             }
             self.state = .complete

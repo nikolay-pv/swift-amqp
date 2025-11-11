@@ -42,13 +42,11 @@ final class FramesRouter: Sendable {
     func execute() async {
         var contentContext = ContentContext()
         for await frame in inboundFrames {
-            if let methodFrame = frame as? MethodFrame,
-                methodFrame.payload as? Spec.Basic.Deliver != nil
-            {
+            if frame.isPayload(of: Spec.Basic.Deliver.self) {
                 contentContext.push(deliver: frame)
                 continue
             }
-            if isContent(frame) {
+            if frame.isContent() {
                 guard contentContext.waitForContent() else {
                     preconditionFailure(
                         "Received content frame without prior deliver method"

@@ -22,8 +22,21 @@ extension Frame where Self: Equatable {
     }
 }
 
-internal func isContent(_ frame: any Frame) -> Bool {
-    frame is ContentHeaderFrame || frame is ContentBodyFrame
+extension Frame {
+    func isPayload<T>(of type: T.Type) -> Bool {
+        self is MethodFrame && (self as! MethodFrame).payload is T
+    }
+
+    func unwrapPayload<T>(as type: T.Type) -> T? {
+        guard self is MethodFrame else {
+            return nil
+        }
+        return (self as! MethodFrame).payload as? T
+    }
+
+    func isContent() -> Bool {
+        self is ContentHeaderFrame || self is ContentBodyFrame
+    }
 }
 
 func decodeFrame(type: UInt8, from data: Data) throws -> any Frame {

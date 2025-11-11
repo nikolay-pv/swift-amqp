@@ -27,8 +27,7 @@ public class Channel: @unchecked Sendable {
     internal func dispatch0(frame: any Frame) -> Result<Bool, ConnectionError> {
         precondition(frame.channelId == 0, "dispatch0 called with non-zero channel id")
         precondition(frame is MethodFrame, "Unexpected frame type in channel 0: \(type(of: frame))")
-        let frame = frame as! MethodFrame
-        if frame.payload is Spec.Connection.CloseOk {
+        if frame.isPayload(of: Spec.Connection.CloseOk.self) {
             precondition(
                 promises.withLockedValue { !$0.isEmpty },
                 "channel got an unexpected frame \(frame)"
@@ -37,7 +36,7 @@ public class Channel: @unchecked Sendable {
             promise.succeed(frame)
             return .success(false)
         }
-        if let payload = frame.payload as? Spec.Connection.Close {
+        if let payload = frame.unwrapPayload(as: Spec.Connection.Close.self) {
             // eat exceptions as it doesn't make sense to throw here (broker already closed the connection)
             self.connectionCloseOk()
             if payload.replyCode != 0 {
@@ -269,7 +268,7 @@ extension Channel {
     public func queueDeclare(named queueName: String) async throws -> QueueDeclareResult {
         let method = Spec.Queue.Declare(queue: queueName, durable: true)
         let frame = try await sendReturningResponse(method: method)
-        guard let payload = frame?.payload as? Spec.Queue.DeclareOk else {
+        guard let payload = frame?.unwrapPayload(as: Spec.Queue.DeclareOk.self) else {
             preconditionFailure(
                 "queueDeclare expects Spec.Queue.DeclareOk but got \(String(describing: frame))"
             )
