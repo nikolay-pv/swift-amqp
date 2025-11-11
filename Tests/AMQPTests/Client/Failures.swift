@@ -279,21 +279,21 @@ import Testing
                     channelId: expectedChannelId,
                     payload: AMQP.Spec.Basic.Consume(
                         queue: "swift-amqp-queue",
-                        consumerTag: "somerandomtag"
+                        consumerTag: "some-random-tag"
                     )
                 )
             ),
             .inbound(
                 MethodFrame(
                     channelId: expectedChannelId,
-                    payload: AMQP.Spec.Basic.ConsumeOk(consumerTag: "somerandomtag")
+                    payload: AMQP.Spec.Basic.ConsumeOk(consumerTag: "some-random-tag")
                 )
             ),
             .inbound(
                 MethodFrame(
                     channelId: expectedChannelId,
                     payload: AMQP.Spec.Basic.Deliver(
-                        consumerTag: "somerandomtag",
+                        consumerTag: "some-random-tag",
                         deliveryTag: 1,
                         redelivered: false,
                         exchange: "swift-amqp-exchange",
@@ -331,7 +331,7 @@ import Testing
         try await channel.queueBind(queue: "swift-amqp-queue", exchange: "swift-amqp-exchange")
         let messages = try await channel.basicConsume(
             queue: "swift-amqp-queue",
-            tag: "somerandomtag"
+            tag: "some-random-tag"
         )
         try await #require(
             throws: ConnectionError.frameSizeLimitExceeded(maxFrameSize: 3, actualSize: 12)

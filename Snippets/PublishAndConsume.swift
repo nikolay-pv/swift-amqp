@@ -42,7 +42,7 @@ let consumer = Task {
     try await channel.queueBind(queue: queueName, exchange: exchangeName, routingKey: queueName)
     let messages = try await channel.basicConsume(
         queue: queueName,
-        tag: "somerandomtag"
+        tag: "some-random-tag"
     )
     for try await message in messages {
         print("======= Consumer got message: \(message)")

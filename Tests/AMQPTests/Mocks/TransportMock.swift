@@ -41,7 +41,7 @@ final class TransportMock: TransportProtocol, @unchecked Sendable {
         port: Int,
         logger: Logger,
         inboundContinuation: AsyncStream<any AMQP.Frame>.Continuation,
-        negotiatorFactory: @escaping () -> any AMQPNegotiationDelegateProtocol & Sendable
+        negotiatorFactory: @escaping () -> any AMQPNegotiationDelegateProtocol
     ) async throws {
         self.inboundContinuation = inboundContinuation
         var outboundContinuation: AsyncStream<any Frame>.Continuation?
