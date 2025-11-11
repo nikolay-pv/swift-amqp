@@ -22,6 +22,8 @@ enum NegotiationError: Error {
     case unsupportedAuthMechanism(String)
     /// throws when protocol negotiation is somehow waited on different method from the broker
     case unexpectedMethod
+    /// thrown if the frames are not arriving from Server in time of the fixed timeout
+    case timedOut
     case unknown
 }
 

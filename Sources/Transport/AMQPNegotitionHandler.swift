@@ -15,12 +15,34 @@ final class AMQPNegotiationHandler: ChannelInboundHandler,
     // fulfilled when the negotiation is successful
     private let complete: EventLoopPromise<(Configuration, Spec.Table)>
 
+    // absolute timeout to wait for frames from the server during negotiation
+    static let negotiationTimeout = TimeAmount.nanoseconds(30)
+    private var negotiationInterrupt: RepeatedTask?
+    private func setupGlobalTimeout(on context: ChannelHandlerContext) {
+        negotiationInterrupt?.cancel()
+        let channel = context.channel
+        let promise = complete
+        negotiationInterrupt = context.eventLoop.scheduleRepeatedTask(
+            initialDelay: Self.negotiationTimeout,
+            delay: Self.negotiationTimeout
+        ) { task in
+            // drop the connection due to inactivity
+            _ = channel.close()
+                .map {
+                    promise.fail(NegotiationError.timedOut)
+                }
+        }
+    }
+
     private func handle(action: TransportAction, on context: ChannelHandlerContext) throws {
+        setupGlobalTimeout(on: context)
         switch action {
         case .complete(let config, let serverProperties):
+            negotiationInterrupt?.cancel()
             context.pipeline.removeHandler(name: Self.handlerName, promise: nil)
             complete.succeed((config, serverProperties))
         case .error(let error):
+            negotiationInterrupt?.cancel()
             throw error
         case .reply(let frame):
             context.writeAndFlush(wrapOutboundOut(frame), promise: nil)
