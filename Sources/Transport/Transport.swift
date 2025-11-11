@@ -44,42 +44,35 @@ final class Transport: TransportProtocol, Sendable {
             .makePromise(of: (Configuration, Spec.Table).self)
         self.asyncNIOChannel = try await ClientBootstrap(group: eventLoopGroup)
             .connect(host: host, port: port) { channel in
-                return channel.pipeline
-                    .addHandler(ByteToMessageHandler(ByteToFrameCoderHandler()))
-                    .flatMap {
-                        return channel.pipeline.addHandler(
-                            MessageToByteHandler(ByteToFrameCoderHandler())
-                        )
-                    }
+                return channel.eventLoop.makeCompletedFuture {
+                    try channel.pipeline.syncOperations.addHandler(
+                        ByteToMessageHandler(ByteToFrameCoderHandler())
+                    )
+                    try channel.pipeline.syncOperations.addHandler(
+                        MessageToByteHandler(ByteToFrameCoderHandler())
+                    )
                     #if canImport(NIOExtras)
-                        .flatMap {
-                            return channel.pipeline.addHandler(
-                                DebugOutboundEventsHandler { event, _ in
-                                    logger.debug("\(event)")
-                                }
-                            )
-                        }
-                        .flatMap {
-                            return channel.pipeline.addHandler(
-                                DebugInboundEventsHandler { event, _ in logger.debug("\(event)")
-                                }
-                            )
-                        }
+                        try channel.pipeline.syncOperations.addHandler(
+                            DebugOutboundEventsHandler { event, _ in
+                                logger.debug("\(event)")
+                            }
+                        )
+                        try channel.pipeline.syncOperations.addHandler(
+                            DebugInboundEventsHandler { event, _ in logger.debug("\(event)")
+                            }
+                        )
                     #endif  // canImport(NIOExtras)
-                    .flatMap {
-                        return channel.pipeline.addHandler(
-                            AMQPNegotiationHandler(
-                                negotiator: negotiatorFactory(),
-                                done: negotiationComplete
-                            ),
-                            name: AMQPNegotiationHandler.handlerName
-                        )
-                    }
-                    .flatMapThrowing {
-                        return try NIOAsyncChannel<any Frame, any Frame>(
-                            wrappingChannelSynchronously: channel
-                        )
-                    }
+                    try channel.pipeline.syncOperations.addHandler(
+                        AMQPNegotiationHandler(
+                            negotiator: negotiatorFactory(),
+                            done: negotiationComplete
+                        ),
+                        name: AMQPNegotiationHandler.handlerName
+                    )
+                    return try NIOAsyncChannel<any Frame, any Frame>(
+                        wrappingChannelSynchronously: channel
+                    )
+                }
             }
         var negotiationResult = try await negotiationComplete.futureResult.get()
         // for security reasons reset credentials after negotiation
