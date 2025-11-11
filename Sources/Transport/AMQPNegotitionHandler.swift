@@ -11,7 +11,7 @@ final class AMQPNegotiationHandler: ChannelInboundHandler,
 
     static let handlerName = "AMQPNegotiationHandler"
 
-    private let negotiator: any AMQPNegotiationDelegateProtocol & Sendable
+    private let negotiator: any AMQPNegotiationDelegateProtocol
     // fulfilled when the negotiation is successful
     private let complete: EventLoopPromise<(Configuration, Spec.Table)>
 
@@ -61,12 +61,10 @@ final class AMQPNegotiationHandler: ChannelInboundHandler,
     // MARK: - init
 
     init(
-        negotiator: any AMQPNegotiationDelegateProtocol & Sendable,
+        negotiator: any AMQPNegotiationDelegateProtocol,
         done: EventLoopPromise<(Configuration, Spec.Table)>
     ) {
         self.negotiator = negotiator
         self.complete = done
     }
 }
-
-extension AMQPNegotiationHandler: Sendable {}

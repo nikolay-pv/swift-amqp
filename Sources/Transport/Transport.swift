@@ -22,7 +22,7 @@ final class Transport: TransportProtocol, Sendable {
         port: Int = 5672,
         logger: Logger,
         inboundContinuation: AsyncStream<any Frame>.Continuation,
-        negotiatorFactory: @escaping @Sendable () -> any AMQPNegotiationDelegateProtocol & Sendable
+        negotiatorFactory: @escaping @Sendable () -> any AMQPNegotiationDelegateProtocol
     ) async throws {
         // one event loop per connection
         self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
@@ -39,7 +39,6 @@ final class Transport: TransportProtocol, Sendable {
         self.outboundContinuation = outboundContinuation
 
         self.inboundContinuation = inboundContinuation
-
         let negotiationComplete = eventLoopGroup.any()
             .makePromise(of: (Configuration, Spec.Table).self)
         self.asyncNIOChannel = try await ClientBootstrap(group: eventLoopGroup)
