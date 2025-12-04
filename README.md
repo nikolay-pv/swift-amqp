@@ -1,5 +1,11 @@
 # swift-amqp
 
+> ‼️ **Project Status: in active early development**
+>
+> ‼️️ **API will change rapidly (as rapidly as it can for a hobby project). Do not use in production.**
+>
+> ️‼️️️ **There are still things which I might change fundamentally here. The current implementation doesn't follow specification to the letter.**
+
 This is AMQP 0-9-1 client library written in Swift.
 
 ## Features
@@ -26,7 +32,7 @@ let package = Package(
   dependencies: [
     .package(
       url: "https://github.com/nikolay-pv/swift-amqp.git",
-      .upToNextMinor(from: "1.0.0")
+      .upToNextMajor(from: "1.0.0")
     )
   ],
   targets: [
