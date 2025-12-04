@@ -1,4 +1,4 @@
-import Foundation
+import Foundation  // for Date
 
 protocol FrameDecoderProtocol {
     func decode(_ type: Bool.Type) throws -> Bool

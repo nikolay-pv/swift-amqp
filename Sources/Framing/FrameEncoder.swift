@@ -1,4 +1,4 @@
-import Foundation
+import Foundation  // for Data, Date
 
 class FrameEncoder {
     func encode<T>(_ value: T) throws -> Data where T: FrameEncodable {

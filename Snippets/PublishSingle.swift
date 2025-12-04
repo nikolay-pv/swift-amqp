@@ -1,5 +1,4 @@
 import AMQP
-import Foundation
 
 // this example requires running AMQP server
 let publisher = Task {

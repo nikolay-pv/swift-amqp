@@ -11,7 +11,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-import Foundation
+import Foundation  // for Data, Date
 
 protocol AMQPObjectProtocol: Equatable, Sendable {
     var amqpName: String { get }

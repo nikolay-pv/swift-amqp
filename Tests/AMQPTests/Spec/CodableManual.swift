@@ -1,4 +1,4 @@
-import Foundation
+import Foundation  // for Data
 import Testing
 
 @testable import AMQP

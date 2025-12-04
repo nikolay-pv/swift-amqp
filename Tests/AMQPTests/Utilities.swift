@@ -1,4 +1,4 @@
-import Foundation
+import Foundation  // for Data, URL
 
 @testable import AMQP
 

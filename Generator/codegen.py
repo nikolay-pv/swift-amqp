@@ -343,9 +343,7 @@ def gen_swift_impl(spec: AmqpSpec):
         print(
             "    typealias Factory = @Sendable (any FrameDecoderProtocol) throws -> any FrameCodable\n"
         )
-        print(
-            "    // swiftlint:disable:next all"
-        )
+        print("    // swiftlint:disable:next all")
         print(
             "    static func makeFactory(with classId: UInt16, and methodId: UInt16) throws -> Factory {"
         )

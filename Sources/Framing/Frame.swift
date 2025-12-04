@@ -1,4 +1,4 @@
-import Foundation
+import Foundation  // for Data
 
 protocol Frame: Sendable, FrameCodable {
     var type: UInt8 { get }

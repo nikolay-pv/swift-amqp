@@ -1,4 +1,4 @@
-import Foundation
+import Foundation  // for Data, Date
 
 class FrameDecoder {
     func decode<T>(_ type: T.Type, from data: Data) throws -> T where T: FrameDecodable {
