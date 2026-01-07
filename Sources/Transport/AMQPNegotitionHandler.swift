@@ -35,7 +35,7 @@ final class AMQPNegotiationHandler: ChannelInboundHandler,
     }
 
     private func handle(action: TransportAction, on context: ChannelHandlerContext) throws {
-        setupGlobalTimeout(on: context)
+        // setupGlobalTimeout(on: context)
         switch action {
         case .complete(let config, let serverProperties):
             negotiationInterrupt?.cancel()
