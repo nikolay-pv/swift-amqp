@@ -4,7 +4,7 @@ import NIOConcurrencyHelpers
 import NIOCore
 import NIOPosix
 
-#if canImport(NIOExtras)
+#if DebugNIOEventHandlers
     import NIOExtras
 #endif
 
@@ -50,7 +50,7 @@ final class Transport: TransportProtocol, Sendable {
                     try channel.pipeline.syncOperations.addHandler(
                         MessageToByteHandler(ByteToFrameCoderHandler())
                     )
-                    #if canImport(NIOExtras)
+                    #if DebugNIOEventHandlers
                         try channel.pipeline.syncOperations.addHandler(
                             DebugOutboundEventsHandler { event, _ in
                                 logger.debug("\(event)")
@@ -60,7 +60,7 @@ final class Transport: TransportProtocol, Sendable {
                             DebugInboundEventsHandler { event, _ in logger.debug("\(event)")
                             }
                         )
-                    #endif  // canImport(NIOExtras)
+                    #endif  // DebugNIOEventHandlers
                     try channel.pipeline.syncOperations.addHandler(
                         AMQPNegotiationHandler(
                             negotiator: negotiatorFactory(),

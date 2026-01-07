@@ -23,6 +23,14 @@ let package = Package(
             targets: ["AMQP"]
         )
     ],
+    traits: [
+        .trait(
+            name: "DebugNIOEventHandlers",
+            description:
+                "logs debug message for in/outbound frames (primary used to ease debugging in development)"
+        ),
+        .default(enabledTraits: []),
+    ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-nio.git", .upToNextMajor(from: "2.67.0")),
         .package(url: "https://github.com/apple/swift-log", .upToNextMajor(from: "1.6.0")),
@@ -45,7 +53,11 @@ let package = Package(
             dependencies: [
                 .product(name: "NIOCore", package: "swift-nio"),
                 .product(name: "NIOPosix", package: "swift-nio"),
-                .product(name: "NIOExtras", package: "swift-nio-extras"),
+                .product(
+                    name: "NIOExtras",
+                    package: "swift-nio-extras",
+                    condition: .when(traits: ["DebugNIOEventHandlers"])
+                ),
                 .product(name: "NIOFoundationCompat", package: "swift-nio"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "Collections", package: "swift-collections"),
@@ -60,8 +72,7 @@ let package = Package(
         .testTarget(
             name: "AMQPTests",
             dependencies: [
-                "AMQP",
-                .product(name: "NIOExtras", package: "swift-nio-extras"),
+                "AMQP"
             ]
         ),
     ]
