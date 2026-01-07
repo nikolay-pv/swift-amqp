@@ -24,7 +24,7 @@ This is AMQP 0-9-1 client library written in Swift.
 Add this package as a dependency in a SwiftPM project:
 
 ```swift
-// swift-tools-version:6.0
+// swift-tools-version:6.2
 import PackageDescription
 
 let package = Package(
@@ -32,7 +32,7 @@ let package = Package(
   dependencies: [
     .package(
       url: "https://github.com/nikolay-pv/swift-amqp.git",
-      .upToNextMajor(from: "1.0.0")
+      branch: "main"
     )
   ],
   targets: [

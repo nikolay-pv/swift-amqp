@@ -10,7 +10,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 //===----------------------------------------------------------------------===//
-// swift-tools-version: 6.0
+// swift-tools-version: 6.2
 
 import PackageDescription
 
@@ -22,6 +22,14 @@ let package = Package(
             name: "AMQP",
             targets: ["AMQP"]
         )
+    ],
+    traits: [
+        .trait(
+            name: "DebugNIOEventHandlers",
+            description:
+                "logs debug message for in/outbound frames (primary used to ease debugging in development)"
+        ),
+        .default(enabledTraits: []),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-nio.git", .upToNextMajor(from: "2.67.0")),
@@ -45,23 +53,26 @@ let package = Package(
             dependencies: [
                 .product(name: "NIOCore", package: "swift-nio"),
                 .product(name: "NIOPosix", package: "swift-nio"),
-                .product(name: "NIOExtras", package: "swift-nio-extras"),
+                .product(
+                    name: "NIOExtras",
+                    package: "swift-nio-extras",
+                    condition: .when(traits: ["DebugNIOEventHandlers"])
+                ),
                 .product(name: "NIOFoundationCompat", package: "swift-nio"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "Collections", package: "swift-collections"),
                 .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
             ],
-            // these can be enabled in Swift 6.2
-            // swiftSettings: [
-            //     .enableUpcomingFeature("StrictConcurrency"),
-            //     .defaultIsolation(nil),  // nonisolated by default, as recommended by https://developer.apple.com/videos/play/wwdc2025/268?time=1638
-            // ]
+            swiftSettings: [
+                .enableUpcomingFeature("StrictConcurrency"),
+                .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+                .defaultIsolation(nil),  // nonisolated by default, as recommended by https://developer.apple.com/videos/play/wwdc2025/268?time=1638
+            ]
         ),
         .testTarget(
             name: "AMQPTests",
             dependencies: [
-                "AMQP",
-                .product(name: "NIOExtras", package: "swift-nio-extras"),
+                "AMQP"
             ]
         ),
     ]

@@ -48,7 +48,13 @@ public struct Configuration: Sendable {
     }
     public var heartbeat: HeartbeatValue = .serverDefault
 
-    public var logger = Logger(label: "swift.amqp")
+    public var logger = {
+        var l = Logger(label: "swift.amqp")
+        #if DebugNIOEventHandlers
+            l.logLevel = .debug
+        #endif  // DebugNIOEventHandlers
+        return l
+    }()
 
     public static let `default`: Configuration = .init()
 }
