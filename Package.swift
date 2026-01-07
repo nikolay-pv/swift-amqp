@@ -51,7 +51,6 @@ let package = Package(
                 .product(name: "Collections", package: "swift-collections"),
                 .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
             ],
-            // these can be enabled in Swift 6.2
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency"),
                 .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
