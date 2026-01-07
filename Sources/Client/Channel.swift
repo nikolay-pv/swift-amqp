@@ -352,7 +352,7 @@ extension Channel {
                     framesToPublish.append(
                         ContentBodyFrame(
                             channelId: self.id,
-                            fragment: [UInt8].init($0)
+                            fragment: ByteArray.init($0)
                         )
                     )
                 }
@@ -361,7 +361,7 @@ extension Channel {
             framesToPublish.append(
                 ContentBodyFrame(
                     channelId: self.id,
-                    fragment: [UInt8].init(body.utf8)
+                    fragment: ByteArray.init(body.utf8)
                 )
             )
         }

@@ -11,7 +11,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-import Foundation  // for Data, Date
+import Foundation  // for Date
 
 protocol AMQPObjectProtocol: Equatable, Sendable {
     var amqpName: String { get }
@@ -48,7 +48,7 @@ public enum Spec {
             .array([FieldValue].init()),
             .timestamp(Date.distantPast),
             .table([:]),
-            .bytes(Data.init()),
+            .bytes([UInt8].init()),
             .void,
         ]
 
@@ -67,7 +67,7 @@ public enum Spec {
         case array([FieldValue])
         case timestamp(Date)
         case table(Table)
-        case bytes(Data)
+        case bytes([UInt8])
         case void
 
         var type: UInt8 {

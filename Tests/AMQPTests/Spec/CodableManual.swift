@@ -1,4 +1,3 @@
-import Foundation  // for Data
 import Testing
 
 @testable import AMQP
@@ -17,9 +16,9 @@ import Testing
     )
     func encodeSequenceOfBools(method: Spec.Basic.Consume, expectedByte: UInt8) async throws {
         let encoded = try FrameEncoder().encode(method)
-        var expected = [UInt8].init(repeating: UInt8.zero, count: 9)
+        var expected = ByteArray.init(repeating: UInt8.zero, count: 9)
         expected[4] = expectedByte
-        #expect(encoded == Data(expected))
+        #expect(encoded == expected)
     }
 }
 

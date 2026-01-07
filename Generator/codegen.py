@@ -52,7 +52,7 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
             ),
             ("timestamp", "Date", "T", "8"),  # stored as uint64
             ("table", "Table", "F", "value.bytesCount"),
-            ("bytes", "Data", "x", "UInt32(value.count)"),
+            ("bytes", "[UInt8]", "x", "UInt32(value.count)"),
             ("void", "", "V", "1"),
         ]
 

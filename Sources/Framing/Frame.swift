@@ -1,14 +1,12 @@
-import Foundation  // for Data
-
 protocol Frame: Sendable, FrameCodable {
     var type: UInt8 { get }
     var channelId: UInt16 { get }
-    func asData() throws -> Data
+    func asData() throws -> ByteArray
 }
 
 extension Frame {
     /// serializes this object to be sent over the wire
-    func asData() throws -> Data {
+    func asData() throws -> ByteArray {
         let encoder = FrameEncoder()
         return try encoder.encode(self)
     }
@@ -39,7 +37,7 @@ extension Frame {
     }
 }
 
-func decodeFrame(type: UInt8, from data: Data) throws -> any Frame {
+func decodeFrame(type: UInt8, from data: ByteArray) throws -> any Frame {
     // for errors see 4.2.3 General Frame Format
     if data.last != Spec.FrameEnd {
         throw FramingError.fatal("Frame doesn't end with the frame-end octet")
@@ -66,7 +64,7 @@ struct ProtocolHeaderFrame {
     var channelId: UInt16 { 0 }
 
     static let protocolNameLength: UInt32 = 4
-    var protocolName: [UInt8] = Array("AMQP".utf8)
+    var protocolName: ByteArray = Array("AMQP".utf8)
     var majorVersion: UInt8
     var minorVersion: UInt8
     var revision: UInt8
@@ -99,7 +97,7 @@ extension ProtocolHeaderFrame: Frame {
 
     init(from decoder: any FrameDecoderProtocol) throws {
         protocolName = try (0..<Self.protocolNameLength)
-            .reduce(into: [UInt8]()) { partialResult, _ in
+            .reduce(into: ByteArray()) { partialResult, _ in
                 partialResult.append(try decoder.decode(UInt8.self))
             }
         _ = try decoder.decode(UInt8.self)
@@ -244,7 +242,7 @@ extension ContentHeaderFrame: Frame {
 struct ContentBodyFrame {
     var type: UInt8 { Spec.FrameBody }
     var channelId: UInt16
-    var fragment: [UInt8]  // max size is UInt32.max
+    var fragment: ByteArray  // max size is UInt32.max
 }
 
 extension ContentBodyFrame: Equatable {}
@@ -256,7 +254,7 @@ extension ContentBodyFrame: Frame {
         precondition(wireType == Spec.FrameBody)
         channelId = try decoder.decode(UInt16.self)
         let expectedSize = try decoder.decode(UInt32.self)
-        var wireFragment = [UInt8]()
+        var wireFragment = ByteArray()
         wireFragment.reserveCapacity(Int(expectedSize))
         for _ in 0..<expectedSize {
             wireFragment.append(try decoder.decode(UInt8.self))

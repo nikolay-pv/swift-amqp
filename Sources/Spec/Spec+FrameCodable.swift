@@ -11,7 +11,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-import Foundation  // for Data, Date
+import Foundation  // for Date
 
 private typealias FieldValue = Spec.FieldValue
 

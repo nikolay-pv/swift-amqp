@@ -1,4 +1,4 @@
-import Foundation  // for Data, URL
+import Foundation  // for URL
 
 @testable import AMQP
 
@@ -25,8 +25,8 @@ func makeTestEnv(
     })
 }
 
-func fixtureData(for fixture: String) throws -> Data {
-    try Data(contentsOf: fixtureUrl(for: fixture))
+func fixtureData(for fixture: String) throws -> ByteArray {
+    try .init(String(contentsOfFile: fixture, encoding: .utf8).utf8)
 }
 
 func fixtureUrl(for fixture: String) -> URL {
@@ -36,6 +36,7 @@ func fixtureUrl(for fixture: String) -> URL {
 func fixturesDirectory(path: String = #filePath) -> URL {
     let url = URL(fileURLWithPath: path)
     let testsDir = url.deletingLastPathComponent()
-    let res = testsDir.appendingPathComponent("Resources").appendingPathComponent("Fixtures")
+    let res = testsDir.appendingPathComponent("Resources", isDirectory: true)
+        .appendingPathComponent("Fixtures")
     return res
 }

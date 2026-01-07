@@ -16,7 +16,7 @@ protocol FrameDecoderProtocol {
     func decode(_ type: String.Type, isLong: Bool) throws -> String
     func decode(_ type: [String: Spec.FieldValue].Type) throws -> [String: Spec.FieldValue]
     func decode(_ type: [Spec.FieldValue].Type) throws -> [Spec.FieldValue]
-    func decode(_ type: Data.Type) throws -> Data
+    func decode(_ type: [UInt8].Type) throws -> [UInt8]
 }
 
 protocol FrameDecodable {

@@ -1,7 +1,7 @@
-import Foundation  // for Data, Date
+import Foundation  // for Date
 
 class FrameDecoder {
-    func decode<T>(_ type: T.Type, from data: Data) throws -> T where T: FrameDecodable {
+    func decode<T>(_ type: T.Type, from data: ByteArray) throws -> T where T: FrameDecodable {
         let decoder = _FrameDecoder()
         return try decoder.with(data: data) { try T.init(from: $0) }
     }
@@ -38,21 +38,21 @@ extension Spec.FieldValue {
         case .f64: return .f64(try decoder.decode(Double.self))
         // case .shortstr: return .shortstr(try decoder.decode(String.self, isLong: false))
         case .array: return .array(try decoder.decode([Spec.FieldValue].self))
-        case .bytes: return .bytes(try decoder.decode(Data.self))
+        case .bytes: return .bytes(try decoder.decode([UInt8].self))
         }
     }
 }
 
 private class _FrameDecoder: FrameDecoderProtocol {
-    private var _data = Data()
+    private var _data: ByteArray = []
     private var _position: Int = 0
 
     private func _reset() {
         _position = 0
-        _data = Data()
+        _data = .init()
     }
 
-    func with<T>(data: Data, closure: (FrameDecoderProtocol) throws -> T) throws -> T
+    func with<T>(data: ByteArray, closure: (FrameDecoderProtocol) throws -> T) throws -> T
     where T: FrameDecodable {
         self._data = data
         defer { self._reset() }
@@ -186,11 +186,11 @@ private class _FrameDecoder: FrameDecoderProtocol {
         return result
     }
 
-    func decode(_ type: Data.Type) throws -> Data {
+    func decode(_ type: [UInt8].Type) throws -> [UInt8] {
         let length = Int(try decode(UInt32.self))
         precondition(_position + length <= _data.count)
         defer { _position += length }
-        return _data.subdata(in: _position..<_position + length)
+        return [UInt8](_data.subdata(in: _position..<_position + length))
     }
 
     func decode(_ type: Spec.FieldValue.Type) throws -> Spec.FieldValue {

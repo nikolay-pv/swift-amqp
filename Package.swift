@@ -58,7 +58,6 @@ let package = Package(
                     package: "swift-nio-extras",
                     condition: .when(traits: ["DebugNIOEventHandlers"])
                 ),
-                .product(name: "NIOFoundationCompat", package: "swift-nio"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "Collections", package: "swift-collections"),
                 .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),

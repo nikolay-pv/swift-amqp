@@ -1,14 +1,14 @@
-import Foundation  // for Data, Date
+import Foundation  // for Date
 
 class FrameEncoder {
-    func encode<T>(_ value: T) throws -> Data where T: FrameEncodable {
+    func encode<T>(_ value: T) throws -> ByteArray where T: FrameEncodable {
         let encoder = _FrameEncoder()
         try value.encode(to: encoder)
         return encoder.complete()
     }
 }
 
-extension Data {
+extension ByteArray {
     fileprivate mutating func append(_ value: Int8) {
         Swift.withUnsafeBytes(of: value) { append(contentsOf: $0) }
     }
@@ -43,7 +43,7 @@ extension Data {
 }
 
 extension Spec.FieldValue {
-    fileprivate func encode(to data: inout Data) throws {
+    fileprivate func encode(to data: inout ByteArray) throws {
         data.append(self.type)
         self.asWrappedValue.encode(to: &data)
     }
@@ -94,10 +94,10 @@ private class _FrameEncoder: FrameEncoderProtocol {
         case void(UInt8)  // only for field values
         case decimal(UInt8, Int32)  // only for field values
         case array([WrappedValue])  // only for field values
-        case data(Data)  // only for field values
+        case data([UInt8])  // only for field values
 
         // swiftlint:disable:next cyclomatic_complexity
-        func encode(to data: inout Data) {
+        func encode(to data: inout ByteArray) {
             switch self {
             case .shortstring(let value):
                 data.append(UInt8(value.count).bigEndian)
@@ -137,7 +137,7 @@ private class _FrameEncoder: FrameEncoderProtocol {
                 value.forEach { $0.encode(to: &data) }
             case .data(let value):
                 data.append(UInt32(value.count))
-                data.append(value)
+                data.append(contentsOf: value)
             }
         }
 
@@ -158,9 +158,10 @@ private class _FrameEncoder: FrameEncoderProtocol {
     }
     var storage = [WrappedValue]()
 
-    func complete() -> Data {
+    func complete() -> ByteArray {
+        var data: ByteArray = .init()
         let expectedCapacity = self.storage.reduce(into: 0) { $0 += $1.bytesCount }
-        var data = Data(capacity: expectedCapacity)
+        data.reserveCapacity(expectedCapacity)
         for value in self.storage {
             value.encode(to: &data)
         }
