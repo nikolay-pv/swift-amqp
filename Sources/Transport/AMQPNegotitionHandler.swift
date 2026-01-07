@@ -9,6 +9,7 @@ final class AMQPNegotiationHandler: ChannelInboundHandler,
     typealias InboundIn = Frame
     typealias OutboundOut = Frame
 
+    // used to remove the handler from the pipeline when negotiation completes
     static let handlerName = "AMQPNegotiationHandler"
 
     private let negotiator: any AMQPNegotiationDelegateProtocol
@@ -16,7 +17,7 @@ final class AMQPNegotiationHandler: ChannelInboundHandler,
     private let complete: EventLoopPromise<(Configuration, Spec.Table)>
 
     // absolute timeout to wait for frames from the server during negotiation
-    static let negotiationTimeout = TimeAmount.nanoseconds(30)
+    static let negotiationTimeout = TimeAmount.seconds(30)
     private var negotiationInterrupt: RepeatedTask?
     private func setupGlobalTimeout(on context: ChannelHandlerContext) {
         negotiationInterrupt?.cancel()
@@ -35,7 +36,7 @@ final class AMQPNegotiationHandler: ChannelInboundHandler,
     }
 
     private func handle(action: TransportAction, on context: ChannelHandlerContext) throws {
-        // setupGlobalTimeout(on: context)
+        setupGlobalTimeout(on: context)
         switch action {
         case .complete(let config, let serverProperties):
             negotiationInterrupt?.cancel()
