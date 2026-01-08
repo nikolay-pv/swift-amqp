@@ -3,12 +3,12 @@ import NIOCore  // for ByteBuffer
 protocol Frame: Sendable, FrameCodable {
     var type: UInt8 { get }
     var channelId: UInt16 { get }
-    func asData() throws -> ByteArray
+    func asData() throws -> ByteBuffer
 }
 
 extension Frame {
     /// serializes this object to be sent over the wire
-    func asData() throws -> ByteArray {
+    func asData() throws -> ByteBuffer {
         let encoder = FrameEncoder()
         return try encoder.encode(self)
     }

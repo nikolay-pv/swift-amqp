@@ -1,4 +1,5 @@
 import Foundation  // for URL
+import NIOCore
 
 @testable import AMQP
 
@@ -25,7 +26,7 @@ func makeTestEnv(
     })
 }
 
-func fixtureData(for fixture: String) throws -> ByteArray {
+func fixtureData(for fixture: String) throws -> ByteBuffer {
     try .init(string: String(contentsOfFile: fixturePath(for: fixture), encoding: .utf8))
 }
 

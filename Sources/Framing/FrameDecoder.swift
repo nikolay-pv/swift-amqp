@@ -2,7 +2,7 @@ import Foundation  // for Date
 import NIOCore
 
 class FrameDecoder {
-    func decode<T>(_ type: T.Type, from data: ByteArray) throws -> T where T: FrameDecodable {
+    func decode<T>(_ type: T.Type, from data: ByteBuffer) throws -> T where T: FrameDecodable {
         let decoder = _FrameDecoder()
         return try decoder.with(data: data) { try T.init(from: $0) }
     }
@@ -45,7 +45,7 @@ extension Spec.FieldValue {
 }
 
 private class _FrameDecoder: FrameDecoderProtocol {
-    private var _data: ByteArray = .init()
+    private var _data: ByteBuffer = .init()
     private var _position: Int = 0
 
     private func _reset() {
@@ -53,7 +53,7 @@ private class _FrameDecoder: FrameDecoderProtocol {
         _data = .init()
     }
 
-    func with<T>(data: ByteArray, closure: (FrameDecoderProtocol) throws -> T) throws -> T
+    func with<T>(data: ByteBuffer, closure: (FrameDecoderProtocol) throws -> T) throws -> T
     where T: FrameDecodable {
         self._data = data
         defer { self._reset() }

@@ -1,7 +1,8 @@
 import Foundation  // for Date
+import NIOCore
 
 class FrameEncoder {
-    func encode<T>(_ value: T) throws -> ByteArray where T: FrameEncodable {
+    func encode<T>(_ value: T) throws -> ByteBuffer where T: FrameEncodable {
         let encoder = _FrameEncoder()
         try value.encode(to: encoder)
         return encoder.complete()
@@ -9,7 +10,7 @@ class FrameEncoder {
 }
 
 extension Spec.FieldValue {
-    fileprivate func encode(to data: inout ByteArray) throws {
+    fileprivate func encode(to data: inout ByteBuffer) throws {
         data.writeInteger(self.type)
         self.asWrappedValue.encode(to: &data)
     }
@@ -62,7 +63,7 @@ private class _FrameEncoder: FrameEncoderProtocol {
         case data([UInt8])  // only for field values
 
         // swiftlint:disable:next cyclomatic_complexity
-        func encode(to data: inout ByteArray) {
+        func encode(to data: inout ByteBuffer) {
             switch self {
             case .shortstring(let value):
                 data.writeInteger(UInt8(value.count), endianness: .big)
@@ -123,8 +124,8 @@ private class _FrameEncoder: FrameEncoderProtocol {
     }
     var storage = [WrappedValue]()
 
-    func complete() -> ByteArray {
-        var data: ByteArray = .init()
+    func complete() -> ByteBuffer {
+        var data: ByteBuffer = .init()
         let expectedCapacity = self.storage.reduce(into: 0) { $0 += $1.bytesCount }
         data.reserveCapacity(expectedCapacity)
         for value in self.storage {
