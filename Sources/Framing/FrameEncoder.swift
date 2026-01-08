@@ -8,43 +8,9 @@ class FrameEncoder {
     }
 }
 
-extension ByteArray {
-    fileprivate mutating func append(_ value: Int8) {
-        Swift.withUnsafeBytes(of: value) { append(contentsOf: $0) }
-    }
-
-    fileprivate mutating func append(_ value: UInt8) {
-        Swift.withUnsafeBytes(of: value) { append(contentsOf: $0) }
-    }
-
-    fileprivate mutating func append(_ value: Int16) {
-        Swift.withUnsafeBytes(of: value) { append(contentsOf: $0) }
-    }
-
-    fileprivate mutating func append(_ value: UInt16) {
-        Swift.withUnsafeBytes(of: value) { append(contentsOf: $0) }
-    }
-
-    fileprivate mutating func append(_ value: Int32) {
-        Swift.withUnsafeBytes(of: value) { append(contentsOf: $0) }
-    }
-
-    fileprivate mutating func append(_ value: UInt32) {
-        Swift.withUnsafeBytes(of: value) { append(contentsOf: $0) }
-    }
-
-    fileprivate mutating func append(_ value: UInt64) {
-        Swift.withUnsafeBytes(of: value) { append(contentsOf: $0) }
-    }
-
-    fileprivate mutating func append(_ value: Int64) {
-        Swift.withUnsafeBytes(of: value) { append(contentsOf: $0) }
-    }
-}
-
 extension Spec.FieldValue {
     fileprivate func encode(to data: inout ByteArray) throws {
-        data.append(self.type)
+        data.writeInteger(self.type)
         self.asWrappedValue.encode(to: &data)
     }
 
@@ -69,7 +35,6 @@ extension Spec.FieldValue {
         // case .shortstr(let value): .shortstring(value)
         case .array(let value): .array(value.map(\.asWrappedValue))
         case .bytes(let value): .data(value)
-
         }
     }
 }
@@ -100,44 +65,44 @@ private class _FrameEncoder: FrameEncoderProtocol {
         func encode(to data: inout ByteArray) {
             switch self {
             case .shortstring(let value):
-                data.append(UInt8(value.count).bigEndian)
-                data.append(contentsOf: value.utf8)
+                data.writeInteger(UInt8(value.count), endianness: .big)
+                data.writeBytes(value.utf8)
             case .longstring(let value):
-                data.append(UInt32(value.count).bigEndian)
-                data.append(contentsOf: value.utf8)
-            case .uint8(let value): data.append(value.bigEndian)
-            case .int8(let value): data.append(value.bigEndian)
-            case .uint16(let value): data.append(value.bigEndian)
-            case .int16(let value): data.append(value.bigEndian)
-            case .uint32(let value): data.append(value.bigEndian)
-            case .int32(let value): data.append(value.bigEndian)
-            case .uint64(let value): data.append(value.bigEndian)
-            case .int64(let value): data.append(value.bigEndian)
-            case .bool(let value): data.append(UInt8(value ? 1 : 0))
-            case .float(let value): data.append(UInt32(value.bitPattern.bigEndian))
-            case .double(let value): data.append(UInt64(value.bitPattern.bigEndian))
+                data.writeInteger(UInt32(value.count), endianness: .big)
+                data.writeBytes(value.utf8)
+            case .uint8(let value): data.writeInteger(value, endianness: .big)
+            case .int8(let value): data.writeInteger(value, endianness: .big)
+            case .uint16(let value): data.writeInteger(value, endianness: .big)
+            case .int16(let value): data.writeInteger(value, endianness: .big)
+            case .uint32(let value): data.writeInteger(value, endianness: .big)
+            case .int32(let value): data.writeInteger(value, endianness: .big)
+            case .uint64(let value): data.writeInteger(value, endianness: .big)
+            case .int64(let value): data.writeInteger(value, endianness: .big)
+            case .bool(let value): data.writeInteger(UInt8(value ? 1 : 0))
+            case .float(let value): data.writeInteger(UInt32(value.bitPattern), endianness: .big)
+            case .double(let value): data.writeInteger(UInt64(value.bitPattern), endianness: .big)
             case .timestamp(let value):
                 let milliseconds = value.millisecondsSince1970
-                data.append(milliseconds.bigEndian)
+                data.writeInteger(milliseconds, endianness: .big)
             case .dictionary(let table):
                 precondition(table.count <= UInt16.max)
                 // 4 bytes are needed to store the size of the Table
-                data.append((table.bytesCount - 4).bigEndian)
+                data.writeInteger((table.bytesCount - 4), endianness: .big)
                 for (key, value) in table {
                     WrappedValue.shortstring(key).encode(to: &data)
-                    data.append(value.type.bigEndian)
+                    data.writeInteger(value.type, endianness: .big)
                     value.asWrappedValue.encode(to: &data)
                 }
-            case .void(let value): data.append(value)
+            case .void(let value): data.writeInteger(value)
             case .decimal(let scale, let value):
-                data.append(scale.bigEndian)
-                data.append(value.bigEndian)
+                data.writeInteger(scale, endianness: .big)
+                data.writeInteger(value, endianness: .big)
             case .array(let value):
-                data.append(UInt32(value.count))
+                data.writeInteger(UInt32(value.count), endianness: .big)
                 value.forEach { $0.encode(to: &data) }
             case .data(let value):
-                data.append(UInt32(value.count))
-                data.append(contentsOf: value)
+                data.writeInteger(UInt32(value.count), endianness: .big)
+                data.writeBytes(value)
             }
         }
 

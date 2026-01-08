@@ -23,8 +23,9 @@ struct ByteToFrameCoderHandler: ByteToMessageDecoder, MessageToByteEncoder {
         }
         do {
             // force unwrapping is safe because of the previous check
-            let data = buffer.readBytes(length: totalFrameSize)!
+            let data = buffer.getSlice(at: buffer.readerIndex, length: totalFrameSize)!
             let frame = try decodeFrame(type: type, from: data)
+            buffer.moveReaderIndex(forwardBy: totalFrameSize)
             context.fireChannelRead(self.wrapInboundOut(frame))
         } catch {
             context.fireErrorCaught(error)
@@ -44,7 +45,7 @@ struct ByteToFrameCoderHandler: ByteToMessageDecoder, MessageToByteEncoder {
     typealias OutboundIn = Frame
 
     func encode(data: any OutboundIn, out: inout NIOCore.ByteBuffer) throws {
-        out = ByteBuffer(bytes: try data.asData())
+        out = try data.asData()
     }
 }
 

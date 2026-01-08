@@ -26,11 +26,11 @@ func makeTestEnv(
 }
 
 func fixtureData(for fixture: String) throws -> ByteArray {
-    try .init(String(contentsOfFile: fixture, encoding: .utf8).utf8)
+    try .init(string: String(contentsOfFile: fixturePath(for: fixture), encoding: .utf8))
 }
 
-func fixtureUrl(for fixture: String) -> URL {
-    fixturesDirectory().appendingPathComponent(fixture)
+func fixturePath(for fixture: String) -> String {
+    fixturesDirectory().appendingPathComponent(fixture).path
 }
 
 func fixturesDirectory(path: String = #filePath) -> URL {
