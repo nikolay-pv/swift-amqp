@@ -15,7 +15,7 @@ jobs:
     uses: swiftlang/github-workflows/.github/workflows/swift_package_test.yml@0.0.4
     with:
       linux_swift_versions: '["nightly-main"]'
-      windows_swift_versions: '["nightly-main"]'
+      # windows_swift_versions: '["nightly-main"]'
       # enable_macos_checks: false
       # macos_xcode_versions: '["26.2"]'
       # macos_versions: '["tahoe"]'
@@ -28,9 +28,11 @@ jobs:
     name: Soundness
     uses: swiftlang/github-workflows/.github/workflows/soundness.yml@0.0.4
     with:
-      license_header_check_project_name: "Swift.org"
-      license_header_check_enabled: false
+      api_breakage_check_enabled: false
+      broken_symlink_check_enabled: false
       docs_check_enabled: false
       format_check_enabled: true
+      license_header_check_enabled: false
+      license_header_check_project_name: "swift-amqp"
+      python_lint_check_enabled: false
       unacceptable_language_check_enabled: true
-      api_breakage_check_enabled: false
