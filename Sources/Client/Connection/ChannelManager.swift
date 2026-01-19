@@ -15,7 +15,7 @@ private struct ChannelIDs {
         if id == nextFree - 1 {
             nextFree -= 1
         } else {
-            freed.insert(id, at: occupied.firstIndex(where: { $0 >= id }) ?? occupied.endIndex)
+            freed.insert(id, at: freed.firstIndex(where: { $0 >= id }) ?? freed.endIndex)
         }
         occupied.remove(id)
     }
