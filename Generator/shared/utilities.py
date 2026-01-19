@@ -9,7 +9,7 @@ SPEC_TYPE_TO_SWIFT = {
     "longlong": "Int64",
     "bit": "Bool",
     "table": "[String: FieldValue]",
-    "timestamp": "Date",
+    "timestamp": "Timestamp",
 }
 
 
@@ -67,7 +67,7 @@ def get_bytes_count(spec, arg_name: str, domain: str):
         return f"{int(t.lstrip('UInt')) // 8}"
     if t == "Bool":
         return "1"
-    if t == "Date":
+    if t == "Timestamp":
         return "8"
     raise RuntimeError(f"Unknown domain - type: {domain} - {t}")
 

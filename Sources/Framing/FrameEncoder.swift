@@ -1,4 +1,3 @@
-import Foundation  // for Date
 import NIOCore
 
 class FrameEncoder {
@@ -55,7 +54,7 @@ private class _FrameEncoder: FrameEncoderProtocol {
         case float(Float)
         case double(Double)
         case bool(Bool)
-        case timestamp(Date)
+        case timestamp(Timestamp)
         case dictionary(Spec.Table)
         case void(UInt8)  // only for field values
         case decimal(UInt8, Int32)  // only for field values
@@ -178,7 +177,7 @@ private class _FrameEncoder: FrameEncoderProtocol {
         storage.append(.double(value))
     }
 
-    func encode(_ value: Date) throws {
+    func encode(_ value: Timestamp) throws {
         storage.append(.timestamp(value))
     }
 

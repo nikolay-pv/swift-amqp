@@ -1,5 +1,3 @@
-import Foundation  // for Date
-
 protocol FrameDecoderProtocol {
     func decode(_ type: Bool.Type) throws -> Bool
     func decode(_ type: Int8.Type) throws -> Int8
@@ -12,7 +10,7 @@ protocol FrameDecoderProtocol {
     func decode(_ type: UInt64.Type) throws -> UInt64
     func decode(_ type: Float.Type) throws -> Float
     func decode(_ type: Double.Type) throws -> Double
-    func decode(_ type: Date.Type) throws -> Date
+    func decode(_ type: Timestamp.Type) throws -> Timestamp
     func decode(_ type: String.Type, isLong: Bool) throws -> String
     func decode(_ type: [String: Spec.FieldValue].Type) throws -> [String: Spec.FieldValue]
     func decode(_ type: [Spec.FieldValue].Type) throws -> [Spec.FieldValue]
@@ -35,7 +33,7 @@ protocol FrameEncoderProtocol {
     func encode(_ value: UInt64) throws
     func encode(_ value: Float) throws
     func encode(_ value: Double) throws
-    func encode(_ value: Date) throws
+    func encode(_ value: Timestamp) throws
     func encode(_ value: String, isLong: Bool) throws
     func encode(_ value: [String: Spec.FieldValue]) throws
 }

@@ -1,4 +1,3 @@
-import Foundation  // for Date
 import NIOCore
 
 class FrameDecoder {
@@ -22,7 +21,7 @@ extension Spec.FieldValue {
             let value = try decoder.decode(Int32.self)
             return .decimal(scale, value)
         case .longstr: return .longstr(try decoder.decode(String.self, isLong: true))
-        case .timestamp: return .timestamp(try decoder.decode(Date.self))
+        case .timestamp: return .timestamp(try decoder.decode(Timestamp.self))
         case .table: return .table(try decoder.decode(Spec.Table.self))
         case .void:
             _ = try decoder.decode(UInt8.self)
@@ -130,7 +129,7 @@ private class _FrameDecoder: FrameDecoderProtocol {
         return .init(bitPattern: try decode(UInt64.self))
     }
 
-    func decode(_ type: Date.Type) throws -> Date {
+    func decode(_ type: Timestamp.Type) throws -> Timestamp {
         return .init(millisecondsSince1970: try decode(UInt64.self))
     }
 
