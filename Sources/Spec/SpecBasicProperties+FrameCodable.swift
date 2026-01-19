@@ -3,87 +3,85 @@
 
 extension Spec.BasicProperties: FrameCodable {
 
-    // swiftlint:disable identifier_name
     enum PropertyFlags: UInt16 {
-        case ContentType = 0b10000000_00000000
-        case ContentEncoding = 0b1000000_00000000
-        case Headers = 0b100000_00000000
-        case DeliveryMode = 0b10000_00000000
-        case Priority = 0b1000_00000000
-        case CorrelationId = 0b100_00000000
-        case ReplyTo = 0b10_00000000
-        case Expiration = 0b100000000
-        case MessageId = 0b10000000
-        case Timestamp = 0b1000000
-        case TypeFlag = 0b100000
-        case UserId = 0b10000
-        case AppId = 0b1000
-        case ClusterId = 0b100
+        case contentType = 0b10000000_00000000
+        case contentEncoding = 0b1000000_00000000
+        case headers = 0b100000_00000000
+        case deliveryMode = 0b10000_00000000
+        case priority = 0b1000_00000000
+        case correlationId = 0b100_00000000
+        case replyTo = 0b10_00000000
+        case expiration = 0b100000000
+        case messageId = 0b10000000
+        case timestamp = 0b1000000
+        case typeFlag = 0b100000
+        case userId = 0b10000
+        case appId = 0b1000
+        case clusterId = 0b100
 
         func contained(_ flags: UInt16) -> Bool {
             (flags & self.rawValue) != 0
         }
     }
-    // swiftlint:enable identifier_name
 
     // swiftlint:disable:next cyclomatic_complexity function_body_length
     func encode(to encoder: FrameEncoderProtocol) throws {
         var flags: UInt16 = 0
         var encodeCalls: [() throws -> Void] = .init()
         if let contentType {
-            flags |= PropertyFlags.ContentType.rawValue
+            flags |= PropertyFlags.contentType.rawValue
             encodeCalls.append({ try encoder.encode(contentType, isLong: false) })
         }
         if let contentEncoding {
-            flags |= PropertyFlags.ContentEncoding.rawValue
+            flags |= PropertyFlags.contentEncoding.rawValue
             encodeCalls.append({ try encoder.encode(contentEncoding, isLong: false) })
         }
         if let headers {
-            flags |= PropertyFlags.Headers.rawValue
+            flags |= PropertyFlags.headers.rawValue
             encodeCalls.append({ try encoder.encode(headers) })
         }
         if let deliveryMode {
-            flags |= PropertyFlags.DeliveryMode.rawValue
+            flags |= PropertyFlags.deliveryMode.rawValue
             encodeCalls.append({ try encoder.encode(deliveryMode) })
         }
         if let priority {
-            flags |= PropertyFlags.Priority.rawValue
+            flags |= PropertyFlags.priority.rawValue
             encodeCalls.append({ try encoder.encode(priority) })
         }
         if let correlationId {
-            flags |= PropertyFlags.CorrelationId.rawValue
+            flags |= PropertyFlags.correlationId.rawValue
             encodeCalls.append({ try encoder.encode(correlationId, isLong: false) })
         }
         if let replyTo {
-            flags |= PropertyFlags.ReplyTo.rawValue
+            flags |= PropertyFlags.replyTo.rawValue
             encodeCalls.append({ try encoder.encode(replyTo, isLong: false) })
         }
         if let expiration {
-            flags |= PropertyFlags.Expiration.rawValue
+            flags |= PropertyFlags.expiration.rawValue
             encodeCalls.append({ try encoder.encode(expiration, isLong: false) })
         }
         if let messageId {
-            flags |= PropertyFlags.MessageId.rawValue
+            flags |= PropertyFlags.messageId.rawValue
             encodeCalls.append({ try encoder.encode(messageId, isLong: false) })
         }
         if let timestamp {
-            flags |= PropertyFlags.Timestamp.rawValue
+            flags |= PropertyFlags.timestamp.rawValue
             encodeCalls.append({ try encoder.encode(timestamp) })
         }
         if let type {
-            flags |= PropertyFlags.TypeFlag.rawValue
+            flags |= PropertyFlags.typeFlag.rawValue
             encodeCalls.append({ try encoder.encode(type, isLong: false) })
         }
         if let userId {
-            flags |= PropertyFlags.UserId.rawValue
+            flags |= PropertyFlags.userId.rawValue
             encodeCalls.append({ try encoder.encode(userId, isLong: false) })
         }
         if let appId {
-            flags |= PropertyFlags.AppId.rawValue
+            flags |= PropertyFlags.appId.rawValue
             encodeCalls.append({ try encoder.encode(appId, isLong: false) })
         }
         if let clusterId {
-            flags |= PropertyFlags.ClusterId.rawValue
+            flags |= PropertyFlags.clusterId.rawValue
             encodeCalls.append({ try encoder.encode(clusterId, isLong: false) })
         }
         // the following works for flags == 0
@@ -132,46 +130,46 @@ extension Spec.BasicProperties: FrameCodable {
         var appId: String?
         var clusterId: String?
 
-        if PropertyFlags.ContentType.contained(flags) {
+        if PropertyFlags.contentType.contained(flags) {
             contentType = try decoder.decode(String.self, isLong: false)
         }
-        if PropertyFlags.ContentEncoding.contained(flags) {
+        if PropertyFlags.contentEncoding.contained(flags) {
             contentEncoding = try decoder.decode(String.self, isLong: false)
         }
-        if PropertyFlags.Headers.contained(flags) {
+        if PropertyFlags.headers.contained(flags) {
             headers = try decoder.decode(Spec.Table.self)
         }
-        if PropertyFlags.DeliveryMode.contained(flags) {
+        if PropertyFlags.deliveryMode.contained(flags) {
             deliveryMode = try decoder.decode(Int8.self)
         }
-        if PropertyFlags.Priority.contained(flags) {
+        if PropertyFlags.priority.contained(flags) {
             priority = try decoder.decode(Int8.self)
         }
-        if PropertyFlags.CorrelationId.contained(flags) {
+        if PropertyFlags.correlationId.contained(flags) {
             correlationId = try decoder.decode(String.self, isLong: false)
         }
-        if PropertyFlags.ReplyTo.contained(flags) {
+        if PropertyFlags.replyTo.contained(flags) {
             replyTo = try decoder.decode(String.self, isLong: false)
         }
-        if PropertyFlags.Expiration.contained(flags) {
+        if PropertyFlags.expiration.contained(flags) {
             expiration = try decoder.decode(String.self, isLong: false)
         }
-        if PropertyFlags.MessageId.contained(flags) {
+        if PropertyFlags.messageId.contained(flags) {
             messageId = try decoder.decode(String.self, isLong: false)
         }
-        if PropertyFlags.Timestamp.contained(flags) {
+        if PropertyFlags.timestamp.contained(flags) {
             timestamp = try decoder.decode(Timestamp.self)
         }
-        if PropertyFlags.TypeFlag.contained(flags) {
+        if PropertyFlags.typeFlag.contained(flags) {
             type = try decoder.decode(String.self, isLong: false)
         }
-        if PropertyFlags.UserId.contained(flags) {
+        if PropertyFlags.userId.contained(flags) {
             userId = try decoder.decode(String.self, isLong: false)
         }
-        if PropertyFlags.AppId.contained(flags) {
+        if PropertyFlags.appId.contained(flags) {
             appId = try decoder.decode(String.self, isLong: false)
         }
-        if PropertyFlags.ClusterId.contained(flags) {
+        if PropertyFlags.clusterId.contained(flags) {
             clusterId = try decoder.decode(String.self, isLong: false)
         }
         self.init(
@@ -196,59 +194,59 @@ extension Spec.BasicProperties: FrameCodable {
         var flags: UInt16 = 0
         var size: UInt32 = 0
         if let contentType {
-            flags |= PropertyFlags.ContentType.rawValue
+            flags |= PropertyFlags.contentType.rawValue
             size += UInt32(contentType.shortBytesCount)
         }
         if let contentEncoding {
-            flags |= PropertyFlags.ContentEncoding.rawValue
+            flags |= PropertyFlags.contentEncoding.rawValue
             size += UInt32(contentEncoding.shortBytesCount)
         }
         if let headers {
-            flags |= PropertyFlags.Headers.rawValue
+            flags |= PropertyFlags.headers.rawValue
             size += headers.bytesCount
         }
         if deliveryMode != nil {
-            flags |= PropertyFlags.DeliveryMode.rawValue
+            flags |= PropertyFlags.deliveryMode.rawValue
             size += 1
         }
         if priority != nil {
-            flags |= PropertyFlags.Priority.rawValue
+            flags |= PropertyFlags.priority.rawValue
             size += 1
         }
         if let correlationId {
-            flags |= PropertyFlags.CorrelationId.rawValue
+            flags |= PropertyFlags.correlationId.rawValue
             size += UInt32(correlationId.shortBytesCount)
         }
         if let replyTo {
-            flags |= PropertyFlags.ReplyTo.rawValue
+            flags |= PropertyFlags.replyTo.rawValue
             size += UInt32(replyTo.shortBytesCount)
         }
         if let expiration {
-            flags |= PropertyFlags.Expiration.rawValue
+            flags |= PropertyFlags.expiration.rawValue
             size += UInt32(expiration.shortBytesCount)
         }
         if let messageId {
-            flags |= PropertyFlags.MessageId.rawValue
+            flags |= PropertyFlags.messageId.rawValue
             size += UInt32(messageId.shortBytesCount)
         }
         if let timestamp {
-            flags |= PropertyFlags.Timestamp.rawValue
+            flags |= PropertyFlags.timestamp.rawValue
             size += UInt32(timestamp.bytesCount)
         }
         if let type {
-            flags |= PropertyFlags.TypeFlag.rawValue
+            flags |= PropertyFlags.typeFlag.rawValue
             size += UInt32(type.shortBytesCount)
         }
         if let userId {
-            flags |= PropertyFlags.UserId.rawValue
+            flags |= PropertyFlags.userId.rawValue
             size += UInt32(userId.shortBytesCount)
         }
         if let appId {
-            flags |= PropertyFlags.AppId.rawValue
+            flags |= PropertyFlags.appId.rawValue
             size += UInt32(appId.shortBytesCount)
         }
         if let clusterId {
-            flags |= PropertyFlags.ClusterId.rawValue
+            flags |= PropertyFlags.clusterId.rawValue
             size += UInt32(clusterId.shortBytesCount)
         }
         // the following works for flags == 0

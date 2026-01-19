@@ -61,13 +61,13 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
                 return .error(NegotiationError.unexpectedMethod)
             }
             // check protocol versions mismatch
-            if method.versionMajor != Spec.ProtocolLevel.MAJOR
-                || method.versionMinor != Spec.ProtocolLevel.MINOR
+            if method.versionMajor != Spec.ProtocolLevel.major
+                || method.versionMinor != Spec.ProtocolLevel.minor
             {
                 return .error(
                     NegotiationError.protocolVersionMismatch(
                         server: "\(method.versionMajor).\(method.versionMinor)",
-                        client: "\(Spec.ProtocolLevel.MAJOR).\(Spec.ProtocolLevel.MINOR)"
+                        client: "\(Spec.ProtocolLevel.major).\(Spec.ProtocolLevel.minor)"
                     )
                 )
             }
