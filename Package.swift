@@ -14,6 +14,13 @@
 
 import PackageDescription
 
+let sharedSwiftSettings: [SwiftSetting] =
+    [
+        .enableUpcomingFeature("StrictConcurrency"),
+        .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+        .defaultIsolation(nil),  // nonisolated by default, as recommended by https://developer.apple.com/videos/play/wwdc2025/268?time=1638
+    ]
+
 let package = Package(
     name: "swift-amqp",
     platforms: [.macOS(.v10_15), .iOS(.v13), .tvOS(.v13), .watchOS(.v6), .macCatalyst(.v13)],
@@ -62,17 +69,15 @@ let package = Package(
                 .product(name: "Collections", package: "swift-collections"),
                 .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
             ],
-            swiftSettings: [
-                .enableUpcomingFeature("StrictConcurrency"),
-                .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
-                .defaultIsolation(nil),  // nonisolated by default, as recommended by https://developer.apple.com/videos/play/wwdc2025/268?time=1638
-            ]
+            swiftSettings: sharedSwiftSettings,
         ),
         .testTarget(
             name: "AMQPTests",
             dependencies: [
                 "AMQP"
-            ]
+            ],
+            resources: [.process("Resources")],
+            swiftSettings: sharedSwiftSettings,
         ),
     ]
 )
