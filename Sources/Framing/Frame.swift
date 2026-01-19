@@ -1,14 +1,14 @@
-import Foundation  // for Data
+import NIOCore  // for ByteBuffer
 
 protocol Frame: Sendable, FrameCodable {
     var type: UInt8 { get }
     var channelId: UInt16 { get }
-    func asData() throws -> Data
+    func asData() throws -> ByteBuffer
 }
 
 extension Frame {
     /// serializes this object to be sent over the wire
-    func asData() throws -> Data {
+    func asData() throws -> ByteBuffer {
         let encoder = FrameEncoder()
         return try encoder.encode(self)
     }
@@ -39,9 +39,10 @@ extension Frame {
     }
 }
 
-func decodeFrame(type: UInt8, from data: Data) throws -> any Frame {
+func decodeFrame(type: UInt8, from data: ByteBuffer) throws -> any Frame {
+    precondition(data.count != 0)
     // for errors see 4.2.3 General Frame Format
-    if data.last != Spec.FrameEnd {
+    if data.readableBytesView.last != Spec.FrameEnd {
         throw FramingError.fatal("Frame doesn't end with the frame-end octet")
     }
     let decoder: FrameDecoder = .init()

@@ -50,9 +50,9 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
                 "A",
                 "value.reduce(into: 0) { $0 += $1.bytesCount }",
             ),
-            ("timestamp", "Date", "T", "8"),  # stored as uint64
+            ("timestamp", "Timestamp", "T", "8"),  # stored as uint64
             ("table", "Table", "F", "value.bytesCount"),
-            ("bytes", "Data", "x", "UInt32(value.count)"),
+            ("bytes", "[UInt8]", "x", "UInt32(value.count)"),
             ("void", "", "V", "1"),
         ]
 
@@ -60,7 +60,7 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
             if case == "decimal":
                 return f"0,0"
             elif case == "timestamp":
-                return "Date.distantPast"
+                return "Timestamp.distantPast"
             elif case == "table":
                 return "[:]"
             return f"{type}.init()"
@@ -110,7 +110,6 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
 
     def header():
         print_file_header()
-        print("import Foundation")
 
     def amqp_constants():
         print()
@@ -227,7 +226,6 @@ def gen_swift_impl(spec: AmqpSpec):
 
     def header():
         print_file_header()
-        print("import Foundation")
         print()
         print("private typealias FieldValue = Spec.FieldValue")
 

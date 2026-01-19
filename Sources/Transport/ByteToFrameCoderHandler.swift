@@ -1,5 +1,4 @@
 import NIOCore
-import NIOFoundationCompat
 
 struct ByteToFrameCoderHandler: ByteToMessageDecoder, MessageToByteEncoder {
     // MARK: - ByteToMessageDecoder
@@ -24,8 +23,9 @@ struct ByteToFrameCoderHandler: ByteToMessageDecoder, MessageToByteEncoder {
         }
         do {
             // force unwrapping is safe because of the previous check
-            let data = buffer.readData(length: totalFrameSize, byteTransferStrategy: .noCopy)!
+            let data = buffer.getSlice(at: buffer.readerIndex, length: totalFrameSize)!
             let frame = try decodeFrame(type: type, from: data)
+            buffer.moveReaderIndex(forwardBy: totalFrameSize)
             context.fireChannelRead(self.wrapInboundOut(frame))
         } catch {
             context.fireErrorCaught(error)
@@ -45,7 +45,7 @@ struct ByteToFrameCoderHandler: ByteToMessageDecoder, MessageToByteEncoder {
     typealias OutboundIn = Frame
 
     func encode(data: any OutboundIn, out: inout NIOCore.ByteBuffer) throws {
-        out = ByteBuffer(data: try data.asData())
+        out = try data.asData()
     }
 }
 

@@ -5,7 +5,7 @@ import Testing
 @Suite struct ConnectionDecodeRegression {
     @Test("Spec.Connection.StartOk verify decode bytes - extended")
     func amqpConnectionStartOkDecodeBytes() async throws {
-        let input = try fixtureData(for: "Connection.StartOk-extended")
+        let input = try fixtureData(named: "Connection.StartOk-extended")
         let decoded = try FrameDecoder().decode(Spec.Connection.StartOk.self, from: input)
         let expected = Spec.Connection.StartOk(
             clientProperties: ["product": Spec.FieldValue.longstr("test")],

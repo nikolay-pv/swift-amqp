@@ -1,4 +1,5 @@
-import Foundation  // for Data, URL
+import Foundation  // for Bundle
+import NIOCore
 
 @testable import AMQP
 
@@ -25,17 +26,18 @@ func makeTestEnv(
     })
 }
 
-func fixtureData(for fixture: String) throws -> Data {
-    try Data(contentsOf: fixtureUrl(for: fixture))
-}
-
-func fixtureUrl(for fixture: String) -> URL {
-    fixturesDirectory().appendingPathComponent(fixture)
-}
-
-func fixturesDirectory(path: String = #filePath) -> URL {
-    let url = URL(fileURLWithPath: path)
-    let testsDir = url.deletingLastPathComponent()
-    let res = testsDir.appendingPathComponent("Resources").appendingPathComponent("Fixtures")
-    return res
+func fixtureData(
+    named fixture: String,
+    ofType type: String? = nil,
+    inDirectory directory: String? = nil
+) throws
+    -> ByteBuffer
+{
+    let path = Bundle.module.path(
+        forResource: fixture,
+        ofType: type,
+        inDirectory: directory,
+        forLocalization: nil
+    )
+    return try .init(string: String(contentsOfFile: path!, encoding: .utf8))
 }

@@ -1,8 +1,6 @@
 //   NOTE: This -*- swift -*- source code is implemented manually
 //
 
-import Foundation  // for Date
-
 extension Spec.BasicProperties: FrameCodable {
 
     // swiftlint:disable identifier_name
@@ -128,7 +126,7 @@ extension Spec.BasicProperties: FrameCodable {
         var replyTo: String?
         var expiration: String?
         var messageId: String?
-        var timestamp: Date?
+        var timestamp: Timestamp?
         var type: String?
         var userId: String?
         var appId: String?
@@ -162,7 +160,7 @@ extension Spec.BasicProperties: FrameCodable {
             messageId = try decoder.decode(String.self, isLong: false)
         }
         if PropertyFlags.Timestamp.contained(flags) {
-            timestamp = try decoder.decode(Date.self)
+            timestamp = try decoder.decode(Timestamp.self)
         }
         if PropertyFlags.TypeFlag.contained(flags) {
             type = try decoder.decode(String.self, isLong: false)

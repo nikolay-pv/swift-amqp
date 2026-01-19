@@ -1,7 +1,7 @@
-import Foundation  // for Data, Date
+import NIOCore
 
 class FrameDecoder {
-    func decode<T>(_ type: T.Type, from data: Data) throws -> T where T: FrameDecodable {
+    func decode<T>(_ type: T.Type, from data: ByteBuffer) throws -> T where T: FrameDecodable {
         let decoder = _FrameDecoder()
         return try decoder.with(data: data) { try T.init(from: $0) }
     }
@@ -21,7 +21,7 @@ extension Spec.FieldValue {
             let value = try decoder.decode(Int32.self)
             return .decimal(scale, value)
         case .longstr: return .longstr(try decoder.decode(String.self, isLong: true))
-        case .timestamp: return .timestamp(try decoder.decode(Date.self))
+        case .timestamp: return .timestamp(try decoder.decode(Timestamp.self))
         case .table: return .table(try decoder.decode(Spec.Table.self))
         case .void:
             _ = try decoder.decode(UInt8.self)
@@ -38,21 +38,21 @@ extension Spec.FieldValue {
         case .f64: return .f64(try decoder.decode(Double.self))
         // case .shortstr: return .shortstr(try decoder.decode(String.self, isLong: false))
         case .array: return .array(try decoder.decode([Spec.FieldValue].self))
-        case .bytes: return .bytes(try decoder.decode(Data.self))
+        case .bytes: return .bytes(try decoder.decode([UInt8].self))
         }
     }
 }
 
 private class _FrameDecoder: FrameDecoderProtocol {
-    private var _data = Data()
+    private var _data: ByteBuffer = .init()
     private var _position: Int = 0
 
     private func _reset() {
         _position = 0
-        _data = Data()
+        _data = .init()
     }
 
-    func with<T>(data: Data, closure: (FrameDecoderProtocol) throws -> T) throws -> T
+    func with<T>(data: ByteBuffer, closure: (FrameDecoderProtocol) throws -> T) throws -> T
     where T: FrameDecodable {
         self._data = data
         defer { self._reset() }
@@ -62,87 +62,63 @@ private class _FrameDecoder: FrameDecoderProtocol {
     func decode(_ type: Bool.Type) throws -> Bool {
         precondition(_position + 1 <= _data.count)
         defer { _position += 1 }
-        return _data[_position] != 0
+        return _data.getInteger(at: _position, endianness: .big, as: Int8.self) != 0
     }
 
     func decode(_ type: Int8.Type) throws -> Int8 {
         let offset = 1
         precondition(_position + offset <= _data.count)
         defer { _position += offset }
-        return .init(
-            bigEndian: _data.subdata(in: _position..<_position + offset)
-                .withUnsafeBytes { $0.load(as: type) }
-        )
+        return _data.getInteger(at: _position, endianness: .big, as: type)!
     }
 
     func decode(_ type: Int16.Type) throws -> Int16 {
         let offset = 2
         precondition(_position + offset <= _data.count)
         defer { _position += offset }
-        return .init(
-            bigEndian: _data.subdata(in: _position..<_position + offset)
-                .withUnsafeBytes { $0.load(as: type) }
-        )
+        return _data.getInteger(at: _position, endianness: .big, as: type)!
     }
 
     func decode(_ type: Int32.Type) throws -> Int32 {
         let offset = 4
         precondition(_position + offset <= _data.count)
         defer { _position += offset }
-        return .init(
-            bigEndian: _data.subdata(in: _position..<_position + offset)
-                .withUnsafeBytes { $0.load(as: type) }
-        )
+        return _data.getInteger(at: _position, endianness: .big, as: type)!
     }
 
     func decode(_ type: Int64.Type) throws -> Int64 {
         let offset = 8
         precondition(_position + offset <= _data.count)
         defer { _position += offset }
-        return .init(
-            bigEndian: _data.subdata(in: _position..<_position + offset)
-                .withUnsafeBytes { $0.load(as: type) }
-        )
+        return _data.getInteger(at: _position, endianness: .big, as: type)!
     }
 
     func decode(_ type: UInt8.Type) throws -> UInt8 {
         let offset = 1
         precondition(_position + offset <= _data.count)
         defer { _position += offset }
-        return .init(
-            bigEndian: _data.subdata(in: _position..<_position + offset)
-                .withUnsafeBytes { $0.load(as: type) }
-        )
+        return _data.getInteger(at: _position, endianness: .big, as: type)!
     }
 
     func decode(_ type: UInt16.Type) throws -> UInt16 {
         let offset = 2
         precondition(_position + offset <= _data.count)
         defer { _position += offset }
-        return .init(
-            bigEndian: _data.subdata(in: _position..<_position + offset)
-                .withUnsafeBytes { $0.load(as: type) }
-        )
+        return _data.getInteger(at: _position, endianness: .big, as: type)!
     }
 
     func decode(_ type: UInt32.Type) throws -> UInt32 {
         let offset = 4
         precondition(_position + offset <= _data.count)
         defer { _position += offset }
-        return .init(
-            bigEndian: _data.subdata(in: _position..<_position + offset)
-                .withUnsafeBytes { $0.load(as: type) }
-        )
+        return _data.getInteger(at: _position, endianness: .big, as: type)!
     }
 
     func decode(_ type: UInt64.Type) throws -> UInt64 {
         let offset = 8
         precondition(_position + offset <= _data.count)
         defer { _position += offset }
-        return .init(
-            bigEndian: _data.subdata(in: _position..<_position + offset)
-                .withUnsafeBytes { $0.load(as: type) }
-        )
+        return _data.getInteger(at: _position, endianness: .big, as: type)!
     }
 
     func decode(_ type: Float.Type) throws -> Float {
@@ -153,7 +129,7 @@ private class _FrameDecoder: FrameDecoderProtocol {
         return .init(bitPattern: try decode(UInt64.self))
     }
 
-    func decode(_ type: Date.Type) throws -> Date {
+    func decode(_ type: Timestamp.Type) throws -> Timestamp {
         return .init(millisecondsSince1970: try decode(UInt64.self))
     }
 
@@ -161,7 +137,7 @@ private class _FrameDecoder: FrameDecoderProtocol {
         let length = isLong ? Int(try decode(UInt32.self)) : Int(try decode(UInt8.self))
         precondition(_position + length <= _data.count)
         defer { _position += length }
-        return .init(decoding: _data.subdata(in: _position..<_position + length), as: UTF8.self)
+        return .init(buffer: _data.subdata(in: _position..<_position + length))
     }
 
     func decode(_ type: [String: Spec.FieldValue].Type) throws -> [String: Spec.FieldValue] {
@@ -186,11 +162,11 @@ private class _FrameDecoder: FrameDecoderProtocol {
         return result
     }
 
-    func decode(_ type: Data.Type) throws -> Data {
+    func decode(_ type: [UInt8].Type) throws -> [UInt8] {
         let length = Int(try decode(UInt32.self))
         precondition(_position + length <= _data.count)
         defer { _position += length }
-        return _data.subdata(in: _position..<_position + length)
+        return [UInt8](buffer: _data.subdata(in: _position..<_position + length))
     }
 
     func decode(_ type: Spec.FieldValue.Type) throws -> Spec.FieldValue {
