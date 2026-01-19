@@ -1,10 +1,10 @@
 disabled_rules:
-# well, I just can't help myself
+  # well, I just can't help myself
   - file_length
-# eventually I will use issue management software
+  # eventually I will use issue management software
   - todo
   - nesting
-# rely on swift format for the next ones
+  # rely on swift format for the next ones
   - trailing_comma
   - opening_brace
 
