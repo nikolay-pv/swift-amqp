@@ -114,10 +114,10 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
     def amqp_constants():
         print()
         print("    public struct ProtocolLevel {")
-        print(f"        static let MAJOR: UInt8 = {spec.major}")
-        print(f"        static let MINOR: UInt8 = {spec.minor}")
-        print(f"        static let REVISION: UInt8 = {spec.revision}")
-        print(f"        static let PORT = {spec.port}")
+        print(f"        static let major: UInt8 = {spec.major}")
+        print(f"        static let minor: UInt8 = {spec.minor}")
+        print(f"        static let revision: UInt8 = {spec.revision}")
+        print(f"        static let port = {spec.port}")
         print("    }")
         print()
         for c, v, constant_class in spec.constants:
@@ -125,11 +125,11 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
                 continue
             c = constant_name(c)
             if c in [
-                "FrameMethod",
-                "FrameHeader",
-                "FrameBody",
-                "FrameHeartbeat",
-                "FrameEnd",
+                "frameMethod",
+                "frameHeader",
+                "frameBody",
+                "frameHeartbeat",
+                "frameEnd",
             ]:
                 c += ": UInt8"
             print(f"    static let {c} = {v}")

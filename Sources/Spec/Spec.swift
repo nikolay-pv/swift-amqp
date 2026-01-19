@@ -105,7 +105,8 @@ public enum Spec {
             case .f64: return 8 + 1
             case .decimal: return 5 + 1
             case .longstr(let value): return value.longBytesCount + 1
-            case .array(let value): return value.reduce(into: 0) { $0 += $1.bytesCount } + 1 + 4  // 4 for length
+            // 4 for length
+            case .array(let value): return value.reduce(into: 0) { $0 += $1.bytesCount } + 1 + 4
             case .timestamp: return 8 + 1
             case .table(let value): return value.bytesCount + 1
             case .bytes(let value): return UInt32(value.count) + 1 + 4  // 4 for length
@@ -115,19 +116,19 @@ public enum Spec {
     }
 
     public struct ProtocolLevel {
-        static let MAJOR: UInt8 = 0
-        static let MINOR: UInt8 = 9
-        static let REVISION: UInt8 = 1
-        static let PORT = 5672
+        static let major: UInt8 = 0
+        static let minor: UInt8 = 9
+        static let revision: UInt8 = 1
+        static let port = 5672
     }
 
-    static let FrameMethod: UInt8 = 1
-    static let FrameHeader: UInt8 = 2
-    static let FrameBody: UInt8 = 3
-    static let FrameHeartbeat: UInt8 = 8
-    static let FrameMinSize = 4096
-    static let FrameEnd: UInt8 = 206
-    static let ReplySuccess = 200
+    static let frameMethod: UInt8 = 1
+    static let frameHeader: UInt8 = 2
+    static let frameBody: UInt8 = 3
+    static let frameHeartbeat: UInt8 = 8
+    static let frameMinSize = 4096
+    static let frameEnd: UInt8 = 206
+    static let replySuccess = 200
 
     enum SoftError: Int, Error {
         case contentTooLarge = 311

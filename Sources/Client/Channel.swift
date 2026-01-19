@@ -217,17 +217,18 @@ extension Channel {
     /// message, the following message is already held locally, rather than needing to be sent down the channel.
     /// Prefetching gives a performance improvement.
     ///
-    /// - Parameter prefetchSize: the prefetch window size in octets. The
+    /// - Parameters:
+    /// - prefetchSize: the prefetch window size in octets. The
     /// server will send a message in advance if it is equal to or smaller in size than the available prefetch size
     /// (and also falls into other prefetch limits). May be set to zero, meaning "no specific limit", although other
     /// prefetch limits may still apply. Can't be set to a value higher than Int32.max.
     /// The prefetch­size is ignored if the no­ack option is set.
-    /// - Parameter prefetchCount: Specifies a prefetch window in terms of whole messages.
+    /// - prefetchCount: Specifies a prefetch window in terms of whole messages.
     /// This field may be used in combination with the prefetch­size field; a message will only be sent in
     /// advance if both prefetch windows (and those at the channel and connection level) allow it.
     /// Value must be larger or equal to 0 and smaller or equal than Int16.max.
     /// The prefetch­count is ignored if the no­ack option is set.
-    /// - Parameter global: if set to `true` the QoS settings are applied to entire `Connection`.
+    /// - global: if set to `true` the QoS settings are applied to entire `Connection`.
     /// By default is `false`, i.e. settings are applied to the current instance of the `Channel` only.
     /// - Throws:
     public func basicQos(prefetchSize: Int = 0, prefetchCount: Int = 0, global: Bool = false)
@@ -265,6 +266,7 @@ extension Channel {
     /// Declares a queue and returns information about it.
     /// - Parameter queueName: the name of the queue to declare.
     /// - Returns: info about the queue on success, see `QueueDeclareResult`.
+    ///  - Throws: if connection or this channel has been already closed.
     public func queueDeclare(named queueName: String) async throws -> QueueDeclareResult {
         let method = Spec.Queue.Declare(queue: queueName, durable: true)
         let frame = try await sendReturningResponse(method: method)
@@ -285,6 +287,7 @@ extension Channel {
     ///   - queue: the name of the queue.
     ///   - exchange: the name of the exchange.
     ///   - routingKey: the routing key to use. If not provided, the queue name will be used as the routing key.
+    ///   - arguments: table with additional keys and values to be used when binding.
     ///  - Throws: if connection or this channel has been already closed or the broker responds with an error.
     public func queueBind(
         queue: String,
@@ -312,6 +315,7 @@ extension Channel {
     ///   - queue: the name of the queue.
     ///   - exchange: the name of the exchange.
     ///   - routingKey: the routing key to use. If not provided, the queue name will be used as the routing key.
+    ///   - arguments: table with additional keys and values to be used when binding.
     ///  - Throws: if connection or this channel has been already closed.
     public func queueBindNoWait(
         queue: String,
@@ -386,6 +390,7 @@ extension Channel {
     /// - Parameters:
     ///   - deliveryTag: the delivery tag of the message to acknowledge.
     ///   - multiple: if true, acknowledges all messages up to and including this one.
+    ///  - Throws: if connection or this channel has been already closed.
     public func basicAck(deliveryTag: Int64, multiple: Bool = false) async throws {
         let method = Spec.Basic.Ack(deliveryTag: deliveryTag, multiple: multiple)
         let frame = makeFrame(with: method)
@@ -399,6 +404,7 @@ extension Channel {
     ///   - deliveryTag: the delivery tag of the message to reject.
     ///   - multiple: if true, rejects all messages up to and including this one.
     ///   - requeue: if true, the message will be requeued.
+    ///  - Throws: if connection or this channel has been already closed.
     public func basicNack(deliveryTag: Int64, multiple: Bool = false, requeue: Bool = true)
         async throws
     {

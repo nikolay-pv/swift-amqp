@@ -8,14 +8,16 @@ public struct Message: Sendable {
 
     /// Sends ack to the broker.
     /// - Parameter multiple: If true, acknowledges all messages up to and including this one.
+    ///  - Throws: if connection or this channel has been already closed.
     public func ack(multiple: Bool = false) async throws {
         try await channel.basicAck(deliveryTag: deliveryTag, multiple: multiple)
     }
 
     /// Sends nack to the broker.
     /// - Parameters:
-    ///   - multiple: If true, rejects all messages up to and including this one.
     ///   - requeue: If true, the message will be requeued.
+    ///   - multiple: If true, rejects all messages up to and including this one.
+    ///  - Throws: if connection or this channel has been already closed.
     public func nack(requeue: Bool = true, multiple: Bool = false) async throws {
         try await channel.basicNack(deliveryTag: deliveryTag, multiple: multiple, requeue: requeue)
     }

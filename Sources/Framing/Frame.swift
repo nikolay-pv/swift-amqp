@@ -42,18 +42,18 @@ extension Frame {
 func decodeFrame(type: UInt8, from data: ByteBuffer) throws -> any Frame {
     precondition(data.count != 0)
     // for errors see 4.2.3 General Frame Format
-    if data.readableBytesView.last != Spec.FrameEnd {
+    if data.readableBytesView.last != Spec.frameEnd {
         throw FramingError.fatal("Frame doesn't end with the frame-end octet")
     }
     let decoder: FrameDecoder = .init()
     switch type {
-    case Spec.FrameHeader:
+    case Spec.frameHeader:
         return try decoder.decode(ContentHeaderFrame.self, from: data)
-    case Spec.FrameBody:
+    case Spec.frameBody:
         return try decoder.decode(ContentBodyFrame.self, from: data)
-    case Spec.FrameMethod:
+    case Spec.frameMethod:
         return try decoder.decode(MethodFrame.self, from: data)
-    case Spec.FrameHeartbeat:
+    case Spec.frameHeartbeat:
         return try decoder.decode(HeartbeatFrame.self, from: data)
     default:
         throw FramingError.fatal("Unknown frame type \(type) to decode")
@@ -79,9 +79,9 @@ struct ProtocolHeaderFrame {
     }
 
     static let specHeader = ProtocolHeaderFrame(
-        majorVersion: Spec.ProtocolLevel.MAJOR,
-        minorVersion: Spec.ProtocolLevel.MINOR,
-        revision: Spec.ProtocolLevel.REVISION
+        majorVersion: Spec.ProtocolLevel.major,
+        minorVersion: Spec.ProtocolLevel.minor,
+        revision: Spec.ProtocolLevel.revision
     )
 }
 
@@ -115,7 +115,7 @@ extension ProtocolHeaderFrame: Frame {
 // 2.3.5.1 Method Frames
 // 4.2.3 General Frame Format
 struct MethodFrame {
-    var type: UInt8 { Spec.FrameMethod }
+    var type: UInt8 { Spec.frameMethod }
     var channelId: UInt16
     var payload: any FrameCodable
 }
@@ -130,7 +130,7 @@ extension MethodFrame: Equatable {
 extension MethodFrame: Frame {
     init(from decoder: any FrameDecoderProtocol) throws {
         let wireType = try decoder.decode(UInt8.self)
-        precondition(wireType == Spec.FrameMethod)
+        precondition(wireType == Spec.frameMethod)
         channelId = try decoder.decode(UInt16.self)
         let expectedSize = try decoder.decode(UInt32.self)
         let classId = try decoder.decode(UInt16.self)
@@ -140,7 +140,7 @@ extension MethodFrame: Frame {
 
         precondition(payload.bytesCount + 4 == expectedSize)
         let end = try decoder.decode(UInt8.self)
-        precondition(end == Spec.FrameEnd)
+        precondition(end == Spec.frameEnd)
     }
 
     func encode(to encoder: any FrameEncoderProtocol) throws {
@@ -154,7 +154,7 @@ extension MethodFrame: Frame {
         try encoder.encode(method.amqpClassId)
         try encoder.encode(method.amqpMethodId)
         try payload.encode(to: encoder)
-        try encoder.encode(Spec.FrameEnd)
+        try encoder.encode(Spec.frameEnd)
     }
 
     var bytesCount: UInt32 { 1 + 2 + 4 + 2 + 2 + payload.bytesCount + 1 }
@@ -164,7 +164,7 @@ extension MethodFrame: Frame {
 // 4.2.7 Heartbeat Frames
 // Also https://www.rabbitmq.com/amqp-0-9-1-errata#section_12
 struct HeartbeatFrame {
-    var type: UInt8 { Spec.FrameHeartbeat }
+    var type: UInt8 { Spec.frameHeartbeat }
     var channelId: UInt16 { 0 }
 }
 
@@ -173,7 +173,7 @@ extension HeartbeatFrame: Equatable {}
 extension HeartbeatFrame: Frame {
     init(from decoder: any FrameDecoderProtocol) throws {
         let wireType = try decoder.decode(UInt8.self)
-        precondition(wireType == Spec.FrameHeartbeat)
+        precondition(wireType == Spec.frameHeartbeat)
         let wireChannelId = try decoder.decode(UInt16.self)
         if wireChannelId != 0 {
             throw Spec.HardError.frameError
@@ -181,14 +181,14 @@ extension HeartbeatFrame: Frame {
         let expectedSize = try decoder.decode(UInt32.self)
         precondition(expectedSize == 0)
         let end = try decoder.decode(UInt8.self)
-        precondition(end == Spec.FrameEnd)
+        precondition(end == Spec.frameEnd)
     }
 
     func encode(to encoder: any FrameEncoderProtocol) throws {
         try encoder.encode(type)
         try encoder.encode(channelId)
         try encoder.encode(UInt32(0))
-        try encoder.encode(Spec.FrameEnd)
+        try encoder.encode(Spec.frameEnd)
     }
 
     var bytesCount: UInt32 { 1 + 2 + 4 + 1 }
@@ -197,7 +197,7 @@ extension HeartbeatFrame: Frame {
 // 4.2.3 General Frame Format
 // 2.3.5.2 Content Frames
 struct ContentHeaderFrame {
-    var type: UInt8 { Spec.FrameHeader }
+    var type: UInt8 { Spec.frameHeader }
     var channelId: UInt16
     var classId: UInt16
     var weight: UInt16 { 0 }
@@ -210,7 +210,7 @@ extension ContentHeaderFrame: Equatable {}
 extension ContentHeaderFrame: Frame {
     init(from decoder: any FrameDecoderProtocol) throws {
         let wireType = try decoder.decode(UInt8.self)
-        precondition(wireType == Spec.FrameHeader)
+        precondition(wireType == Spec.frameHeader)
         channelId = try decoder.decode(UInt16.self)
         if channelId == 0 {
             throw Spec.HardError.channelError
@@ -223,7 +223,7 @@ extension ContentHeaderFrame: Frame {
         bodySize = try decoder.decode(UInt64.self)
         properties = try .init(from: decoder)
         let end = try decoder.decode(UInt8.self)
-        precondition(end == Spec.FrameEnd)
+        precondition(end == Spec.frameEnd)
     }
 
     func encode(to encoder: any FrameEncoderProtocol) throws {
@@ -235,7 +235,7 @@ extension ContentHeaderFrame: Frame {
         try encoder.encode(weight)
         try encoder.encode(bodySize)
         try properties.encode(to: encoder)
-        try encoder.encode(Spec.FrameEnd)
+        try encoder.encode(Spec.frameEnd)
     }
 
     var bytesCount: UInt32 { 1 + 2 + 4 + 2 + 2 + 8 + properties.bytesCount + 1 }
@@ -243,7 +243,7 @@ extension ContentHeaderFrame: Frame {
 
 // 2.3.5.2 Content Frames
 struct ContentBodyFrame {
-    var type: UInt8 { Spec.FrameBody }
+    var type: UInt8 { Spec.frameBody }
     var channelId: UInt16
     var fragment: [UInt8]  // max size is UInt32.max
 }
@@ -254,7 +254,7 @@ extension ContentBodyFrame: Frame {
     // don't decode type the same was as classId and methodId in Methods are not decoded
     init(from decoder: any FrameDecoderProtocol) throws {
         let wireType = try decoder.decode(UInt8.self)
-        precondition(wireType == Spec.FrameBody)
+        precondition(wireType == Spec.frameBody)
         channelId = try decoder.decode(UInt16.self)
         let expectedSize = try decoder.decode(UInt32.self)
         var wireFragment = [UInt8]()
@@ -264,7 +264,7 @@ extension ContentBodyFrame: Frame {
         }
         fragment = consume wireFragment
         let end = try decoder.decode(UInt8.self)
-        precondition(end == Spec.FrameEnd)
+        precondition(end == Spec.frameEnd)
     }
 
     // don't encode type the same way as classId and methodId in Methods are not encoded
@@ -273,7 +273,7 @@ extension ContentBodyFrame: Frame {
         try encoder.encode(channelId)
         try encoder.encode(UInt32(fragment.count))
         try fragment.forEach { try encoder.encode($0) }
-        try encoder.encode(Spec.FrameEnd)
+        try encoder.encode(Spec.frameEnd)
     }
 
     var bytesCount: UInt32 { 1 + 2 + 4 + UInt32(fragment.count) + 1 }

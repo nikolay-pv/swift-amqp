@@ -45,7 +45,7 @@ let consumer = Task {
     )
     for try await message in messages {
         print("======= Consumer got message: \(message)")
-        if String(bytes: message.body, encoding: .utf8) == "stop" {
+        if String(decoding: message.body, as: UTF8.self) == "stop" {
             try await message.ack()
             break
         }

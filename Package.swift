@@ -18,7 +18,8 @@ let sharedSwiftSettings: [SwiftSetting] =
     [
         .enableUpcomingFeature("StrictConcurrency"),
         .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
-        .defaultIsolation(nil),  // nonisolated by default, as recommended by https://developer.apple.com/videos/play/wwdc2025/268?time=1638
+        // nonisolated by default, as recommended by https://developer.apple.com/videos/play/wwdc2025/268?time=1638
+        .defaultIsolation(nil),
     ]
 
 let package = Package(
