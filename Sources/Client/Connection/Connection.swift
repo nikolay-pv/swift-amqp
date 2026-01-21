@@ -54,7 +54,7 @@ public final class Connection: Sendable {
     // MARK: - init
     public convenience init(
         with configuration: Configuration = .default,
-        andWith properties: Spec.Table = .init()
+        andProperties properties: Spec.Table = .init()
     ) async throws {
         try await self.init(with: configuration, env: Environment.shared, properties: properties)
     }
