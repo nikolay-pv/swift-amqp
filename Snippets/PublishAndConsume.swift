@@ -2,6 +2,7 @@ import AMQP
 
 // this example requires running AMQP server
 let publisher = Task {
+    // using closure based API to ensure close of connection and channel
     try await Connection.connectChannelThenClose(with: .default, andProperties: .init()) { result in
         switch result {
         case .success(let channel):
@@ -26,29 +27,32 @@ let consumer = Task {
     guard let connection else {
         fatalError("connection wasn't created")
     }
-    let channel = try? await connection.makeChannel()
-    guard let channel else {
-        fatalError("channel wasn't created")
-    }
-    let exchangeName = "swift-amqp-exchange"
-    let queueName = "swift-amqp-queue"
-    try await channel.exchangeDeclare(named: exchangeName)
-    _ = try await channel.queueDeclare(named: queueName)
-    try await channel.queueBind(queue: queueName, exchange: exchangeName, routingKey: queueName)
-    let messages = try await channel.basicConsume(
-        queue: queueName,
-        tag: "some-random-tag"
-    )
-    for try await message in messages {
-        print("======= Consumer got message: \(message)")
-        if String(decoding: message.body, as: UTF8.self) == "stop" {
-            try await message.ack()
-            break
+    // use closure based API to ensure close of channel
+    try await Channel.withChannel(on: connection) { result in
+        switch result {
+        case .success(let channel):
+            let exchangeName = "swift-amqp-exchange"
+            let queueName = "swift-amqp-queue"
+            try await channel.exchangeDeclare(named: exchangeName)
+            _ = try await channel.queueDeclare(named: queueName)
+            try await channel.queueBind(queue: queueName, exchange: exchangeName, routingKey: queueName)
+            let messages = try await channel.basicConsume(
+                queue: queueName,
+                tag: "some-random-tag"
+            )
+            for try await message in messages {
+                print("======= Consumer got message: \(message)")
+                if String(decoding: message.body, as: UTF8.self) == "stop" {
+                    try await message.ack()
+                    break
+                }
+                try await message.nack(requeue: false)
+            }
+        case .failure(let error):
+            print("Failed to create consumer channel: \(error)")
         }
-        try await message.nack(requeue: false)
     }
     // graceful shutdown
-    _ = try await channel.close()
     _ = try await connection.close()
 }
 async let _ = consumer.result

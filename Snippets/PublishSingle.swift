@@ -2,6 +2,7 @@ import AMQP
 
 // this example requires running AMQP server
 let publisher = Task {
+    // explicit call to close connection and channel
     let connection: Connection
     do {
         connection = try await Connection(with: .default)
