@@ -13,7 +13,7 @@ This is AMQP 0-9-1 client library written in Swift.
 - swift native
 - async first
 - swift 6 by default
-- cross-platform
+- cross-platform (macOS, Linux)
 
 ### Missing protocol features
 

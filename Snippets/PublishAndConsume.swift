@@ -2,26 +2,22 @@ import AMQP
 
 // this example requires running AMQP server
 let publisher = Task {
-    let connection = try? await Connection(with: .default)
-    guard let connection else {
-        fatalError("connection wasn't created")
+    try await Connection.connectChannelThenClose(with: .default, andProperties: .init()) { result in
+        switch result {
+        case .success(let channel):
+            let exchangeName = "swift-amqp-exchange"
+            let queueName = "swift-amqp-queue"
+            try await channel.exchangeDeclare(named: exchangeName)
+            _ = try await channel.queueDeclare(named: queueName)
+            try await channel.queueBind(queue: queueName, exchange: exchangeName, routingKey: queueName)
+            try await channel.basicPublish(exchange: exchangeName, routingKey: queueName, body: "ping")
+            print("======= Publisher sent message: ping")
+            try await channel.basicPublish(exchange: exchangeName, routingKey: queueName, body: "stop")
+            print("======= Publisher sent message: stop")
+        case .failure(let error):
+            print("Failed to create publisher: \(error)")
+        }
     }
-    let channel = try? await connection.makeChannel()
-    guard let channel else {
-        fatalError("channel wasn't created")
-    }
-    let exchangeName = "swift-amqp-exchange"
-    let queueName = "swift-amqp-queue"
-    try await channel.exchangeDeclare(named: exchangeName)
-    _ = try await channel.queueDeclare(named: queueName)
-    try await channel.queueBind(queue: queueName, exchange: exchangeName, routingKey: queueName)
-    try await channel.basicPublish(exchange: exchangeName, routingKey: queueName, body: "ping")
-    print("======= Publisher sent message: ping")
-    try await channel.basicPublish(exchange: exchangeName, routingKey: queueName, body: "stop")
-    print("======= Publisher sent message: stop")
-    // graceful shutdown
-    _ = try await channel.close()
-    _ = try await connection.close()
 }
 async let _ = publisher.result
 
