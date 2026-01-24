@@ -105,12 +105,7 @@ import Testing
     func amqpBasicGetOkDecodeBytes() async throws {
         let input = try fixtureData(named: "Basic.GetOk")
         let decoded = try FrameDecoder().decode(Spec.Basic.GetOk.self, from: input)
-        let expected = Spec.Basic.GetOk(
-            deliveryTag: 1,
-            exchange: "FooBar",
-            routingKey: "FooBar",
-            messageCount: 1
-        )
+        let expected = Spec.Basic.GetOk(deliveryTag: 1, exchange: "FooBar", routingKey: "FooBar", messageCount: 1)
         #expect(decoded == expected)
     }
 

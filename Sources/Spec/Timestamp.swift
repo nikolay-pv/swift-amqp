@@ -2,9 +2,9 @@
 //
 
 public struct Timestamp: Sendable {
-    let millisecondsSince1970: UInt64
+    public let millisecondsSince1970: UInt64
 
-    init(millisecondsSince1970 value: UInt64) {
+    public init(millisecondsSince1970 value: UInt64) {
         self.millisecondsSince1970 = value
     }
 

@@ -92,7 +92,7 @@ def gen_swift_verify_tests(spec: AmqpSpec):
                 print(
                     f"    func amqp{struct_name(c.name)}{struct_name(m.name)}DecodeBytes() async throws {{"
                 )
-                print(f'        let input = try fixtureData(for: "{obj}")')
+                print(f'        let input = try fixtureData(named: "{obj}")')
                 print(
                     f"        let decoded = try FrameDecoder().decode(Spec.{obj}.self, from: input)"
                 )

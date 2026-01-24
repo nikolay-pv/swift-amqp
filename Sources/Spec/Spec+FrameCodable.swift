@@ -82,8 +82,7 @@ extension Spec.Basic.Consume: FrameCodable {
     }
 
     var bytesCount: UInt32 {
-        1 + 2 + UInt32(consumerTag.shortBytesCount) + UInt32(queue.shortBytesCount)
-            + arguments.bytesCount
+        1 + 2 + UInt32(consumerTag.shortBytesCount) + UInt32(queue.shortBytesCount) + arguments.bytesCount
     }
 }
 
@@ -162,9 +161,7 @@ extension Spec.Basic.Publish: FrameCodable {
         )
     }
 
-    var bytesCount: UInt32 {
-        1 + 2 + UInt32(exchange.shortBytesCount) + UInt32(routingKey.shortBytesCount)
-    }
+    var bytesCount: UInt32 { 1 + 2 + UInt32(exchange.shortBytesCount) + UInt32(routingKey.shortBytesCount) }
 }
 
 extension Spec.Basic.Return: FrameCodable {
@@ -189,8 +186,7 @@ extension Spec.Basic.Return: FrameCodable {
     }
 
     var bytesCount: UInt32 {
-        2 + UInt32(exchange.shortBytesCount) + UInt32(replyText.shortBytesCount)
-            + UInt32(routingKey.shortBytesCount)
+        2 + UInt32(exchange.shortBytesCount) + UInt32(replyText.shortBytesCount) + UInt32(routingKey.shortBytesCount)
     }
 }
 
@@ -269,9 +265,7 @@ extension Spec.Basic.GetOk: FrameCodable {
         )
     }
 
-    var bytesCount: UInt32 {
-        1 + 4 + 8 + UInt32(exchange.shortBytesCount) + UInt32(routingKey.shortBytesCount)
-    }
+    var bytesCount: UInt32 { 1 + 4 + 8 + UInt32(exchange.shortBytesCount) + UInt32(routingKey.shortBytesCount) }
 }
 
 extension Spec.Basic.GetEmpty: FrameCodable {
@@ -414,9 +408,7 @@ extension Spec.Connection.Start: FrameCodable {
         )
     }
 
-    var bytesCount: UInt32 {
-        1 + 1 + locales.longBytesCount + mechanisms.longBytesCount + serverProperties.bytesCount
-    }
+    var bytesCount: UInt32 { 1 + 1 + locales.longBytesCount + mechanisms.longBytesCount + serverProperties.bytesCount }
 }
 
 extension Spec.Connection.StartOk: FrameCodable {
@@ -441,8 +433,8 @@ extension Spec.Connection.StartOk: FrameCodable {
     }
 
     var bytesCount: UInt32 {
-        UInt32(locale.shortBytesCount) + UInt32(mechanism.shortBytesCount)
-            + clientProperties.bytesCount + response.longBytesCount
+        UInt32(locale.shortBytesCount) + UInt32(mechanism.shortBytesCount) + clientProperties.bytesCount
+            + response.longBytesCount
     }
 }
 
@@ -536,9 +528,7 @@ extension Spec.Connection.Open: FrameCodable {
         )
     }
 
-    var bytesCount: UInt32 {
-        1 + UInt32(capabilities.shortBytesCount) + UInt32(virtualHost.shortBytesCount)
-    }
+    var bytesCount: UInt32 { 1 + UInt32(capabilities.shortBytesCount) + UInt32(virtualHost.shortBytesCount) }
 }
 
 extension Spec.Connection.OpenOk: FrameCodable {
@@ -829,8 +819,7 @@ extension Spec.Exchange.Declare: FrameCodable {
     }
 
     var bytesCount: UInt32 {
-        1 + 2 + UInt32(exchange.shortBytesCount) + UInt32(type.shortBytesCount)
-            + arguments.bytesCount
+        1 + 2 + UInt32(exchange.shortBytesCount) + UInt32(type.shortBytesCount) + arguments.bytesCount
     }
 }
 
@@ -1059,8 +1048,8 @@ extension Spec.Queue.Bind: FrameCodable {
     }
 
     var bytesCount: UInt32 {
-        1 + 2 + UInt32(exchange.shortBytesCount) + UInt32(queue.shortBytesCount)
-            + UInt32(routingKey.shortBytesCount) + arguments.bytesCount
+        1 + 2 + UInt32(exchange.shortBytesCount) + UInt32(queue.shortBytesCount) + UInt32(routingKey.shortBytesCount)
+            + arguments.bytesCount
     }
 }
 
@@ -1181,8 +1170,8 @@ extension Spec.Queue.Unbind: FrameCodable {
     }
 
     var bytesCount: UInt32 {
-        2 + UInt32(exchange.shortBytesCount) + UInt32(queue.shortBytesCount)
-            + UInt32(routingKey.shortBytesCount) + arguments.bytesCount
+        2 + UInt32(exchange.shortBytesCount) + UInt32(queue.shortBytesCount) + UInt32(routingKey.shortBytesCount)
+            + arguments.bytesCount
     }
 }
 

@@ -8,11 +8,11 @@ enum PreconditionError: Error, CustomStringConvertible {
         }
     }
 
-    static let queueNameTooLong = PreconditionError.illegalArgument("Queue name must not exceed 255 bytes")
+    static let nameTooLong = PreconditionError.illegalArgument("Name must not exceed 255 bytes")
 }
 
-internal func validate(queueName: String) throws {
-    guard queueName.utf8.count <= 255 else {
-        throw PreconditionError.queueNameTooLong
+internal func validate(shortName name: String) throws {
+    guard name.utf8.count < UInt8.max else {
+        throw PreconditionError.nameTooLong
     }
 }

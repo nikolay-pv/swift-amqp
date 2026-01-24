@@ -254,13 +254,73 @@ extension Channel {
         )
     }
 
-    public func exchangeDeclare(named exchangeName: String) async throws {
-        let method = Spec.Exchange.Declare(exchange: exchangeName, durable: true)
+    /// Declares an exchange on the broker.
+    /// If the exchange doesn't exist already, if it exists the broker will verify the parameters match
+    /// and return an error if they don't.
+    ///
+    /// - Parameters:
+    ///   - exchangeName: the name of the exchange to declare.
+    ///   - type: the type of the exchange.
+    ///   - durable: if true, the exchange will survive a broker restart.
+    ///   - autoDelete: if true, the exchange will be deleted when no more queues are bound to it.
+    ///   - internal: if true, can only be published to by other exchanges but not the clients.
+    ///   - passive: if true, checks if the same named exchange exists with the same parameters.
+    ///   - arguments: table with additional keys and values to be used when declaring the exchange.
+    ///
+    /// - Throws: if connection or this channel has been already closed.
+    public func exchangeDeclare(
+        named exchangeName: String,
+        type: ExchangeType = ExchangeType.direct,
+        durable: Bool = false,
+        autoDelete: Bool = false,
+        internal: Bool = false,
+        passive: Bool = false,
+        arguments: Spec.Table = [:]
+    ) async throws {
+        try validate(shortName: exchangeName)
+        let method = Spec.Exchange.Declare(
+            exchange: exchangeName,
+            type: type.rawValue,
+            passive: passive,
+            durable: durable,
+            autoDelete: autoDelete,
+            internal: `internal`,
+            nowait: false,
+            arguments: arguments
+        )
         let frame = try await sendReturningResponse(method: method)
         precondition(
             frame?.payload is Spec.Exchange.DeclareOk,
             "exchangeDeclare expects Spec.Exchange.DeclareOk but got \(String(describing: frame))"
         )
+    }
+
+    /// Declares an exchange on the broker without waiting for a confirmation from the broker.
+    /// See ``exchangeDeclare(named:type:durable:autoDelete:internal:passive:arguments:)`` for parameter and exception details.
+    public func exchangeDeclareNoWait(
+        named exchangeName: String,
+        type: ExchangeType = ExchangeType.direct,
+        durable: Bool = false,
+        autoDelete: Bool = false,
+        internal: Bool = false,
+        passive: Bool = false,
+        arguments: Spec.Table = [:]
+    ) async throws {
+        try validate(shortName: exchangeName)
+        let method = Spec.Exchange.Declare(
+            exchange: exchangeName,
+            type: type.rawValue,
+            passive: passive,
+            durable: durable,
+            autoDelete: autoDelete,
+            internal: `internal`,
+            nowait: true,
+            arguments: arguments
+        )
+        let frame = makeFrame(with: method)
+        try withTransport {
+            $0.sendAsync(frame)
+        }
     }
 
     /// Declares a queue and returns information about it.
@@ -282,7 +342,7 @@ extension Channel {
         passive: Bool = false,
         arguments: Spec.Table = [:]
     ) async throws -> QueueDeclareResult {
-        try validate(queueName: queueName)
+        try validate(shortName: queueName)
         let method = Spec.Queue.Declare(
             queue: queueName,
             passive: passive,
@@ -314,7 +374,7 @@ extension Channel {
         passive: Bool = false,
         arguments: Spec.Table = [:]
     ) async throws {
-        try validate(queueName: queueName)
+        try validate(shortName: queueName)
         let method = Spec.Queue.Declare(
             queue: queueName,
             passive: passive,

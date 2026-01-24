@@ -96,8 +96,9 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
         print("            switch self {")
         for case, _, kind, size in field_values_definitions:
             if "value" in size:
+                # add 4 for length
                 addition = (
-                    "" if case not in ["array", "bytes"] else " + 4 // 4 for length"
+                    "" if case not in ["array", "bytes"] else " + 4"
                 )
                 print(
                     f"            case .{case}(let value): return {size} + 1{addition}"
@@ -161,11 +162,11 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
                 for a in m.arguments:
                     if a.defaultvalue is None:
                         print(
-                            f"            private(set) var {variable_name(a.name)}: {swift_type(spec, a.domain)}"
+                            f"            public private(set) var {variable_name(a.name)}: {swift_type(spec, a.domain)}"
                         )
                     else:
                         print(
-                            f"            private(set) var {variable_name(a.name)}: {swift_type(spec, a.domain)} = {default_value(spec, a.domain, a.defaultvalue)}"
+                            f"            public private(set) var {variable_name(a.name)}: {swift_type(spec, a.domain)} = {default_value(spec, a.domain, a.defaultvalue)}"
                         )
                 print()
                 print(f"            public var amqpClassId: UInt16 {{ {c.index} }}")
@@ -183,12 +184,23 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
         print(f"    public struct {structName}Properties: AMQPPropertiesProtocol {{")
         for f in c.fields:
             print(
-                f"        private(set) var {variable_name(f.name)}: {swift_type(spec, f.domain)}?"
+                f"        public private(set) var {variable_name(f.name)}: {swift_type(spec, f.domain)}?"
             )
 
         print()
         print(f"        public var amqpClassId: UInt16 {{ {c.index} }}")
         print(f'        public var amqpName: String {{ "{c.name}" }}')
+        print()
+        print("        public init(")
+        for f in c.fields:
+            print(
+                f"        {variable_name(f.name)}: {swift_type(spec, f.domain)}? = nil,"
+            )
+        print("        ) {")
+        for f in c.fields:
+            print(f"        self.{variable_name(f.name)} = {variable_name(f.name)}")
+        print("        }")
+        print()
         print("    }")
 
     def amqp_properties_classes():

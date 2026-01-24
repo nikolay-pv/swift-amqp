@@ -5,6 +5,7 @@
         "AMQP",
         "codegen",
         "defaultvalue",
+        "fanout",
         "longstr",
         "longstring",
         "nowait",
