@@ -3,6 +3,7 @@ import AMQP
 // this example requires running AMQP server
 let publisher = Task {
     let heartbeatTimeout: UInt16 = 5
+    let multiplier: UInt16 = 2
     var configuration = Configuration.default
     configuration.heartbeat = .seconds(heartbeatTimeout)
     let connection: Connection
@@ -26,10 +27,10 @@ let publisher = Task {
         _ = try await channel.queueDeclare(named: queueName)
         try await channel.queueBind(queue: queueName, exchange: exchangeName, routingKey: queueName)
         try await channel.basicPublish(exchange: exchangeName, routingKey: queueName, body: "ping")
-        print("======= Publisher sent message: ping")
-        print("======= sleep for 3 times the timeout \(3 * heartbeatTimeout)")
+        print(" [->] Publisher sent message: ping")
+        print(" [->] sleep for \(multiplier) times the timeout = \(multiplier * heartbeatTimeout)")
         // the connection will be dropped if Heartbeat frames are not sent or received
-        try await Task.sleep(nanoseconds: UInt64(3 * heartbeatTimeout) * 1000 * 1000 * 1000)  // convert to nanoseconds
+        try await Task.sleep(nanoseconds: UInt64(multiplier * heartbeatTimeout) * 1000 * 1000 * 1000)
     } catch {
         print("Failed to publish message: \(error)")
         return false

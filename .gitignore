@@ -11,3 +11,4 @@ aux-documentation
 Aux
 .index-build
 .python-version
+verify.sh

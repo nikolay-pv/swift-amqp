@@ -11,10 +11,11 @@ let publisher = Task {
             try await channel.exchangeDeclare(named: exchangeName)
             _ = try await channel.queueDeclare(named: queueName)
             try await channel.queueBind(queue: queueName, exchange: exchangeName, routingKey: queueName)
-            try await channel.basicPublish(exchange: exchangeName, routingKey: queueName, body: "ping")
-            print("======= Publisher sent message: ping")
-            try await channel.basicPublish(exchange: exchangeName, routingKey: queueName, body: "stop")
-            print("======= Publisher sent message: stop")
+            let messages = ["ping", "stop"]
+            for message in messages {
+                try await channel.basicPublish(exchange: exchangeName, routingKey: queueName, body: message)
+                print(" [->] sent message: '\(message)'")
+            }
         case .failure(let error):
             print("Failed to create publisher: \(error)")
         }
@@ -41,12 +42,12 @@ let consumer = Task {
                 tag: "some-random-tag"
             )
             for try await message in messages {
-                print("======= Consumer got message: \(message)")
+                print(" [->] received message: \(message)")
                 if String(decoding: message.body, as: UTF8.self) == "stop" {
                     try await message.ack()
                     break
                 }
-                try await message.nack(requeue: false)
+                try await message.ack()
             }
         case .failure(let error):
             print("Failed to create consumer channel: \(error)")
