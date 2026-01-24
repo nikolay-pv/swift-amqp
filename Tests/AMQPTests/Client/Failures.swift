@@ -326,7 +326,7 @@ import Testing
         let channel = try await connection.makeChannel()
 
         #expect(connection.isOpen)
-        try await channel.exchangeDeclare(named: "swift-amqp-exchange")
+        try await channel.exchangeDeclare(named: "swift-amqp-exchange", durable: true)
         _ = try await channel.queueDeclare(named: "swift-amqp-queue", durable: true)
         try await channel.queueBind(queue: "swift-amqp-queue", exchange: "swift-amqp-exchange")
         let messages = try await channel.basicConsume(

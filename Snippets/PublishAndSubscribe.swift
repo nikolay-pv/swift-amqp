@@ -9,6 +9,7 @@ func receiveLogs(_ label: String) async throws {
         fatalError("connection wasn't created")
     }
     let channel = try await connection.makeChannel()
+    _ = try await channel.exchangeDeclare(named: exchangeName, type: .fanout)
     let result = try await channel.queueDeclare(named: "", exclusive: true)
     let queueName = result.queueName
     try await channel.queueBind(queue: queueName, exchange: exchangeName)
