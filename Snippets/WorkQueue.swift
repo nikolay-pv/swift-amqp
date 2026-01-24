@@ -8,7 +8,7 @@ let publisher = Task {
     try await Connection.connectChannelThenClose(with: .default, andProperties: .init()) { result in
         switch result {
         case .success(let channel):
-            _ = try await channel.queueDeclare(named: queueName)
+            _ = try await channel.queueDeclare(named: queueName, durable: true)
             let messages = ["Hello" + String(repeating: ".", count: sleepDuration), "stop"]
             for message in messages {
                 try await channel.basicPublish(exchange: "", routingKey: queueName, body: message)
@@ -26,7 +26,7 @@ let consumer = Task {
     try await Connection.connectChannelThenClose(with: .default, andProperties: .init()) { result in
         switch result {
         case .success(let channel):
-            _ = try await channel.queueDeclare(named: queueName)
+            _ = try await channel.queueDeclare(named: queueName, durable: true)
             try await channel.basicQos(prefetchCount: 1)
             print(" [<-] Waiting for messages. To exit press CTRL+C")
             let messages = try await channel.basicConsume(queue: queueName, tag: "work-queue-tag")

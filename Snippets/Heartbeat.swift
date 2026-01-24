@@ -30,7 +30,7 @@ let publisher = Task {
         print(" [->] Publisher sent message: ping")
         print(" [->] sleep for \(multiplier) times the timeout \(multiplier * heartbeatTimeout)")
         // the connection will be dropped if Heartbeat frames are not sent or received
-        try await Task.sleep(nanoseconds: UInt64(multiplier * heartbeatTimeout) * 1000 * 1000 * 1000)  // convert to nanoseconds
+        try await Task.sleep(nanoseconds: UInt64(multiplier * heartbeatTimeout) * 1000 * 1000 * 1000)
     } catch {
         print("Failed to publish message: \(error)")
         return false

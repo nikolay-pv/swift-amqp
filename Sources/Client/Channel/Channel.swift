@@ -264,11 +264,33 @@ extension Channel {
     }
 
     /// Declares a queue and returns information about it.
-    /// - Parameter queueName: the name of the queue to declare.
+    /// - Parameters:
+    ///  - queueName: the name of the queue to declare.
+    ///  - durable: if true, the queue will survive a broker restart.
+    ///  - exclusive: if true, the queue will be used by only one connection.
+    ///  - autoDelete: if true, the queue will be deleted when the consumer disconnects.
+    ///  - passive: if true, the server will reply with Declare-Ok if the queue already exists with the same
+    ///    parameters, and raise an error if not.
+    ///  - arguments: table with additional keys and values to be used when declaring the queue
     /// - Returns: info about the queue on success, see `QueueDeclareResult`.
     ///  - Throws: if connection or this channel has been already closed.
-    public func queueDeclare(named queueName: String) async throws -> QueueDeclareResult {
-        let method = Spec.Queue.Declare(queue: queueName, durable: true)
+    public func queueDeclare(
+        named queueName: String,
+        durable: Bool = false,
+        exclusive: Bool = false,
+        autoDelete: Bool = false,
+        passive: Bool = false,
+        arguments: [String: Spec.FieldValue] = [:]
+    ) async throws -> QueueDeclareResult {
+        try validate(queueName: queueName)
+        let method = Spec.Queue.Declare(
+            queue: queueName,
+            passive: passive,
+            durable: durable,
+            exclusive: exclusive,
+            autoDelete: autoDelete,
+            arguments: arguments
+        )
         let frame = try await sendReturningResponse(method: method)
         guard let payload = frame?.unwrapPayload(as: Spec.Queue.DeclareOk.self) else {
             preconditionFailure(
@@ -280,6 +302,33 @@ extension Channel {
             messageCount: Int(payload.messageCount),
             consumerCount: Int(payload.consumerCount)
         )
+    }
+
+    /// Declares a queue without waiting for a confirmation from the broker.
+    /// See ``queueDeclare(named:durable:exclusive:autoDelete:passive:arguments:)`` for parameter and exception details.
+    public func queueDeclareNoWait(
+        named queueName: String,
+        durable: Bool = false,
+        exclusive: Bool = false,
+        autoDelete: Bool = false,
+        passive: Bool = false,
+        arguments: [String: Spec.FieldValue] = [:]
+    ) async throws {
+        try validate(queueName: queueName)
+        let method = Spec.Queue.Declare(
+            queue: queueName,
+            passive: passive,
+            durable: durable,
+            exclusive: exclusive,
+            autoDelete: autoDelete,
+            nowait: true,
+            arguments: arguments
+        )
+
+        let frame = makeFrame(with: method)
+        try withTransport {
+            $0.sendAsync(frame)
+        }
     }
 
     // asks broker to bind the queue to exchange waiting for a confirmation
