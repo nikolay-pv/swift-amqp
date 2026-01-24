@@ -14,7 +14,9 @@ SPEC_TYPE_TO_SWIFT = {
 
 
 def constant_name(c):
-    return "".join([p.capitalize() for p in re.split("[- ]", c)])
+    return "".join(
+        [(p.capitalize() if i != 0 else p.lower()) for i, p in enumerate(re.split("[- ]", c))]
+    )
 
 
 def as_camel_case(startUpper: bool, name: str):

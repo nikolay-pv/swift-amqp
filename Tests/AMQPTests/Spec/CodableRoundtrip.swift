@@ -90,12 +90,7 @@ import Testing
 
     @Test("Spec.Basic.Deliver default encoding/decoding roundtrip")
     func amqpBasicDeliverCoding() async throws {
-        let object = Spec.Basic.Deliver(
-            consumerTag: "FooBar",
-            deliveryTag: 1,
-            exchange: "FooBar",
-            routingKey: "FooBar"
-        )
+        let object = Spec.Basic.Deliver(consumerTag: "FooBar", deliveryTag: 1, exchange: "FooBar", routingKey: "FooBar")
         let binary = try FrameEncoder().encode(object)
         #expect(binary.count == object.bytesCount)
         let decoded = try FrameDecoder().decode(Spec.Basic.Deliver.self, from: binary)
@@ -113,12 +108,7 @@ import Testing
 
     @Test("Spec.Basic.GetOk default encoding/decoding roundtrip")
     func amqpBasicGetOkCoding() async throws {
-        let object = Spec.Basic.GetOk(
-            deliveryTag: 1,
-            exchange: "FooBar",
-            routingKey: "FooBar",
-            messageCount: 1
-        )
+        let object = Spec.Basic.GetOk(deliveryTag: 1, exchange: "FooBar", routingKey: "FooBar", messageCount: 1)
         let binary = try FrameEncoder().encode(object)
         #expect(binary.count == object.bytesCount)
         let decoded = try FrameDecoder().decode(Spec.Basic.GetOk.self, from: binary)
