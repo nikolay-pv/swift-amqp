@@ -29,7 +29,7 @@ let consumer = Task {
             _ = try await channel.queueDeclare(named: queueName, durable: true)
             try await channel.basicQos(prefetchCount: 1)
             print(" [<-] Waiting for messages. To exit press CTRL+C")
-            let messages = try await channel.basicConsume(queue: queueName, tag: "work-queue-tag")
+            let messages = try await channel.basicConsume(queue: queueName)
             for try await message in messages {
                 if String(decoding: message.body, as: UTF8.self) == "stop" {
                     print(" [<-] Received 'stop' signal, exiting")

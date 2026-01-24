@@ -280,7 +280,7 @@ extension Channel {
         exclusive: Bool = false,
         autoDelete: Bool = false,
         passive: Bool = false,
-        arguments: [String: Spec.FieldValue] = [:]
+        arguments: Spec.Table = [:]
     ) async throws -> QueueDeclareResult {
         try validate(queueName: queueName)
         let method = Spec.Queue.Declare(
@@ -312,7 +312,7 @@ extension Channel {
         exclusive: Bool = false,
         autoDelete: Bool = false,
         passive: Bool = false,
-        arguments: [String: Spec.FieldValue] = [:]
+        arguments: Spec.Table = [:]
     ) async throws {
         try validate(queueName: queueName)
         let method = Spec.Queue.Declare(
@@ -423,10 +423,23 @@ extension Channel {
         }
     }
 
-    public func basicConsume(queue: String, tag: String) async throws -> AsyncThrowingStream<
-        Message, Error
-    > {
-        let method = Spec.Basic.Consume(queue: queue, consumerTag: tag)
+    public func basicConsume(
+        queue: String,
+        autoAck: Bool = false,
+        tag: String = "",
+        noLocal: Bool = false,
+        exclusive: Bool = false,
+        arguments: Spec.Table = .init()
+    ) async throws -> AsyncThrowingStream<Message, Error> {
+        let method = Spec.Basic.Consume(
+            queue: queue,
+            consumerTag: tag,
+            noLocal: noLocal,
+            noAck: autoAck,
+            exclusive: exclusive,
+            nowait: false,
+            arguments: arguments
+        )
         let frame = try await sendReturningResponse(method: method)
         precondition(
             frame?.payload is Spec.Basic.ConsumeOk,
