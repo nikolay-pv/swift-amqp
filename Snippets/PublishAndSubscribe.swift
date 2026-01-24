@@ -3,7 +3,7 @@ import AMQP
 let sleepDuration = 5
 let exchangeName = "swift-amqp-log-exchange"
 
-func receiveLogs() async throws {
+func receiveLogs(_ label: String) async throws {
     let connection = try? await Connection(with: .default)
     guard let connection else {
         fatalError("connection wasn't created")
@@ -12,32 +12,33 @@ func receiveLogs() async throws {
     let result = try await channel.queueDeclare(named: "", exclusive: true)
     let queueName = result.queueName
     try await channel.queueBind(queue: queueName, exchange: exchangeName)
-    print(" [<-] Waiting for messages. To exit press CTRL+C")
+    print(" [<-] \(label): Waiting for messages. To exit press CTRL+C")
     let messages = try await channel.basicConsume(queue: queueName, autoAck: true)
     for try await message in messages {
         let bodyStr = String(decoding: message.body, as: UTF8.self)
-        print(" [<-] Received '\(bodyStr)'")
+        print(" [<-] \(label): Received '\(bodyStr)'")
         if bodyStr == "stop" {
-            print(" [<-] exiting on 'stop' signal")
+            print(" [<-] \(label): exiting on 'stop' signal")
             break
         }
     }
 }
 
-let consumer = Task {
-    try await receiveLogs()
+let consumer1 = Task {
+    try await receiveLogs("Consumer 1")
 }
 
 let consumer2 = Task {
-    try await receiveLogs()
+    try await receiveLogs("Consumer 2")
 }
 
 // Publisher: sends messages without routing key to fanout exchange
 let publisher = Task {
+    try await Task.sleep(nanoseconds: 1_000_000_000)  // wait a bit for consumers to be ready
     try await Connection.connectChannelThenClose(with: .default, andProperties: .init()) { result in
         switch result {
         case .success(let channel):
-            _ = try await channel.exchangeDeclare(named: exchangeName)
+            _ = try await channel.exchangeDeclare(named: exchangeName, type: .fanout)
             let messages = ["info: Hello World!", "warning: about to send stop signal", "stop"]
             for message in messages {
                 try await channel.basicPublish(exchange: exchangeName, routingKey: "", body: message)
@@ -49,6 +50,6 @@ let publisher = Task {
     }
 }
 
-async let _ = consumer.result
+async let _ = consumer1.result
 async let _ = consumer2.result
 async let _ = publisher.result
