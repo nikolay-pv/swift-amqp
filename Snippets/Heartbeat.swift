@@ -28,7 +28,7 @@ let publisher = Task {
         try await channel.queueBind(queue: queueName, exchange: exchangeName, routingKey: queueName)
         try await channel.basicPublish(exchange: exchangeName, routingKey: queueName, body: "ping")
         print(" [->] Publisher sent message: ping")
-        print(" [->] sleep for \(multiplier) times the timeout \(multiplier * heartbeatTimeout)")
+        print(" [->] sleep for \(multiplier) times the timeout = \(multiplier * heartbeatTimeout)")
         // the connection will be dropped if Heartbeat frames are not sent or received
         try await Task.sleep(nanoseconds: UInt64(multiplier * heartbeatTimeout) * 1000 * 1000 * 1000)
     } catch {
