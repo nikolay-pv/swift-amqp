@@ -19,7 +19,7 @@ func receiveLogs(withLevel keys: [String]) async throws {
     let messages = try await channel.basicConsume(queue: queueName, autoAck: true)
     for try await message in messages {
         let bodyStr = String(decoding: message.body, as: UTF8.self)
-        print(" [<-] Received 'TBDrouting_key:\(bodyStr)'")
+        print(" [<-] Received '\(message.routingKey):\(bodyStr)'")
         if bodyStr == "stop" {
             print(" [<-] exiting on 'stop' signal")
             break
