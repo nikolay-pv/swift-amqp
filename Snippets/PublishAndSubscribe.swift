@@ -1,7 +1,11 @@
 import AMQP
+import Atomics
 
 let sleepDuration = 5
 let exchangeName = "swift-amqp-log-exchange"
+// used to signal when consumer is ready to receive messages (otherwise
+// publisher may send messages before and they will be lost)
+var consumersReady: ManagedAtomic<Int> = .init(0)
 
 func receiveLogs(_ label: String) async throws {
     let connection = try? await Connection(with: .default)
@@ -14,6 +18,7 @@ func receiveLogs(_ label: String) async throws {
     let queueName = result.queueName
     try await channel.queueBind(queue: queueName, exchange: exchangeName)
     print(" [<-] \(label): Waiting for messages. To exit press CTRL+C")
+    await consumersReady.wrappingIncrement(ordering: .releasing)
     let messages = try await channel.basicConsume(queue: queueName, autoAck: true)
     for try await message in messages {
         let bodyStr = String(decoding: message.body, as: UTF8.self)
@@ -35,7 +40,9 @@ let consumer2 = Task {
 
 // Publisher: sends messages without routing key to fanout exchange
 let publisher = Task {
-    try await Task.sleep(nanoseconds: 1_000_000_000)  // wait a bit for consumers to be ready
+    while consumersReady.load(ordering: .acquiring) < 2 {
+        try await Task.sleep(nanoseconds: 100_000_000)  // 0.1 second
+    }
     try await Connection.connectChannelThenClose(with: .default, andProperties: .init()) { result in
         switch result {
         case .success(let channel):
