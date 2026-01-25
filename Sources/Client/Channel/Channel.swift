@@ -75,9 +75,9 @@ public class Channel: @unchecked Sendable {
         let headerFrame = content[1] as! ContentHeaderFrame
         var message = Message(
             body: [],
+            deliverFrame: deliverFrame.payload as! Spec.Basic.Deliver,
             properties: headerFrame.properties,
-            channel: self,
-            deliveryTag: (deliverFrame.payload as! Spec.Basic.Deliver).deliveryTag
+            onChannel: self
         )
         content[2...]
             .forEach {
