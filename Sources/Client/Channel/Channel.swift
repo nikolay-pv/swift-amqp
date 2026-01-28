@@ -446,15 +446,20 @@ extension Channel {
         }
     }
 
-    public func basicPublish(exchange: String, routingKey: String, body: String) async throws {
-        let method = Spec.Basic.Publish(exchange: exchange, routingKey: routingKey)
+    public func basicPublish(
+        exchange: String,
+        routingKey: String,
+        body: String,
+        properties: Spec.BasicProperties = .init(),
+        mandatory: Bool = false
+    ) async throws {
+        let method = Spec.Basic.Publish(exchange: exchange, routingKey: routingKey, mandatory: mandatory)
         let frame = makeFrame(with: method)
-        let contentProps = Spec.BasicProperties()
         let contentHeaderFrame = ContentHeaderFrame(
             channelId: self.id,
             classId: method.amqpClassId,
             bodySize: UInt64(body.utf8.count),
-            properties: contentProps
+            properties: properties
         )
         var framesToPublish: [any Frame] = [frame, contentHeaderFrame]
         if body.utf8.count > self.maxFragmentSize {

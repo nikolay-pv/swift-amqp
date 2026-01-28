@@ -14,6 +14,8 @@ func receiveLogs(withLevel keys: [String]) async throws {
         fatalError("connection wasn't created")
     }
     let channel = try await connection.makeChannel()
+    // ensure exchange exists
+    _ = try await channel.exchangeDeclare(named: exchangeName, type: .direct)
     let result = try await channel.queueDeclare(named: "", exclusive: true)
     let queueName = result.queueName
     for key in keys {
