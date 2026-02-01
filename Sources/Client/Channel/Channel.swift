@@ -6,23 +6,22 @@ import NIOCore
 /// Channel can be created off the Connection instance, by calling makeChannel method
 ///
 /// @note Channel can't outlive the Connection which made it
-public class Channel: @unchecked Sendable {
+public final class Channel: Sendable {
     public let id: UInt16
     private let isOpenShadow = ManagedAtomic(true)
     public var isOpen: Bool {
         return isOpenShadow.load(ordering: .acquiring)
     }
-    // in swift 6.2 this can be weak let (which it is semantically today)
-    private weak var manager: ChannelManager?
+    private weak let manager: ChannelManager?
     // maximum possible fragment size for content body frames on this channel
     // calculated from negotiated frame size
     private let maxFragmentSize: Int32
-    private weak var transportWeak: (any TransportProtocol)?
+    private weak let transportWeak: (any TransportProtocol)?
     private let logger: Logger
     typealias MessageStreamT = AsyncThrowingStream<Message, Error>
     private let messages: MessageStreamT
     private let continuation: MessageStreamT.Continuation?
-    private var promises: NIOLockedValueBox<[EventLoopPromise<any Frame>]> = .init([])
+    private let promises: NIOLockedValueBox<[EventLoopPromise<any Frame>]> = .init([])
 
     internal func dispatch0(frame: any Frame) -> Result<Bool, ConnectionError> {
         precondition(frame.channelId == 0, "dispatch0 called with non-zero channel id")
