@@ -12,7 +12,9 @@ protocol TransportProtocol: Sendable, AnyObject {
 
     var negotiatedProperties: (Configuration, Spec.Table) { get }
     var isActive: Bool { get }
-    func execute() async
+
+    /// stops the Frame routing and processing and drops the connection (without close Handshake)
+    func stop()
 
     func send(_ frame: any Frame) -> EventLoopPromise<any Frame>
     func send(_ frames: [any Frame]) -> EventLoopPromise<any Frame>

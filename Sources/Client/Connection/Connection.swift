@@ -20,7 +20,6 @@ public final class Connection: Sendable {
     private let logger: Logger
     // MARK: - transport management
     private let transport: TransportProtocol
-    private let transportExecutor: Task<Void, Never>
 
     private let inboundFramesDispatcher: Task<Void, Never>
 
@@ -42,7 +41,7 @@ public final class Connection: Sendable {
     public func close() async throws {
         try await self.channels.channel0.connectionClose()
         // from now on no more frames will be sent out
-        transportExecutor.cancel()
+        transport.stop()
     }
 
     private func ensureOpen() throws {
@@ -63,7 +62,6 @@ public final class Connection: Sendable {
     init(with configuration: Configuration, env: Environment, properties: Spec.Table = .init())
         async throws
     {
-        self.logger = configuration.logger
         // extend the default properties with user-provided ones
         let properties = defaultProperties.merging(properties) { _, new in new }
 
@@ -78,40 +76,57 @@ public final class Connection: Sendable {
 
         // hand both AsyncStreams to Transport for communication
         // and then start receiving & sending frames
-        self.transport = try await env.transportFactory(
+        let sharedTransport = try await env.transportFactory(
             configuration.host,
             configuration.port,
-            self.logger,
+            configuration.logger,
             inboundContinuation,
             {
                 return env.negotiationFactory(configuration, properties)
             }
         )
-        let (negotiatedConfig, _) = self.transport.negotiatedProperties
-        let sharedTransport = self.transport
-        self.transportExecutor = Task {
-            await sharedTransport.execute()
-        }
 
-        self.channels = .init(
+        let (negotiatedConfig, _) = sharedTransport.negotiatedProperties
+        let channels: ChannelManager = .init(
             transport: sharedTransport,
-            logger: self.logger,
+            logger: configuration.logger,
             maxChannels: negotiatedConfig.maxChannelCount
         )
 
+        self.logger = configuration.logger
+        self.transport = sharedTransport
+        self.channels = channels
         // create a task to distribute incoming frames
-        let framesRouter = FramesRouter(
-            inboundFrames: inboundFrames,
-            channels: self.channels,
-            transportTask: self.transportExecutor,
-        )
         self.inboundFramesDispatcher = Task {
-            await framesRouter.execute()
+            await Connection.routingLoop(inboundFrames: inboundFrames, channels: channels)
+            sharedTransport.stop()
+        }
+    }
+
+    static func routingLoop(inboundFrames: AsyncStream<any Frame>, channels: ChannelManager) async {
+        for await frame in inboundFrames {
+            guard let channel = channels.findChannel(id: frame.channelId) else {
+                preconditionFailure(
+                    "Received frame for non-existing channel \(frame.channelId)"
+                )
+            }
+            let res = channel.dispatch(frame: frame)
+            switch res {
+            case .failure:
+                channels.forEach {
+                    $0.handleConnectionError(ConnectionError.connectionIsClosed)
+                }
+            case .success(let keepGoing):
+                if keepGoing {
+                    continue
+                }
+            }
+            break  // stop processing any further frames
         }
     }
 
     deinit {
-        transportExecutor.cancel()
+        transport.stop()
         inboundFramesDispatcher.cancel()
     }
 }

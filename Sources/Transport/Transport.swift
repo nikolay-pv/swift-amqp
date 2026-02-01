@@ -11,10 +11,10 @@ import NIOPosix
 final class Transport: TransportProtocol, Sendable {
     private let eventLoopGroup: MultiThreadedEventLoopGroup
     private let asyncNIOChannel: NIOAsyncChannel<any Frame, any Frame>
+    private let asyncNIOChannelExecutor: Task<Void, Never>
 
     // reason for lock: need to ensure that several frames are yielded together
     private let outboundContinuation: NIOLockedValueBox<AsyncStream<any Frame>.Continuation>
-    private let outboundFrames: AsyncStream<any Frame>
     private let inboundContinuation: AsyncStream<any Frame>.Continuation
     let negotiatedProperties: (Configuration, Spec.Table)
 
@@ -30,7 +30,7 @@ final class Transport: TransportProtocol, Sendable {
 
         // create outbound AsyncStream
         var outboundContinuation: AsyncStream<any Frame>.Continuation?
-        self.outboundFrames = AsyncStream { continuation in
+        let outboundFrames = AsyncStream { continuation in
             outboundContinuation = continuation
         }
         guard let outboundContinuation else {
@@ -42,7 +42,7 @@ final class Transport: TransportProtocol, Sendable {
         self.inboundContinuation = inboundContinuation
         let negotiationComplete = eventLoopGroup.any()
             .makePromise(of: (Configuration, Spec.Table).self)
-        self.asyncNIOChannel = try await ClientBootstrap(group: eventLoopGroup)
+        let channel = try await ClientBootstrap(group: eventLoopGroup)
             .connect(host: host, port: port) { channel in
                 return channel.eventLoop.makeCompletedFuture {
                     try channel.pipeline.syncOperations.addHandler(
@@ -74,14 +74,22 @@ final class Transport: TransportProtocol, Sendable {
                     )
                 }
             }
+        self.asyncNIOChannel = channel
         var negotiationResult = try await negotiationComplete.futureResult.get()
         // for security reasons reset credentials after negotiation
         negotiationResult.0.credentials.reset()
         negotiatedProperties = negotiationResult
+        self.asyncNIOChannelExecutor = Task {
+            await Transport.execute(
+                channel: channel,
+                inboundContinuation: inboundContinuation,
+                outboundFrames: outboundFrames
+            )
+        }
     }
 
     deinit {
-        try? asyncNIOChannel.channel.close().wait()
+        stop()
     }
 }
 
@@ -122,23 +130,24 @@ extension Transport {
     }
 
     /// Receives and sends out frames as they come through the AsyncStream's passed on construction of the object
-    ///
-    /// - Throws: Any error that occurs during task execution.
-    func execute() async {
+    private static func execute(
+        channel: NIOAsyncChannel<any Frame, any Frame>,
+        inboundContinuation: AsyncStream<any Frame>.Continuation,
+        outboundFrames: AsyncStream<any Frame>
+    ) async {
         do {
             try await withThrowingTaskGroup { group in
-                try await asyncNIOChannel
+                try await channel
                     .executeThenClose { inbound, outbound in
-                        let continuation = self.inboundContinuation
                         group.addTask {
                             do {
                                 for try await frame in inbound {
-                                    continuation.yield(frame)
+                                    inboundContinuation.yield(frame)
                                 }
                             } catch {
                                 // the inbound channel has been closed due to an exception (likely stopped iterating),
                                 // propagate this down to consumers
-                                continuation.finish()
+                                inboundContinuation.finish()
                             }
                         }
                         do {
@@ -155,5 +164,12 @@ extension Transport {
             // no withThrowingTaskGroup which accepts non-throwing closure
             fatalError("Unexpected error in TransportProtocol::execute(): \(error)")
         }
+    }
+
+    func stop() {
+        self.outboundContinuation.withLockedValue { $0.finish() }
+        self.inboundContinuation.finish()
+        try? self.asyncNIOChannel.channel.close().wait()
+        self.asyncNIOChannelExecutor.cancel()
     }
 }
