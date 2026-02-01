@@ -104,7 +104,6 @@ public final class Connection: Sendable {
             inboundFrames: inboundFrames,
             channels: self.channels,
             transportTask: self.transportExecutor,
-            maxFrameSize: negotiatedConfig.maxFrameSize
         )
         self.inboundFramesDispatcher = Task {
             await framesRouter.execute()

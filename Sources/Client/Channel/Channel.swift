@@ -3,6 +3,39 @@ import Logging
 import NIOConcurrencyHelpers
 import NIOCore
 
+private struct ContentContext: Sendable {
+    private(set) var channelId: UInt16 = 0
+    private(set) var expectedBodyBytes: UInt64 = 0
+    private(set) var actualBodyBytes: UInt64 = 0
+    private(set) var contentFrames = [any Frame]()
+
+    // channel 0 can't wait for content frames
+    func waitForContent() -> Bool { channelId != 0 }
+    func isComplete() -> Bool { actualBodyBytes == expectedBodyBytes }
+
+    mutating func push(deliver: any Frame) {
+        channelId = deliver.channelId
+        contentFrames.append(deliver)
+    }
+
+    mutating func push(header: ContentHeaderFrame) {
+        expectedBodyBytes = header.bodySize
+        contentFrames.append(header)
+    }
+
+    mutating func push(body: ContentBodyFrame) {
+        contentFrames.append(body)
+        actualBodyBytes += UInt64(body.fragment.count)
+    }
+
+    mutating func reset() {
+        channelId = 0
+        expectedBodyBytes = 0
+        actualBodyBytes = 0
+        contentFrames.removeAll()
+    }
+}
+
 /// Channel can be created off the Connection instance, by calling makeChannel method
 ///
 /// @note Channel can't outlive the Connection which made it
@@ -13,15 +46,17 @@ public final class Channel: Sendable {
         return isOpenShadow.load(ordering: .acquiring)
     }
     private weak let manager: ChannelManager?
+    private let maxFrameSize: Int32
     // maximum possible fragment size for content body frames on this channel
     // calculated from negotiated frame size
-    private let maxFragmentSize: Int32
+    private var maxFragmentSize: Int32 { return ContentBodyFrame.maxPossibleFragmentSize(for: self.maxFrameSize) }
     private weak let transportWeak: (any TransportProtocol)?
     private let logger: Logger
     typealias MessageStreamT = AsyncThrowingStream<Message, Error>
     private let messages: MessageStreamT
     private let continuation: MessageStreamT.Continuation?
     private let promises: NIOLockedValueBox<[EventLoopPromise<any Frame>]> = .init([])
+    private let contentContext: NIOLockedValueBox<ContentContext> = .init(ContentContext())
 
     internal func dispatch0(frame: any Frame) -> Result<Bool, ConnectionError> {
         precondition(frame.channelId == 0, "dispatch0 called with non-zero channel id")
@@ -53,8 +88,52 @@ public final class Channel: Sendable {
     /// returns the error if broker returned a non zero reply code in Connection.Close
     /// otherwise true if connection should stay open (i.e. process frames), and false otherwise
     internal func dispatch(frame: any Frame) -> Result<Bool, ConnectionError> {
+        precondition(frame.channelId == self.id, "dispatch called with frame for different channel id")
         if frame.channelId == 0 {
             return dispatch0(frame: frame)
+        }
+        if frame.isPayload(of: Spec.Basic.Deliver.self) {
+            contentContext.withLockedValue { $0.push(deliver: frame) }
+            return .success(true)
+        }
+        if frame.isContent() {
+            precondition(
+                contentContext.withLockedValue { $0.waitForContent() },
+                "Received content frame without prior deliver method"
+            )
+            if let header = frame as? ContentHeaderFrame {
+                contentContext.withLockedValue { $0.push(header: header) }
+                return .success(true)
+            }
+            if let body = frame as? ContentBodyFrame {
+                // only ContentBodyFrame is checked for maxFrameSize
+                // because there is no way to split other frames into smaller pieces
+                // see also: https://www.rabbitmq.com/amqp-0-9-1-errata#section_11
+                // check for exceeding expected body size
+                // as per "4.2.3 General Frame Format"
+                // in case maxFrameSize is exceeded the connection must be
+                // closed
+                if self.maxFrameSize != 0 && body.bytesCount > UInt32(self.maxFrameSize) {
+                    // precondition(false, "A peer MUST NOT send frames larger than the agreed-upon size.")
+                    self.handleConnectionError(
+                        ConnectionError.frameSizeLimitExceeded(
+                            maxFrameSize: UInt32(maxFrameSize),
+                            actualSize: body.bytesCount
+                        )
+                    )
+                    return .success(false)  // stop processing any further frames
+                }
+                contentContext.withLockedValue { $0.push(body: body) }
+            }
+            if contentContext.withLockedValue({ $0.isComplete() }) {
+                let contentFrames = contentContext.withLockedValue {
+                    let frames = $0.contentFrames
+                    $0.reset()
+                    return frames
+                }
+                self.dispatch(content: contentFrames)
+            }
+            return .success(true)
         }
         precondition(
             promises.withLockedValue { !$0.isEmpty },
@@ -98,9 +177,7 @@ public final class Channel: Sendable {
     ) {
         self.id = id
         self.manager = manager
-        self.maxFragmentSize = ContentBodyFrame.maxPossibleFragmentSize(
-            for: transport.negotiatedProperties.0.maxFrameSize
-        )
+        self.maxFrameSize = transport.negotiatedProperties.0.maxFrameSize
         self.transportWeak = transport
         var decoratedLogger = logger
         decoratedLogger[metadataKey: "channel-id"] = "\(id)"
