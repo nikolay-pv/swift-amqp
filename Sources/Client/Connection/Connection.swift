@@ -1,3 +1,4 @@
+import Atomics
 import Logging
 
 internal let defaultCapabilities: Spec.FieldValue = .table([
@@ -30,13 +31,18 @@ public final class Connection: Sendable {
     // throw ConnectionError.maxChannelsLimitReached if no more channels can be created
     public func makeChannel() async throws -> Channel {
         try ensureOpen()
-        let channel = try channels.makeChannel(transport: self.transport, logger: self.logger)
+        let channel = try channels.makeChannel(
+            transport: self.transport,
+            maxFrameSize: self.transport.negotiatedProperties.0.maxFrameSize,
+            logger: self.logger
+        )
         try await channel.requestOpen()
         return channel
     }
 
     // MARK: - lifecycle management
-    public var isOpen: Bool { transport.isActive }
+    private let state: ManagedAtomic<ObjectState> = .init(.open)
+    public var isOpen: Bool { transport.isActive && self.state.load(ordering: .acquiring) == .open }
 
     public func close() async throws {
         try await self.channels.channel0.connectionClose()

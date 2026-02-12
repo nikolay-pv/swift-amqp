@@ -135,13 +135,13 @@ protocol AMQPMethodProtocol: AMQPClassProtocol {
                 c += ": UInt8"
             print(f"    static let {c} = {v}")
 
-        print("\n    enum SoftError: Int, Error {")
+        print("\n    enum SoftError: UInt16, Error {")
         for c, v, constant_class in spec.constants:
             if "soft-error" in constant_class:
                 c = as_camel_case(False, c)
                 print(f"    case {c} = {v}")
         print("    }")
-        print("\n    enum HardError: Int, Error {")
+        print("\n    enum HardError: UInt16, Error {")
         for c, v, constant_class in spec.constants:
             if "hard-error" in constant_class:
                 c = as_camel_case(False, c)

@@ -173,11 +173,12 @@ public final class Channel: Sendable {
         transport: any TransportProtocol,
         id: UInt16,
         logger: Logger,
+        maxFrameSize: Int32,
         manager: ChannelManager? = nil
     ) {
         self.id = id
         self.manager = manager
-        self.maxFrameSize = transport.negotiatedProperties.0.maxFrameSize
+        self.maxFrameSize = maxFrameSize
         self.transportWeak = transport
         var decoratedLogger = logger
         decoratedLogger[metadataKey: "channel-id"] = "\(id)"
