@@ -44,14 +44,21 @@ public final class Connection: Sendable {
 
     // MARK: - lifecycle management
     private let state: ManagedAtomic<ObjectState> = .init(.open)
+    private let closingError: NIOLockedValueBox<HardError?> = .init(nil)
     public var isOpen: Bool { transport.isActive && self.state.load(ordering: .acquiring) == .open }
 
     public func close() async throws {
         try await self.closeHandshake()
     }
 
-    private func ensureOpen() throws {
+    internal func ensureOpen() throws {
         if !isOpen {
+            // if connection was closed with an error, throw that one
+            try self.closingError.withLockedValue {
+                if $0 != nil {
+                    throw ConnectionError.wrap(hardError: $0!)
+                }
+            }
             throw ConnectionError.connectionIsClosed
         }
     }
@@ -154,9 +161,24 @@ extension Connection {
             }
             return
         }
-        if frame.unwrapPayload(as: Spec.Connection.Close.self) != nil {
+        if let payload = frame.unwrapPayload(as: Spec.Connection.Close.self) {
             self.sendCloseOk()
-            // TODO(@nikolay-pv): store broker error
+            if payload.replyCode != 0 && payload.replyCode != 200 {
+                guard let code = Spec.HardError(rawValue: payload.replyCode) else {
+                    fatalError(
+                        "Broker sent unknown error reply code in Connection.Close frame: \(payload.replyCode) with message \(payload.replyText)"
+                    )
+                }
+                let error = HardError.broker(
+                    code: code,
+                    replyText: payload.replyText,
+                    classId: payload.amqpClassId,
+                    methodId: payload.amqpMethodId
+                )
+                self.closingError.withLockedValue {
+                    $0 = error
+                }
+            }
             return
         }
         fatalError("unreachable: in Connection.dispatch with frame \(frame)")
