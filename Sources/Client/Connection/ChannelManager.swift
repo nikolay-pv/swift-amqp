@@ -44,9 +44,8 @@ private struct ChannelIDs {
 // in charge of bookkeeping the channels, allows making them and finding
 // them by id, as well as removing them
 final class ChannelManager: @unchecked Sendable {
-    // channel0 is special and is used for communications before any channel exists
-    // it never explicitly created on the server side (so no requestOpen call is made for it)
-    let channel0: Channel
+    // channel IDs are assigned starting from 1; channel-id 0 is reserved for
+    // connection-level methods and is handled by `Connection` directly.
 
     struct ChannelHandle {
         // manager shouldn't increase the ref count of Channels, but only keep them in books (channel will call to be removed)
@@ -84,9 +83,6 @@ final class ChannelManager: @unchecked Sendable {
     }
 
     func findChannel(id: UInt16) -> Channel? {
-        if id == 0 {
-            return channel0
-        }
         return channelsLock.withLock {
             return channels[id]?.channel
         }
@@ -102,9 +98,7 @@ final class ChannelManager: @unchecked Sendable {
 
     // MARK: - init
 
-    // initializes the channel0 with given transport and the logger
-    init(transport: TransportProtocol, logger: Logger, maxChannels: UInt16 = .max) {
-        self.channel0 = .init(transport: transport, id: 0, logger: logger, maxFrameSize: 0)
+    init(maxChannels: UInt16 = .max) {
         self.channelIDs = .init(maxID: maxChannels)
     }
 }

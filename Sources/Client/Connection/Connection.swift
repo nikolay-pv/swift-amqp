@@ -1,5 +1,7 @@
 import Atomics
 import Logging
+import NIOConcurrencyHelpers
+import NIOCore
 
 internal let defaultCapabilities: Spec.FieldValue = .table([
     "authentication_failure_close": .bool(true),
@@ -22,10 +24,10 @@ public final class Connection: Sendable {
     // MARK: - transport management
     private let transport: TransportProtocol
 
-    private let inboundFramesDispatcher: Task<Void, Never>
-
     // MARK: - channel management
     private let channels: ChannelManager
+    // promise to handle async close
+    private let closingPromise: NIOLockedValueBox<EventLoopPromise<any Frame>?> = .init(nil)
 
     // throw ConnectionError.connectionIsClosed if connection is closed
     // throw ConnectionError.maxChannelsLimitReached if no more channels can be created
@@ -45,9 +47,7 @@ public final class Connection: Sendable {
     public var isOpen: Bool { transport.isActive && self.state.load(ordering: .acquiring) == .open }
 
     public func close() async throws {
-        try await self.channels.channel0.connectionClose()
-        // from now on no more frames will be sent out
-        transport.stop()
+        try await self.closeHandshake()
     }
 
     private func ensureOpen() throws {
@@ -93,38 +93,45 @@ public final class Connection: Sendable {
         )
 
         let (negotiatedConfig, _) = sharedTransport.negotiatedProperties
-        let channels: ChannelManager = .init(
-            transport: sharedTransport,
-            logger: configuration.logger,
-            maxChannels: negotiatedConfig.maxChannelCount
-        )
+        let channels: ChannelManager = .init(maxChannels: negotiatedConfig.maxChannelCount)
 
         self.logger = configuration.logger
         self.transport = sharedTransport
         self.channels = channels
+
         // create a task to distribute incoming frames
-        self.inboundFramesDispatcher = Task {
-            await Connection.routingLoop(inboundFrames: inboundFrames, channels: channels)
+        Task.detached {
+            await Connection.routingLoop(
+                inboundFrames: inboundFrames,
+                channels: channels,
+                connection: self,
+            )
             sharedTransport.stop()
         }
     }
 
-    static func routingLoop(inboundFrames: AsyncStream<any Frame>, channels: ChannelManager) async {
+    static func routingLoop(
+        inboundFrames: AsyncStream<any Frame>,
+        channels: ChannelManager,
+        connection: Connection
+    ) async {
         for await frame in inboundFrames {
-            guard let channel = channels.findChannel(id: frame.channelId) else {
-                preconditionFailure(
-                    "Received frame for non-existing channel \(frame.channelId)"
-                )
-            }
-            let res = channel.dispatch(frame: frame)
-            switch res {
-            case .failure:
-                channels.forEach {
-                    $0.handleConnectionError(ConnectionError.connectionIsClosed)
+            if frame.channelId == 0 {
+                connection.dispatch(frame)
+                // always break after this, because at this stage there is only 2 frames which can arrive: CloseOk or Close
+                // in both cases no more frames need processing (in the second case the CloseOk will be sent by us)
+            } else {
+                guard let channel = channels.findChannel(id: frame.channelId) else {
+                    preconditionFailure("Received frame for non-existing channel \(frame.channelId)")
                 }
-            case .success(let keepGoing):
-                if keepGoing {
-                    continue
+                let res = channel.dispatch(frame: frame)
+                switch res {
+                case .failure:
+                    channels.forEach {
+                        $0.handleConnectionError(ConnectionError.connectionIsClosed)
+                    }
+                case .success(let keepGoing):
+                    if keepGoing { continue }
                 }
             }
             break  // stop processing any further frames
@@ -132,7 +139,61 @@ public final class Connection: Sendable {
     }
 
     deinit {
-        transport.stop()
-        inboundFramesDispatcher.cancel()
+    }
+}
+
+extension Connection {
+    private func dispatch(_ frame: any Frame) {
+        precondition(frame.channelId == 0, "dispatch0 called with non-zero channel id")
+        precondition(frame is MethodFrame, "Unexpected frame type in channel 0: \(type(of: frame))")
+        if frame.isPayload(of: Spec.Connection.CloseOk.self) {
+            self.closingPromise.withLockedValue {
+                $0?.succeed(frame)
+                // reset the fulfilled promise so it is not used again
+                $0 = nil
+            }
+            return
+        }
+        if frame.unwrapPayload(as: Spec.Connection.Close.self) != nil {
+            self.sendCloseOk()
+            // TODO(@nikolay-pv): store broker error
+            return
+        }
+        fatalError("unreachable: in Connection.dispatch with frame \(frame)")
+    }
+
+    // does nothing if the state is not .open or if transport is not active
+    private func closeHandshake(
+        replyCode: UInt16 = 0,
+        replyText: String = "",
+        classId: UInt16 = 0,
+        methodId: UInt16 = 0
+    ) async throws {
+        if !self.isOpen {
+            return
+        }
+        let method = Spec.Connection.Close(
+            replyCode: replyCode,
+            replyText: replyText,
+            classId: classId,
+            methodId: methodId
+        )
+        let frame = MethodFrame(channelId: 0, payload: method)
+        self.state.store(.closing, ordering: .releasing)
+        let promise = closingPromise.withLockedValue {
+            let promise = transport.send(frame)
+            $0 = promise
+            return promise
+        }
+        _ = try await promise.futureResult.get()
+        self.state.store(.closed, ordering: .releasing)
+    }
+
+    private func sendCloseOk() {
+        self.state.store(.closing, ordering: .releasing)
+        let method = Spec.Connection.CloseOk()
+        let frame = MethodFrame(channelId: 0, payload: method)
+        transport.sendAsync(frame)
+        self.state.store(.closed, ordering: .releasing)
     }
 }

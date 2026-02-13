@@ -58,40 +58,11 @@ public final class Channel: Sendable {
     private let promises: NIOLockedValueBox<[EventLoopPromise<any Frame>]> = .init([])
     private let contentContext: NIOLockedValueBox<ContentContext> = .init(ContentContext())
 
-    internal func dispatch0(frame: any Frame) -> Result<Bool, ConnectionError> {
-        precondition(frame.channelId == 0, "dispatch0 called with non-zero channel id")
-        precondition(frame is MethodFrame, "Unexpected frame type in channel 0: \(type(of: frame))")
-        if frame.isPayload(of: Spec.Connection.CloseOk.self) {
-            precondition(
-                promises.withLockedValue { !$0.isEmpty },
-                "channel got an unexpected frame \(frame)"
-            )
-            let promise = promises.withLockedValue { $0.removeFirst() }
-            promise.succeed(frame)
-            return .success(false)
-        }
-        if let payload = frame.unwrapPayload(as: Spec.Connection.Close.self) {
-            // eat exceptions as it doesn't make sense to throw here (broker already closed the connection)
-            self.connectionCloseOk()
-            if payload.replyCode != 0 {
-                logger.error(
-                    "Connection closed by broker with code \(payload.replyCode): \(payload.replyText)"
-                )
-                return .failure(ConnectionError.connectionIsClosed)
-            }
-            return .success(false)
-        }
-        fatalError("unreachable: in dispatch0 with frame \(frame)")
-    }
-
     /// method to handle incoming frames from a Broker
     /// returns the error if broker returned a non zero reply code in Connection.Close
     /// otherwise true if connection should stay open (i.e. process frames), and false otherwise
     internal func dispatch(frame: any Frame) -> Result<Bool, ConnectionError> {
         precondition(frame.channelId == self.id, "dispatch called with frame for different channel id")
-        if frame.channelId == 0 {
-            return dispatch0(frame: frame)
-        }
         if frame.isPayload(of: Spec.Basic.Deliver.self) {
             contentContext.withLockedValue { $0.push(deliver: frame) }
             return .success(true)
