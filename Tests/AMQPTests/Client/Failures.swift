@@ -39,19 +39,13 @@ import Testing
             ),
         ]
         let env = makeTestEnv(with: actions)
-        var channel: Channel?
-        do {
-            let connection = try await Connection(with: .default, env: env)
-            channel = try? await connection.makeChannel()
-            try await connection.close()
-        } catch {
-            #expect(Bool(false), "Connection should succeed")
-        }
-        #expect(channel != nil)
+        let connection = try await Connection(with: .default, env: env)
+        let channel = try await connection.makeChannel()
+        try await connection.close()
         try await #require(
             throws: ConnectionError.connectionIsClosed
         ) {
-            let _ = try await channel!.queueDeclare(named: "test")
+            let _ = try await channel.queueDeclare(named: "test")
         }
     }
 
@@ -313,6 +307,23 @@ import Testing
             .inbound(
                 ContentBodyFrame(channelId: expectedChannelId, fragment: [112, 105, 110, 103])
             ),
+            .outbound(
+                MethodFrame(
+                    channelId: 0,
+                    payload: AMQP.Spec.Connection.Close(
+                        replyCode: AMQP.Spec.HardError.frameError.rawValue,
+                        replyText: "Received ContentBody Frame of size 12 while max size agreed is 3",
+                        classId: 60,
+                        methodId: 60
+                    )
+                )
+            ),
+            .inbound(
+                MethodFrame(
+                    channelId: 0,
+                    payload: AMQP.Spec.Connection.CloseOk()
+                )
+            ),
         ]
         let env = makeTestEnv(
             with: actions,
@@ -334,7 +345,9 @@ import Testing
             tag: "some-random-tag"
         )
         try await #require(
-            throws: ConnectionError.frameSizeLimitExceeded(maxFrameSize: 3, actualSize: 12)
+            throws: ConnectionError.connectionIsClosed(
+                "by client: frameError Received ContentBody Frame of size 12 while max size agreed is 3"
+            )
         ) {
             for try await message in messages {
                 _ = message

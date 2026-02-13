@@ -58,11 +58,11 @@ final class ChannelManager: @unchecked Sendable {
 
     // throws ConnectionError.maxChannelsLimitReached if no more channels can be
     // created (within agreed limits)
-    func makeChannel(transport: TransportProtocol, maxFrameSize: Int32, logger: Logger) throws -> Channel {
+    func makeChannel(connection: Connection, maxFrameSize: Int32, logger: Logger) throws -> Channel {
         let channel: Channel = try channelsLock.withLock {
             let id = try channelIDs.next()
             let channel = Channel.init(
-                transport: transport,
+                connection: connection,
                 id: id,
                 logger: logger,
                 maxFrameSize: maxFrameSize,

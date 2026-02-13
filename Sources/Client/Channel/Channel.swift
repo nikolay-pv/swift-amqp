@@ -50,7 +50,7 @@ public final class Channel: Sendable {
     // maximum possible fragment size for content body frames on this channel
     // calculated from negotiated frame size
     private var maxFragmentSize: Int32 { return ContentBodyFrame.maxPossibleFragmentSize(for: self.maxFrameSize) }
-    private weak let transportWeak: (any TransportProtocol)?
+    private unowned let connection: Connection
     private let logger: Logger
     typealias MessageStreamT = AsyncThrowingStream<Message, Error>
     private let messages: MessageStreamT
@@ -59,13 +59,11 @@ public final class Channel: Sendable {
     private let contentContext: NIOLockedValueBox<ContentContext> = .init(ContentContext())
 
     /// method to handle incoming frames from a Broker
-    /// returns the error if broker returned a non zero reply code in Connection.Close
-    /// otherwise true if connection should stay open (i.e. process frames), and false otherwise
-    internal func dispatch(frame: any Frame) -> Result<Bool, ConnectionError> {
+    internal func dispatch(frame: any Frame) {
         precondition(frame.channelId == self.id, "dispatch called with frame for different channel id")
         if frame.isPayload(of: Spec.Basic.Deliver.self) {
             contentContext.withLockedValue { $0.push(deliver: frame) }
-            return .success(true)
+            return
         }
         if frame.isContent() {
             precondition(
@@ -74,7 +72,7 @@ public final class Channel: Sendable {
             )
             if let header = frame as? ContentHeaderFrame {
                 contentContext.withLockedValue { $0.push(header: header) }
-                return .success(true)
+                return
             }
             if let body = frame as? ContentBodyFrame {
                 // only ContentBodyFrame is checked for maxFrameSize
@@ -85,14 +83,15 @@ public final class Channel: Sendable {
                 // in case maxFrameSize is exceeded the connection must be
                 // closed
                 if self.maxFrameSize != 0 && body.bytesCount > UInt32(self.maxFrameSize) {
-                    // precondition(false, "A peer MUST NOT send frames larger than the agreed-upon size.")
-                    self.handleConnectionError(
-                        ConnectionError.frameSizeLimitExceeded(
-                            maxFrameSize: UInt32(maxFrameSize),
-                            actualSize: body.bytesCount
-                        )
+                    // A peer MUST NOT send frames larger than the agreed-upon size.
+                    self.connection.initiateClose(
+                        replyCode: Spec.HardError.frameError.rawValue,
+                        replyText:
+                            "Received ContentBody Frame of size \(body.bytesCount) while max size agreed is \(self.maxFrameSize)",
+                        classId: 60,
+                        methodId: 60
                     )
-                    return .success(false)  // stop processing any further frames
+                    return
                 }
                 contentContext.withLockedValue { $0.push(body: body) }
             }
@@ -104,7 +103,7 @@ public final class Channel: Sendable {
                 }
                 self.dispatch(content: contentFrames)
             }
-            return .success(true)
+            return
         }
         precondition(
             promises.withLockedValue { !$0.isEmpty },
@@ -112,7 +111,6 @@ public final class Channel: Sendable {
         )
         let promise = promises.withLockedValue { $0.removeFirst() }
         promise.succeed(frame)
-        return .success(true)
     }
 
     internal func dispatch(content: [any Frame]) {
@@ -141,7 +139,7 @@ public final class Channel: Sendable {
 
     // MARK: - init
     internal init(
-        transport: any TransportProtocol,
+        connection: Connection,
         id: UInt16,
         logger: Logger,
         maxFrameSize: Int32,
@@ -150,7 +148,7 @@ public final class Channel: Sendable {
         self.id = id
         self.manager = manager
         self.maxFrameSize = maxFrameSize
-        self.transportWeak = transport
+        self.connection = connection
         var decoratedLogger = logger
         decoratedLogger[metadataKey: "channel-id"] = "\(id)"
         self.logger = decoratedLogger
@@ -164,40 +162,43 @@ public final class Channel: Sendable {
     deinit {
         self.manager?.removeChannel(id: id)
     }
-}
 
-// MARK: - Spec methods
-extension Channel {
-    /// Returns the owned transport for use in closures, or throws if the channel or connection is closed.
-    ///
-    /// - Throws: `ConnectionError.channelIsClosed` if the channel is closed, or
-    ///   `ConnectionError.connectionIsClosed` if the transport is closed.
-    /// - Parameter closure: A closure that takes the transport and returns a value of type `T`.
-    /// - Returns: The result of the closure executed with the transport.
-    private func withTransport<T>(_ closure: (any TransportProtocol) -> T) throws -> T {
+    private func ensureOpen() throws {
         guard isOpenShadow.load(ordering: .acquiring) else {
             throw ConnectionError.channelIsClosed
         }
-        guard let transport = self.transportWeak, transport.isActive else {
-            throw ConnectionError.connectionIsClosed
-        }
-        return closure(transport)
     }
 
-    nonisolated internal func makeFrame(
+    // MARK:- helpers
+
+    /// Returns the owned connection for use in closures, or throws if the channel or connection is closed.
+    ///
+    /// - Throws: `ConnectionError.channelIsClosed` if the channel is closed, or
+    ///   `ConnectionError.connectionIsClosed` if the connection is closed.
+    /// - Parameter closure: A closure that takes the connection and returns a value of type `T`.
+    /// - Returns: The result of the closure executed with the connection.
+    private func withConnection<T>(_ closure: (Connection) -> T) throws -> T {
+        try self.ensureOpen()
+        // store var to make sure it is alive for the duration of the closure
+        let connection = self.connection
+        try connection.ensureOpen()
+        return closure(connection)
+    }
+
+    private func makeFrame(
         with method: any AMQPMethodProtocol & FrameCodable
     ) -> MethodFrame {
         return MethodFrame(channelId: id, payload: method)
     }
 
-    internal func handleConnectionError(_ error: Error) {
+    internal func handleConnectionError(_ error: ConnectionError?) {
         let promises = promises.withLockedValue {
             let current = $0
             $0.removeAll()
             return current
         }
         for promise in promises {
-            promise.fail(error)
+            promise.fail(error ?? ConnectionError.connectionIsClosed)
         }
         continuation?.finish(throwing: error)
     }
@@ -207,8 +208,8 @@ extension Channel {
     ) async throws -> MethodFrame? {
         let frame = makeFrame(with: method)
         let promise = try promises.withLockedValue {
-            let promise = try withTransport { transport in
-                transport.send(frame)
+            let promise = try withConnection {
+                $0.send(frame)
             }
             $0.append(promise)
             return promise
@@ -216,7 +217,10 @@ extension Channel {
         let response = try await promise.futureResult.get() as? MethodFrame
         return response
     }
+}
 
+// MARK: - Spec methods
+extension Channel {
     public func close(replyCode: UInt16 = 0, replyText: String = "") async throws {
         let method = Spec.Channel.Close(
             replyCode: replyCode,
@@ -250,14 +254,6 @@ extension Channel {
             frame?.payload is Spec.Connection.CloseOk,
             "close expects Spec.Connection.CloseOk but got \(String(describing: frame))"
         )
-    }
-
-    // this is only used on channel0
-    internal func connectionCloseOk() {
-        let method = Spec.Connection.CloseOk()
-        let frame = makeFrame(with: method)
-        // if transport was already destroyed nothing can be done then
-        transportWeak?.sendAsync(frame)
     }
 
     /// Requests a specific quality of service (QoS) for this `Channel` or for all channels on the `Connection`.
@@ -366,7 +362,7 @@ extension Channel {
             arguments: arguments
         )
         let frame = makeFrame(with: method)
-        try withTransport {
+        try withConnection {
             $0.sendAsync(frame)
         }
     }
@@ -434,7 +430,7 @@ extension Channel {
         )
 
         let frame = makeFrame(with: method)
-        try withTransport {
+        try withConnection {
             $0.sendAsync(frame)
         }
     }
@@ -489,7 +485,7 @@ extension Channel {
             arguments: arguments
         )
         let frame = makeFrame(with: method)
-        try withTransport {
+        try withConnection {
             $0.sendAsync(frame)
         }
     }
@@ -531,7 +527,7 @@ extension Channel {
                 )
             )
         }
-        try withTransport {
+        try withConnection {
             $0.sendAsync(framesToPublish)
         }
     }
@@ -569,7 +565,7 @@ extension Channel {
     public func basicAck(deliveryTag: Int64, multiple: Bool = false) async throws {
         let method = Spec.Basic.Ack(deliveryTag: deliveryTag, multiple: multiple)
         let frame = makeFrame(with: method)
-        try withTransport {
+        try withConnection {
             $0.sendAsync(frame)
         }
     }
@@ -589,7 +585,7 @@ extension Channel {
             requeue: requeue
         )
         let frame = makeFrame(with: method)
-        try withTransport {
+        try withConnection {
             $0.sendAsync(frame)
         }
     }

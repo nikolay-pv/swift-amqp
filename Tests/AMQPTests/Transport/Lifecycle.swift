@@ -11,7 +11,7 @@ import Testing
 func stopTransport() async throws {
     let config = Configuration.default
     var inboundContinuation: AsyncStream<any Frame>.Continuation?
-    let _ = AsyncStream { continuation in
+    let incomingFrames = AsyncStream { continuation in
         inboundContinuation = continuation
     }
     #expect(inboundContinuation != nil, "AsyncStream can be constructed")
@@ -25,6 +25,13 @@ func stopTransport() async throws {
         }
     )
     #expect(transport.isActive, "Transport is usable immediately after construction")
+    // ensure graceful shutdown
+    transport.sendAsync(
+        MethodFrame(channelId: 0, payload: Spec.Connection.Close(replyCode: 0, classId: 0, methodId: 0))
+    )
+    for await _ in incomingFrames {
+        break
+    }
     transport.stop()
     #expect(!transport.isActive, "Transport should be inactive after stop() is called")
 }

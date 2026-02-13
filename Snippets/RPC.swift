@@ -39,6 +39,8 @@ func rpcServer() async throws {
         print(" [<-] Replied with '\(response)'")
         try await message.ack()
     }
+    try? await channel.close()
+    try? await connection.close()
 }
 
 let squareServer = Task {

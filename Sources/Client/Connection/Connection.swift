@@ -34,7 +34,7 @@ public final class Connection: Sendable {
     public func makeChannel() async throws -> Channel {
         try ensureOpen()
         let channel = try channels.makeChannel(
-            transport: self.transport,
+            connection: self,
             maxFrameSize: self.transport.negotiatedProperties.0.maxFrameSize,
             logger: self.logger
         )
@@ -123,29 +123,42 @@ public final class Connection: Sendable {
         connection: Connection
     ) async {
         for await frame in inboundFrames {
-            if frame.channelId == 0 {
-                connection.dispatch(frame)
-                // always break after this, because at this stage there is only 2 frames which can arrive: CloseOk or Close
-                // in both cases no more frames need processing (in the second case the CloseOk will be sent by us)
-            } else {
+            guard frame.channelId == 0 else {
                 guard let channel = channels.findChannel(id: frame.channelId) else {
                     preconditionFailure("Received frame for non-existing channel \(frame.channelId)")
                 }
-                let res = channel.dispatch(frame: frame)
-                switch res {
-                case .failure:
-                    channels.forEach {
-                        $0.handleConnectionError(ConnectionError.connectionIsClosed)
-                    }
-                case .success(let keepGoing):
-                    if keepGoing { continue }
-                }
+                channel.dispatch(frame: frame)
+                continue
             }
+            connection.dispatch(frame)
             break  // stop processing any further frames
         }
     }
 
     deinit {
+        precondition(
+            self.state.load(ordering: .acquiring) == .closed,
+            "close() wasn't called on this connection object, which is required by the protocol"
+        )
+    }
+}
+
+extension Connection {
+    func send(_ frame: any Frame) -> EventLoopPromise<any Frame> {
+        self.transport.send(frame)
+    }
+
+    // same as send(_ frame: Frame) but for multiple frames
+    func send(_ frames: [any Frame]) -> EventLoopPromise<any Frame> {
+        self.transport.send(frames)
+    }
+
+    func sendAsync(_ frame: any Frame) {
+        self.transport.sendAsync(frame)
+    }
+
+    func sendAsync(_ frames: [any Frame]) {
+        self.transport.sendAsync(frames)
     }
 }
 
@@ -159,6 +172,16 @@ extension Connection {
                 // reset the fulfilled promise so it is not used again
                 $0 = nil
             }
+            let error = self.closingError.withLockedValue { err -> ConnectionError? in
+                if let err = err {
+                    return ConnectionError.wrap(hardError: err)
+                }
+                return nil
+            }
+            self.channels.forEach {
+                $0.handleConnectionError(error)
+            }
+            self.state.store(.closed, ordering: .releasing)
             return
         }
         if let payload = frame.unwrapPayload(as: Spec.Connection.Close.self) {
@@ -209,6 +232,30 @@ extension Connection {
         }
         _ = try await promise.futureResult.get()
         self.state.store(.closed, ordering: .releasing)
+    }
+
+    internal func initiateClose(
+        replyCode: UInt16 = 0,
+        replyText: String = "",
+        classId: UInt16 = 0,
+        methodId: UInt16 = 0
+    ) {
+        let method = Spec.Connection.Close(
+            replyCode: replyCode,
+            replyText: replyText,
+            classId: classId,
+            methodId: methodId
+        )
+        if replyCode != 0 && replyCode != 200 {
+            let code = Spec.HardError(rawValue: replyCode)
+            precondition(code != nil)
+            self.closingError.withLockedValue {
+                $0 = HardError.client(code: code!, replyText: replyText, classId: classId, methodId: methodId)
+            }
+        }
+        let frame = MethodFrame(channelId: 0, payload: method)
+        self.state.store(.closing, ordering: .releasing)
+        self.transport.sendAsync(frame)
     }
 
     private func sendCloseOk() {

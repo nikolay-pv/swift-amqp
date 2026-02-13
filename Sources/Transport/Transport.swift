@@ -90,6 +90,7 @@ final class Transport: TransportProtocol, Sendable {
 
     deinit {
         stop()
+        try? self.eventLoopGroup.syncShutdownGracefully()
     }
 }
 
