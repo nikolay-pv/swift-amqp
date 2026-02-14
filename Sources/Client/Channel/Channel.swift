@@ -62,6 +62,31 @@ public final class Channel: Sendable {
     /// method to handle incoming frames from a Broker
     internal func dispatch(frame: any Frame) {
         precondition(frame.channelId == self.id, "dispatch called with frame for different channel id")
+        if let payload = frame.unwrapPayload(as: Spec.Channel.Close.self) {
+            self.state.store(.closing, ordering: .releasing)
+            let method = Spec.Connection.CloseOk()
+            let frame = MethodFrame(channelId: 0, payload: method)
+            // if connection is closed already so be it, thus `try?`
+            try? self.withConnectionUnchecked { $0.sendAsync(frame) }
+            self.state.store(.closed, ordering: .releasing)
+            if payload.replyCode != 0 && payload.replyCode != 200 {
+                guard let code = Spec.SoftError(rawValue: payload.replyCode) else {
+                    fatalError(
+                        "Broker sent unknown error reply code in Channel.Close frame: \(payload.replyCode) with message \(payload.replyText)"
+                    )
+                }
+                let error = SoftError.broker(
+                    code: code,
+                    replyText: payload.replyText,
+                    classId: payload.amqpClassId,
+                    methodId: payload.amqpMethodId
+                )
+                self.closingError.withLockedValue {
+                    $0 = ChannelError.wrap(softError: error)
+                }
+            }
+            return
+        }
         if frame.isPayload(of: Spec.Basic.Deliver.self) {
             contentContext.withLockedValue { $0.push(deliver: frame) }
             return

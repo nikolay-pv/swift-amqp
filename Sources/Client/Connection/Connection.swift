@@ -44,7 +44,7 @@ public final class Connection: Sendable {
 
     // MARK: - lifecycle management
     private let state: ManagedAtomic<ObjectState> = .init(.open)
-    private let closingError: NIOLockedValueBox<HardError?> = .init(nil)
+    private let closingError: NIOLockedValueBox<ConnectionError?> = .init(nil)
     public var isOpen: Bool { transport.isActive && self.state.load(ordering: .acquiring) == .open }
 
     public func close() async throws {
@@ -54,12 +54,8 @@ public final class Connection: Sendable {
     internal func ensureOpen() throws {
         if !isOpen {
             // if connection was closed with an error, throw that one
-            try self.closingError.withLockedValue {
-                if $0 != nil {
-                    throw ConnectionError.wrap(hardError: $0!)
-                }
-            }
-            throw ConnectionError.connectionIsClosed
+            let error = self.closingError.withLockedValue { $0 } ?? ConnectionError.connectionIsClosed
+            throw error
         }
     }
 
@@ -172,12 +168,7 @@ extension Connection {
                 // reset the fulfilled promise so it is not used again
                 $0 = nil
             }
-            let error = self.closingError.withLockedValue { err -> ConnectionError? in
-                if let err = err {
-                    return ConnectionError.wrap(hardError: err)
-                }
-                return nil
-            }
+            let error = self.closingError.withLockedValue { $0 }
             self.channels.forEach {
                 $0.handleConnectionError(error)
             }
@@ -199,7 +190,7 @@ extension Connection {
                     methodId: payload.amqpMethodId
                 )
                 self.closingError.withLockedValue {
-                    $0 = error
+                    $0 = ConnectionError.wrap(hardError: error)
                 }
             }
             return
@@ -255,8 +246,9 @@ extension Connection {
         if replyCode != 0 && replyCode != 200 {
             let code = Spec.HardError(rawValue: replyCode)
             precondition(code != nil)
+            let error = HardError.client(code: code!, replyText: replyText, classId: classId, methodId: methodId)
             self.closingError.withLockedValue {
-                $0 = HardError.client(code: code!, replyText: replyText, classId: classId, methodId: methodId)
+                $0 = ConnectionError.wrap(hardError: error)
             }
         }
         let frame = MethodFrame(channelId: 0, payload: method)
