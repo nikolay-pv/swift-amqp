@@ -214,7 +214,8 @@ extension Connection {
         classId: UInt16 = 0,
         methodId: UInt16 = 0
     ) async throws {
-        if !self.isOpen {
+        let res = self.state.compareExchange(expected: .open, desired: .closing, ordering: .acquiringAndReleasing)
+        if !res.exchanged {
             return
         }
         let method = Spec.Connection.Close(
@@ -224,14 +225,15 @@ extension Connection {
             methodId: methodId
         )
         let frame = MethodFrame(channelId: 0, payload: method)
-        self.state.store(.closing, ordering: .releasing)
         let promise = closingPromise.withLockedValue {
             let promise = transport.send(frame)
             $0 = promise
             return promise
         }
+        defer {  // even if future throws ensure final state
+            self.state.store(.closed, ordering: .releasing)
+        }
         _ = try await promise.futureResult.get()
-        self.state.store(.closed, ordering: .releasing)
     }
 
     internal func initiateClose(
@@ -240,6 +242,10 @@ extension Connection {
         classId: UInt16 = 0,
         methodId: UInt16 = 0
     ) {
+        let res = self.state.compareExchange(expected: .open, desired: .closing, ordering: .acquiringAndReleasing)
+        if !res.exchanged {
+            return
+        }
         let method = Spec.Connection.Close(
             replyCode: replyCode,
             replyText: replyText,
@@ -254,7 +260,6 @@ extension Connection {
             }
         }
         let frame = MethodFrame(channelId: 0, payload: method)
-        self.state.store(.closing, ordering: .releasing)
         self.transport.sendAsync(frame)
     }
 

@@ -2,8 +2,6 @@ enum ConnectionError: Error {
     // means that this connection can't be used anymore and should be recreated
     case connectionIsClosed(String)
 
-    // this means that Channel has been closed and should be recreated
-    case channelIsClosed
     // thrown when trying to create more channels than allowed in negotiation
     // (everything can be still used as normal, but new channel can be made only
     // if some are closed)
@@ -21,7 +19,24 @@ enum ConnectionError: Error {
     }
 }
 
+// required by tests
 extension ConnectionError: Equatable {}
+
+enum ChannelError: Error {
+    case channelIsClosed(String)
+
+    static func wrap(softError: SoftError) -> ChannelError {
+        switch softError {
+        case .broker(let code, let replyText, classId: _, methodId: _):
+            return Self.channelIsClosed("by broker: \(code) \(replyText)")
+        case .client(let code, let replyText, classId: _, methodId: _):
+            return Self.channelIsClosed("by client: \(code) \(replyText)")
+        }
+    }
+}
+
+// required by tests
+extension ChannelError: Equatable {}
 
 // represents errors which shouldn't leave the client and be shown to users
 protocol InternalError: Error {}

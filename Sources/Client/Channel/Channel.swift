@@ -41,10 +41,11 @@ private struct ContentContext: Sendable {
 /// @note Channel can't outlive the Connection which made it
 public final class Channel: Sendable {
     public let id: UInt16
-    private let isOpenShadow = ManagedAtomic(true)
-    public var isOpen: Bool {
-        return isOpenShadow.load(ordering: .acquiring)
-    }
+    // state
+    private let state: ManagedAtomic<ObjectState> = .init(.open)
+    private let closingError: NIOLockedValueBox<Error?> = .init(nil)
+    public var isOpen: Bool { state.load(ordering: .acquiring) == .open }
+
     private weak let manager: ChannelManager?
     private let maxFrameSize: Int32
     // maximum possible fragment size for content body frames on this channel
@@ -161,11 +162,18 @@ public final class Channel: Sendable {
 
     deinit {
         self.manager?.removeChannel(id: id)
+        precondition(
+            self.state.load(ordering: .acquiring) == .closed,
+            "close() wasn't called on this channel object, which is required by the protocol"
+        )
     }
 
     private func ensureOpen() throws {
-        guard isOpenShadow.load(ordering: .acquiring) else {
-            throw ConnectionError.channelIsClosed
+        guard self.isOpen else {
+            guard let error = self.closingError.withLockedValue({ $0 }) else {
+                throw ChannelError.channelIsClosed("")
+            }
+            throw error
         }
     }
 
@@ -173,12 +181,16 @@ public final class Channel: Sendable {
 
     /// Returns the owned connection for use in closures, or throws if the channel or connection is closed.
     ///
-    /// - Throws: `ConnectionError.channelIsClosed` if the channel is closed, or
-    ///   `ConnectionError.connectionIsClosed` if the connection is closed.
+    /// - Throws: `ChannelError.channelIsClosed` or `ConnectionError.connectionIsClosed`
     /// - Parameter closure: A closure that takes the connection and returns a value of type `T`.
     /// - Returns: The result of the closure executed with the connection.
     private func withConnection<T>(_ closure: (Connection) -> T) throws -> T {
         try self.ensureOpen()
+        return try withConnectionUnchecked(closure)
+    }
+
+    // unchecked channel openness
+    private func withConnectionUnchecked<T>(_ closure: (Connection) -> T) throws -> T {
         // store var to make sure it is alive for the duration of the closure
         let connection = self.connection
         try connection.ensureOpen()
@@ -197,10 +209,13 @@ public final class Channel: Sendable {
             $0.removeAll()
             return current
         }
+        let error = error ?? ConnectionError.connectionIsClosed
         for promise in promises {
-            promise.fail(error ?? ConnectionError.connectionIsClosed)
+            promise.fail(error)
         }
         continuation?.finish(throwing: error)
+        self.state.store(.closed, ordering: .releasing)
+        self.closingError.withLockedValue { $0 = error }
     }
 
     private func sendReturningResponse(
@@ -221,41 +236,6 @@ public final class Channel: Sendable {
 
 // MARK: - Spec methods
 extension Channel {
-    public func close(replyCode: UInt16 = 0, replyText: String = "") async throws {
-        let method = Spec.Channel.Close(
-            replyCode: replyCode,
-            replyText: replyText,
-            classId: 0,
-            methodId: 0
-        )
-        let frame = try await sendReturningResponse(method: method)
-        precondition(
-            frame?.payload is Spec.Channel.CloseOk,
-            "close expects Spec.Channel.CloseOk but got \(String(describing: frame))"
-        )
-        self.isOpenShadow.store(false, ordering: .releasing)
-    }
-
-    // this is only used on channel0
-    internal func connectionClose(
-        replyCode: UInt16 = 0,
-        replyText: String = "",
-        classId: UInt16 = 0,
-        methodId: UInt16 = 0
-    ) async throws {
-        let method = Spec.Connection.Close(
-            replyCode: replyCode,
-            replyText: replyText,
-            classId: classId,
-            methodId: methodId
-        )
-        let frame = try await sendReturningResponse(method: method)
-        precondition(
-            frame?.payload is Spec.Connection.CloseOk,
-            "close expects Spec.Connection.CloseOk but got \(String(describing: frame))"
-        )
-    }
-
     /// Requests a specific quality of service (QoS) for this `Channel` or for all channels on the `Connection`.
     /// The client can request that messages be sent in advance so that when the client finishes processing a
     /// message, the following message is already held locally, rather than needing to be sent down the channel.
@@ -604,10 +584,43 @@ extension Channel {
     // automatically by the init, calling it again has no effect, but it allows
     // to reopen closed channel
     public func open() async throws {
-        if isOpenShadow.load(ordering: .acquiring) {
+        let res = self.state.compareExchange(expected: .closed, desired: .opening, ordering: .acquiringAndReleasing)
+        if !res.exchanged {
             return
         }
-        try await requestOpen()
-        isOpenShadow.store(true, ordering: .releasing)
+        do {
+            try await requestOpen()
+            self.state.store(.open, ordering: .releasing)
+        } catch {
+            self.state.store(.closed, ordering: .releasing)
+            throw error
+        }
+    }
+
+    public func close(replyCode: UInt16 = 0, replyText: String = "") async throws {
+        let method = Spec.Channel.Close(
+            replyCode: replyCode,
+            replyText: replyText,
+            classId: 0,
+            methodId: 0
+        )
+        let res = self.state.compareExchange(expected: .open, desired: .closing, ordering: .acquiringAndReleasing)
+        if !res.exchanged {  // can only close open channel
+            return
+        }
+        // the state may become inconsistent if this throws, but if it does it is probably a larger problem anyway
+        let promise = try promises.withLockedValue {
+            let promise = try withConnectionUnchecked {
+                $0.send(makeFrame(with: method))
+            }
+            $0.append(promise)
+            return promise
+        }
+        let frame = try await promise.futureResult.get() as? MethodFrame
+        precondition(
+            frame?.payload is Spec.Channel.CloseOk,
+            "close expects Spec.Channel.CloseOk but got \(String(describing: frame))"
+        )
+        self.state.store(.closed, ordering: .releasing)
     }
 }

@@ -43,7 +43,7 @@ private struct ChannelIDs {
 
 // in charge of bookkeeping the channels, allows making them and finding
 // them by id, as well as removing them
-final class ChannelManager: @unchecked Sendable {
+final class ChannelManager: Sendable {
     // channel IDs are assigned starting from 1; channel-id 0 is reserved for
     // connection-level methods and is handled by `Connection` directly.
 
@@ -52,15 +52,22 @@ final class ChannelManager: @unchecked Sendable {
         unowned var channel: Channel
     }
 
-    private let channelsLock = NIOLock()
-    private var channels: [UInt16: ChannelHandle] = [:]
-    private var channelIDs: ChannelIDs
+    fileprivate struct ChannelsAndIDs {
+        var channels: [UInt16: ChannelHandle] = [:]
+        var channelIDs: ChannelIDs
+
+        init(maxID: UInt16) {
+            self.channelIDs = .init(maxID: maxID)
+        }
+    }
+
+    private let channelsAndIds: NIOLockedValueBox<ChannelsAndIDs>
 
     // throws ConnectionError.maxChannelsLimitReached if no more channels can be
     // created (within agreed limits)
     func makeChannel(connection: Connection, maxFrameSize: Int32, logger: Logger) throws -> Channel {
-        let channel: Channel = try channelsLock.withLock {
-            let id = try channelIDs.next()
+        let channel: Channel = try channelsAndIds.withLockedValue {
+            let id = try $0.channelIDs.next()
             let channel = Channel.init(
                 connection: connection,
                 id: id,
@@ -68,37 +75,47 @@ final class ChannelManager: @unchecked Sendable {
                 maxFrameSize: maxFrameSize,
                 manager: self
             )
-            channels[id] = ChannelHandle(channel: channel)
+            $0.channels[id] = ChannelHandle(channel: channel)
             return channel
         }
         return channel
     }
 
     func removeChannel(id: UInt16) {
-        channelsLock.withLock {
-            if channels.removeValue(forKey: id) != nil {
-                channelIDs.remove(id: id)
+        channelsAndIds.withLockedValue {
+            if $0.channels.removeValue(forKey: id) != nil {
+                $0.channelIDs.remove(id: id)
             }
         }
     }
 
     func findChannel(id: UInt16) -> Channel? {
-        return channelsLock.withLock {
-            return channels[id]?.channel
+        return channelsAndIds.withLockedValue {
+            return $0.channels[id]?.channel
         }
     }
 
     func forEach(_ body: (Channel) -> Void) {
-        channelsLock.withLock {
-            for handle in channels.values {
-                body(handle.channel)
+        // ensure channels are owned here, so there is no deadlock
+        // it is possible that closure will hold the last instance of a channel,
+        // that one will call `removeChannel` which will try to acquire a lock
+        // again
+        let channels = channelsAndIds.withLockedValue {
+            var channels = [Channel]()
+            for (_, ch) in $0.channels {
+                let channel = ch.channel
+                channels.append(channel)
             }
+            return channels
+        }
+        for channel in channels {
+            body(channel)
         }
     }
 
     // MARK: - init
 
     init(maxChannels: UInt16 = .max) {
-        self.channelIDs = .init(maxID: maxChannels)
+        self.channelsAndIds = .init(.init(maxID: maxChannels))
     }
 }

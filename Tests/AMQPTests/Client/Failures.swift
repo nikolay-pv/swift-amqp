@@ -47,6 +47,8 @@ import Testing
         ) {
             let _ = try await channel.queueDeclare(named: "test")
         }
+        #expect(!connection.isOpen)
+        #expect(!channel.isOpen)
     }
 
     @Test("Can't use channel after closing it")
@@ -93,7 +95,7 @@ import Testing
         }
         #expect(!connection!.isOpen)
         try await #require(
-            throws: ConnectionError.channelIsClosed
+            throws: ChannelError.channelIsClosed("")
         ) {
             let _ = try await channel!.queueDeclare(named: "test")
         }
@@ -115,7 +117,23 @@ import Testing
                     payload: Spec.Channel.OpenOk()
                 )
             ),
-            .keepAlive,
+            .outbound(
+                MethodFrame(
+                    channelId: 0,
+                    payload: Spec.Connection.Close(
+                        replyCode: 0,
+                        replyText: "",
+                        classId: 0,
+                        methodId: 0
+                    )
+                )
+            ),
+            .inbound(
+                MethodFrame(
+                    channelId: 0,
+                    payload: Spec.Connection.CloseOk()
+                )
+            ),
         ]
         let env = makeTestEnv(
             with: actions,
@@ -137,6 +155,7 @@ import Testing
         }
         // the connection should remain open
         #expect(connection.isOpen)
+        try await connection.close()
     }
 
     @Test("Can recreate more channels within negotiated limit")
@@ -185,7 +204,23 @@ import Testing
                     payload: Spec.Channel.OpenOk()
                 )
             ),
-            .keepAlive,
+            .outbound(
+                MethodFrame(
+                    channelId: 0,
+                    payload: Spec.Connection.Close(
+                        replyCode: 0,
+                        replyText: "",
+                        classId: 0,
+                        methodId: 0
+                    )
+                )
+            ),
+            .inbound(
+                MethodFrame(
+                    channelId: 0,
+                    payload: Spec.Connection.CloseOk()
+                )
+            ),
         ]
         let env = makeTestEnv(
             with: actions,
@@ -203,9 +238,12 @@ import Testing
         }
         #expect(connection.isOpen)
         // create channel again
-        let _ = try await connection.makeChannel()
+        let channel = try await connection.makeChannel()
         // the connection should remain open
+        #expect(channel.isOpen)
         #expect(connection.isOpen)
+        try await connection.close()
+        #expect(!channel.isOpen)
     }
 
     @Test("Can't receive frames larger the agreed frame size limit")
