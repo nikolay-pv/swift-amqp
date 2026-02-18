@@ -1,8 +1,27 @@
+import NIOCore
 import Testing
 
 @testable import AMQP
 
-@Suite struct FramesConformance {
+@Suite struct GeneralFrameFormatConformance {
+    @Test("4.2.3 Can't decode unknown frame types")
+    func unknownFrameType() async throws {
+        var buffer = ByteBuffer.init(repeating: UInt8.zero, count: 4)
+        buffer.setInteger(Spec.frameEnd, at: 3)
+        let unknownType: UInt8 = .max
+        #expect(throws: FramingError.unknownFrameType(unknownType)) {
+            try decodeFrame(type: unknownType, from: buffer)
+        }
+    }
+
+    @Test("4.2.3 Can't decode frame with unknown ending octet")
+    func unknownFrameEnd() async throws {
+        let buffer = ByteBuffer.init(repeating: UInt8.zero, count: 3)
+        // leave last byte as zero (not Spec.frameEnd)
+        #expect(throws: FramingError.invalidFrameEnd) {
+            try decodeFrame(type: Spec.frameMethod, from: buffer)
+        }
+    }
 
     @Test("4.2.3 Can't receive frames larger the agreed frame size limit")
     func errorOnFramesLargerThanAgreed() async throws {

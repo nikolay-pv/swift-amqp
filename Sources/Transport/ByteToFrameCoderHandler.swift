@@ -28,6 +28,8 @@ struct ByteToFrameCoderHandler: ByteToMessageDecoder, MessageToByteEncoder {
             buffer.moveReaderIndex(forwardBy: totalFrameSize)
             context.fireChannelRead(self.wrapInboundOut(frame))
         } catch {
+            // if decoding fails, it's a fatal protocol error communicate upstream to be closed
+            // see also 4.2.3. General Frame Format:
             context.fireErrorCaught(error)
         }
         return .continue

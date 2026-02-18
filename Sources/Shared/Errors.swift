@@ -52,10 +52,13 @@ enum NegotiationError: InternalError {
 }
 
 enum FramingError: InternalError {
-    case fatal(String)
+    case invalidFrameEnd
     case unknownClassAndMethod(class: UInt16, method: UInt16)
     case unknownFrameType(_ type: UInt8)
 }
+
+// for testing
+extension FramingError: Equatable {}
 
 // Soft and Hard errors defined by spec
 protocol ProtocolError: InternalError {}

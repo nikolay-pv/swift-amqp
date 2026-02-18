@@ -83,7 +83,8 @@ final class Transport: TransportProtocol, Sendable {
             await Transport.execute(
                 channel: channel,
                 inboundContinuation: inboundContinuation,
-                outboundFrames: outboundFrames
+                outboundFrames: outboundFrames,
+                logger: logger
             )
         }
     }
@@ -134,7 +135,8 @@ extension Transport {
     private static func execute(
         channel: NIOAsyncChannel<any Frame, any Frame>,
         inboundContinuation: AsyncStream<any Frame>.Continuation,
-        outboundFrames: AsyncStream<any Frame>
+        outboundFrames: AsyncStream<any Frame>,
+        logger: Logger
     ) async {
         do {
             try await withThrowingTaskGroup { group in
@@ -146,8 +148,9 @@ extension Transport {
                                     inboundContinuation.yield(frame)
                                 }
                             } catch {
-                                // the inbound channel has been closed due to an exception (likely stopped iterating),
-                                // propagate this down to consumers
+                                // the inbound channel has been closed due to an error.
+                                // if decoding fails due to invalid frame end or unknown frame type, the client SHOULD write a log message and close the connection (see 4.2.3. General Frame Format)
+                                logger.error("Inbound channel closed with error: \(error)")
                                 inboundContinuation.finish()
                             }
                         }
