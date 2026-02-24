@@ -129,7 +129,7 @@ public enum Spec {
     static let frameEnd: UInt8 = 206
     static let replySuccess = 200
 
-    enum SoftError: Int, Error {
+    enum SoftError: UInt16, Error {
         case contentTooLarge = 311
         case noRoute = 312
         case noConsumers = 313
@@ -139,7 +139,7 @@ public enum Spec {
         case preconditionFailed = 406
     }
 
-    enum HardError: Int, Error {
+    enum HardError: UInt16, Error {
         case connectionForced = 320
         case invalidPath = 402
         case frameError = 501

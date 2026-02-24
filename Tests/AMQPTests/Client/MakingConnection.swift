@@ -29,6 +29,18 @@ import Testing
                     payload: Spec.Channel.OpenOk()
                 )
             ),
+            .outbound(
+                MethodFrame(
+                    channelId: expectedChannelId,
+                    payload: Spec.Channel.Close(replyCode: 0, classId: 0, methodId: 0)
+                )
+            ),
+            .inbound(
+                MethodFrame(
+                    channelId: expectedChannelId,
+                    payload: Spec.Channel.CloseOk()
+                )
+            ),
         ]
         let env = makeTestEnv(with: actions)
         let connection = try? await Connection(with: .default, env: env)
@@ -36,5 +48,8 @@ import Testing
         let channel = try await connection?.makeChannel()
         #expect(channel != nil)
         #expect(channel!.id == expectedChannelId)
+        #expect(channel!.isOpen)
+        try await channel?.close()
+        #expect(!channel!.isOpen)
     }
 }

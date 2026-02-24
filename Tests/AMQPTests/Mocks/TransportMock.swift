@@ -53,6 +53,9 @@ final class TransportMock: TransportProtocol, @unchecked Sendable {
         }
         // save continuation for later use
         self.outboundContinuation = outboundContinuation
+        Task.detached {
+            await self.execute()
+        }
     }
 
     public var negotiatedPropertiesShadow: (Configuration, Spec.Table) = (.default, Spec.Table())
@@ -103,11 +106,17 @@ final class TransportMock: TransportProtocol, @unchecked Sendable {
         isActiveShadow.store(false, ordering: .sequentiallyConsistent)
     }
 
+    func drop() {}
+
+    func stop() {
+        self.inboundContinuation.finish()
+        self.outboundContinuation.finish()
+    }
+
     var isActiveShadow = ManagedAtomic(true)
 
     deinit {
-        outboundContinuation.finish()
-        inboundContinuation.finish()
+        stop()
         var lastUsedIdx = self.lastUsedIdx.load(ordering: .sequentiallyConsistent)
         if let last = actions.last, last.isKeepAlive {
             lastUsedIdx = lastUsedIdx.advanced(by: 1)

@@ -31,6 +31,8 @@ func receiveLogs(withLevel keys: [String]) async throws {
             break
         }
     }
+    try? await channel.close()
+    try? await connection.close()
 }
 
 let consumer = Task {

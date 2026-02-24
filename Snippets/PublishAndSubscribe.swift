@@ -28,6 +28,8 @@ func receiveLogs(_ label: String) async throws {
             break
         }
     }
+    try? await channel.close()
+    try? await connection.close()
 }
 
 let consumer1 = Task {

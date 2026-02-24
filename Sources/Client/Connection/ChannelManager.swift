@@ -43,62 +43,79 @@ private struct ChannelIDs {
 
 // in charge of bookkeeping the channels, allows making them and finding
 // them by id, as well as removing them
-final class ChannelManager: @unchecked Sendable {
-    // channel0 is special and is used for communications before any channel exists
-    // it never explicitly created on the server side (so no requestOpen call is made for it)
-    let channel0: Channel
+final class ChannelManager: Sendable {
+    // channel IDs are assigned starting from 1; channel-id 0 is reserved for
+    // connection-level methods and is handled by `Connection` directly.
 
     struct ChannelHandle {
         // manager shouldn't increase the ref count of Channels, but only keep them in books (channel will call to be removed)
         unowned var channel: Channel
     }
 
-    private let channelsLock = NIOLock()
-    private var channels: [UInt16: ChannelHandle] = [:]
-    private var channelIDs: ChannelIDs
+    fileprivate struct ChannelsAndIDs {
+        var channels: [UInt16: ChannelHandle] = [:]
+        var channelIDs: ChannelIDs
+
+        init(maxID: UInt16) {
+            self.channelIDs = .init(maxID: maxID)
+        }
+    }
+
+    private let channelsAndIds: NIOLockedValueBox<ChannelsAndIDs>
 
     // throws ConnectionError.maxChannelsLimitReached if no more channels can be
     // created (within agreed limits)
-    func makeChannel(transport: TransportProtocol, logger: Logger) throws -> Channel {
-        let channel: Channel = try channelsLock.withLock {
-            let id = try channelIDs.next()
-            let channel = Channel.init(transport: transport, id: id, logger: logger, manager: self)
-            channels[id] = ChannelHandle(channel: channel)
+    func makeChannel(connection: Connection, maxFrameSize: Int32, logger: Logger) throws -> Channel {
+        let channel: Channel = try channelsAndIds.withLockedValue {
+            let id = try $0.channelIDs.next()
+            let channel = Channel.init(
+                connection: connection,
+                id: id,
+                logger: logger,
+                maxFrameSize: maxFrameSize,
+                manager: self
+            )
+            $0.channels[id] = ChannelHandle(channel: channel)
             return channel
         }
         return channel
     }
 
     func removeChannel(id: UInt16) {
-        channelsLock.withLock {
-            if channels.removeValue(forKey: id) != nil {
-                channelIDs.remove(id: id)
+        channelsAndIds.withLockedValue {
+            if $0.channels.removeValue(forKey: id) != nil {
+                $0.channelIDs.remove(id: id)
             }
         }
     }
 
     func findChannel(id: UInt16) -> Channel? {
-        if id == 0 {
-            return channel0
-        }
-        return channelsLock.withLock {
-            return channels[id]?.channel
+        return channelsAndIds.withLockedValue {
+            return $0.channels[id]?.channel
         }
     }
 
     func forEach(_ body: (Channel) -> Void) {
-        channelsLock.withLock {
-            for handle in channels.values {
-                body(handle.channel)
+        // ensure channels are owned here, so there is no deadlock
+        // it is possible that closure will hold the last instance of a channel,
+        // that one will call `removeChannel` which will try to acquire a lock
+        // again
+        let channels = channelsAndIds.withLockedValue {
+            var channels = [Channel]()
+            for (_, ch) in $0.channels {
+                let channel = ch.channel
+                channels.append(channel)
             }
+            return channels
+        }
+        for channel in channels {
+            body(channel)
         }
     }
 
     // MARK: - init
 
-    // initializes the channel0 with given transport and the logger
-    init(transport: TransportProtocol, logger: Logger, maxChannels: UInt16 = .max) {
-        self.channel0 = .init(transport: transport, id: 0, logger: logger)
-        self.channelIDs = .init(maxID: maxChannels)
+    init(maxChannels: UInt16 = .max) {
+        self.channelsAndIds = .init(.init(maxID: maxChannels))
     }
 }

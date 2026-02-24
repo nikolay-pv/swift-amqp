@@ -43,7 +43,7 @@ func decodeFrame(type: UInt8, from data: ByteBuffer) throws -> any Frame {
     precondition(data.count != 0)
     // for errors see 4.2.3 General Frame Format
     if data.readableBytesView.last != Spec.frameEnd {
-        throw FramingError.fatal("Frame doesn't end with the frame-end octet")
+        throw FramingError.invalidFrameEnd
     }
     let decoder: FrameDecoder = .init()
     switch type {
@@ -56,7 +56,7 @@ func decodeFrame(type: UInt8, from data: ByteBuffer) throws -> any Frame {
     case Spec.frameHeartbeat:
         return try decoder.decode(HeartbeatFrame.self, from: data)
     default:
-        throw FramingError.fatal("Unknown frame type \(type) to decode")
+        throw FramingError.unknownFrameType(type)
     }
 }
 
@@ -176,7 +176,8 @@ extension HeartbeatFrame: Frame {
         precondition(wireType == Spec.frameHeartbeat)
         let wireChannelId = try decoder.decode(UInt16.self)
         if wireChannelId != 0 {
-            throw Spec.HardError.frameError
+            // Heartbeat doesn't have class or method ids
+            throw FramingError.unexpectedNonzeroChannelId(class: 0, method: 0)
         }
         let expectedSize = try decoder.decode(UInt32.self)
         precondition(expectedSize == 0)
