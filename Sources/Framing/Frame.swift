@@ -176,7 +176,8 @@ extension HeartbeatFrame: Frame {
         precondition(wireType == Spec.frameHeartbeat)
         let wireChannelId = try decoder.decode(UInt16.self)
         if wireChannelId != 0 {
-            throw Spec.HardError.frameError
+            // Heartbeat doesn't have class or method ids
+            throw FramingError.unexpectedNonzeroChannelId(class: 0, method: 0)
         }
         let expectedSize = try decoder.decode(UInt32.self)
         precondition(expectedSize == 0)

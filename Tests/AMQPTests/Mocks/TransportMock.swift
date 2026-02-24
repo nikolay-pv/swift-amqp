@@ -106,6 +106,8 @@ final class TransportMock: TransportProtocol, @unchecked Sendable {
         isActiveShadow.store(false, ordering: .sequentiallyConsistent)
     }
 
+    func drop() {}
+
     func stop() {
         self.inboundContinuation.finish()
         self.outboundContinuation.finish()

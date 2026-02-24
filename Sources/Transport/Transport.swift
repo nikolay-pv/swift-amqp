@@ -170,10 +170,14 @@ extension Transport {
         }
     }
 
+    func drop() {
+        try? self.asyncNIOChannel.channel.close().wait()
+    }
+
     func stop() {
         self.outboundContinuation.withLockedValue { $0.finish() }
         self.inboundContinuation.finish()
-        try? self.asyncNIOChannel.channel.close().wait()
+        drop()
         self.asyncNIOChannelExecutor.cancel()
     }
 }

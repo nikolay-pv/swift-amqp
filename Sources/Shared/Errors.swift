@@ -55,6 +55,7 @@ enum FramingError: InternalError {
     case invalidFrameEnd
     case unknownClassAndMethod(class: UInt16, method: UInt16)
     case unknownFrameType(_ type: UInt8)
+    case unexpectedNonzeroChannelId(class: UInt16, method: UInt16)
 }
 
 // for testing
