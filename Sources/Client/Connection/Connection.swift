@@ -163,16 +163,19 @@ extension Connection {
         precondition(frame.channelId == 0, "dispatch0 called with non-zero channel id")
         precondition(frame is MethodFrame, "Unexpected frame type in channel 0: \(type(of: frame))")
         if frame.isPayload(of: Spec.Connection.CloseOk.self) {
-            self.closingPromise.withLockedValue {
-                $0?.succeed(frame)
-                // reset the fulfilled promise so it is not used again
-                $0 = nil
-            }
+            // first propagate any connection error to channels and set final state
             let error = self.closingError.withLockedValue { $0 }
             self.channels.forEach {
                 $0.handleConnectionError(error)
             }
             self.state.store(.closed, ordering: .releasing)
+            // then fulfill the closing promise so callers waiting on closeHandshake
+            // observe that connection and channels are already closed
+            self.closingPromise.withLockedValue {
+                $0?.succeed(frame)
+                // reset the fulfilled promise so it is not used again
+                $0 = nil
+            }
             return
         }
         if let payload = frame.unwrapPayload(as: Spec.Connection.Close.self) {
