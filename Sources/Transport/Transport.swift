@@ -42,38 +42,45 @@ final class Transport: TransportProtocol, Sendable {
         self.inboundContinuation = inboundContinuation
         let negotiationComplete = eventLoopGroup.any()
             .makePromise(of: (Configuration, Spec.Table).self)
-        let channel = try await ClientBootstrap(group: eventLoopGroup)
-            .connect(host: host, port: port) { channel in
-                return channel.eventLoop.makeCompletedFuture {
-                    try channel.pipeline.syncOperations.addHandler(
-                        ByteToMessageHandler(ByteToFrameCoderHandler())
-                    )
-                    try channel.pipeline.syncOperations.addHandler(
-                        MessageToByteHandler(ByteToFrameCoderHandler())
-                    )
-                    #if DebugNIOEventHandlers
+        let channel: NIOAsyncChannel<TransportEvent, any Frame>
+        do {
+            channel = try await ClientBootstrap(group: eventLoopGroup)
+                .connect(host: host, port: port) { channel in
+                    return channel.eventLoop.makeCompletedFuture {
                         try channel.pipeline.syncOperations.addHandler(
-                            DebugOutboundEventsHandler { event, _ in
-                                logger.debug("\(event)")
-                            }
+                            ByteToMessageHandler(ByteToFrameCoderHandler())
                         )
                         try channel.pipeline.syncOperations.addHandler(
-                            DebugInboundEventsHandler { event, _ in logger.debug("\(event)")
-                            }
+                            MessageToByteHandler(ByteToFrameCoderHandler())
                         )
-                    #endif  // DebugNIOEventHandlers
-                    try channel.pipeline.syncOperations.addHandler(
-                        AMQPNegotiationHandler(
-                            negotiator: negotiatorFactory(),
-                            done: negotiationComplete
-                        ),
-                        name: AMQPNegotiationHandler.handlerName
-                    )
-                    return try NIOAsyncChannel<TransportEvent, any Frame>(
-                        wrappingChannelSynchronously: channel
-                    )
+                        #if DebugNIOEventHandlers
+                            try channel.pipeline.syncOperations.addHandler(
+                                DebugOutboundEventsHandler { event, _ in
+                                    logger.debug("\(event)")
+                                }
+                            )
+                            try channel.pipeline.syncOperations.addHandler(
+                                DebugInboundEventsHandler { event, _ in logger.debug("\(event)")
+                                }
+                            )
+                        #endif  // DebugNIOEventHandlers
+                        try channel.pipeline.syncOperations.addHandler(
+                            AMQPNegotiationHandler(
+                                negotiator: negotiatorFactory(),
+                                done: negotiationComplete
+                            ),
+                            name: AMQPNegotiationHandler.handlerName
+                        )
+                        return try NIOAsyncChannel<TransportEvent, any Frame>(
+                            wrappingChannelSynchronously: channel
+                        )
+                    }
                 }
-            }
+        } catch {
+            negotiationComplete.fail(error)
+            try? await self.eventLoopGroup.shutdownGracefully()
+            throw error
+        }
         self.asyncNIOChannel = channel
         var negotiationResult = try await negotiationComplete.futureResult.get()
         // for security reasons reset credentials after negotiation
