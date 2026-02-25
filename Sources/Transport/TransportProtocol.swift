@@ -6,7 +6,7 @@ protocol TransportProtocol: Sendable, AnyObject {
         host: String,
         port: Int,
         logger: Logger,
-        inboundContinuation: AsyncStream<any Frame>.Continuation,
+        inboundContinuation: AsyncStream<TransportEvent>.Continuation,
         negotiatorFactory: @escaping @Sendable () -> any AMQPNegotiationDelegateProtocol
     ) async throws
 

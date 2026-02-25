@@ -135,6 +135,11 @@ extension MethodFrame: Frame {
         let expectedSize = try decoder.decode(UInt32.self)
         let classId = try decoder.decode(UInt16.self)
         let methodId = try decoder.decode(UInt16.self)
+        // as per 4.2.3 General Frame Format: method frames that refer to the
+        // Connection class MUST have channel == 0
+        if channelId != 0 && classId == Spec.Connection().amqpClassId {
+            throw FramingError.unexpectedNonzeroChannelId(class: classId, method: methodId)
+        }
         let factory = try Spec.makeFactory(with: classId, and: methodId)
         payload = try factory(decoder)
 

@@ -2,9 +2,9 @@ import NIOCore
 
 struct ByteToFrameCoderHandler: ByteToMessageDecoder, MessageToByteEncoder {
     // MARK: - ByteToMessageDecoder
-    typealias InboundOut = Frame
+    typealias InboundOut = TransportEvent
 
-    mutating func decode(context: ChannelHandlerContext, buffer: inout ByteBuffer) throws
+    mutating func decode(context: ChannelHandlerContext, buffer: inout ByteBuffer)
         -> DecodingState
     {
         let startIdx = buffer.readerIndex
@@ -26,8 +26,11 @@ struct ByteToFrameCoderHandler: ByteToMessageDecoder, MessageToByteEncoder {
             let data = buffer.getSlice(at: buffer.readerIndex, length: totalFrameSize)!
             let frame = try decodeFrame(type: type, from: data)
             buffer.moveReaderIndex(forwardBy: totalFrameSize)
-            context.fireChannelRead(self.wrapInboundOut(frame))
+            context.fireChannelRead(self.wrapInboundOut(.frame(frame)))
+        } catch let error as FramingError {
+            context.fireChannelRead(self.wrapInboundOut(.error(error)))
         } catch {
+            // unexpected error, just propagate it
             context.fireErrorCaught(error)
         }
         return .continue

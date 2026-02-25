@@ -15,9 +15,9 @@ extension NIOLockedValueBox where Value == NIODeadline {
 // connection should be closed without any handshake
 // it is Sendable because it is capturing itself in the timer handler
 final class AMQPHeartbeatHandler: ChannelDuplexHandler, Sendable {
-    typealias InboundIn = Frame
+    typealias InboundIn = TransportEvent
     typealias OutboundIn = Frame
-    typealias InboundOut = Frame
+    typealias InboundOut = TransportEvent
     typealias OutboundOut = Frame
 
     let maxInterval: TimeAmount
@@ -83,7 +83,9 @@ final class AMQPHeartbeatHandler: ChannelDuplexHandler, Sendable {
 
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         self.lastInboundActivity.setToNow()
-        if unwrapInboundIn(data) as? HeartbeatFrame != nil {
+        if case .frame(let frame) = unwrapInboundIn(data),
+            frame is HeartbeatFrame
+        {
             // consume the frame
             return
         }

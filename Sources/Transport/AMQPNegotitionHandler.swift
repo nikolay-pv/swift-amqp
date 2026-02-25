@@ -6,7 +6,7 @@ import NIOCore
 final class AMQPNegotiationHandler: ChannelInboundHandler,
     RemovableChannelHandler
 {
-    typealias InboundIn = Frame
+    typealias InboundIn = TransportEvent
     typealias OutboundOut = Frame
 
     // used to remove the handler from the pipeline when negotiation completes
@@ -69,7 +69,9 @@ final class AMQPNegotiationHandler: ChannelInboundHandler,
     }
 
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
-        guard let frame = unwrapInboundIn(data) as? MethodFrame else {
+        guard case .frame(let frame) = unwrapInboundIn(data),
+            let frame = frame as? MethodFrame
+        else {
             context.fireErrorCaught(NegotiationError.unexpectedMethod)
             return
         }

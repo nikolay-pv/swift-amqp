@@ -75,7 +75,7 @@ public final class Connection: Sendable {
         let properties = defaultProperties.merging(properties) { _, new in new }
 
         // create inbound AsyncStream
-        var inboundContinuation: AsyncStream<any Frame>.Continuation?
+        var inboundContinuation: AsyncStream<TransportEvent>.Continuation?
         let inboundFrames = AsyncStream { continuation in
             inboundContinuation = continuation
         }
@@ -114,20 +114,40 @@ public final class Connection: Sendable {
     }
 
     static func routingLoop(
-        inboundFrames: AsyncStream<any Frame>,
+        inboundFrames: AsyncStream<TransportEvent>,
         channels: ChannelManager,
         connection: Connection
     ) async {
-        for await frame in inboundFrames {
-            guard frame.channelId == 0 else {
+        for await event in inboundFrames {
+            if case .error(let error) = event {
+                guard case .unexpectedNonzeroChannelId(let classId, let methodId) = error else {
+                    // if decoding fails due to invalid frame end or unknown
+                    // frame type, the client SHOULD write a log message and
+                    // close the connection (see 4.2.3. General Frame Format)
+                    connection.logger.error("Breaking TCP connection due to framing error: \(error)")
+                    connection.drop()
+                    break  // stop processing any further frames
+                }
+                // if the channel id is non-zero, the connection should be closed with an error
+                connection.initiateClose(
+                    replyCode: Spec.HardError.commandInvalid.rawValue,
+                    replyText: "",
+                    classId: classId,
+                    methodId: methodId
+                )
+                continue  // process incoming frames until broker returns CloseOK
+            } else if case .frame(let frame) = event {
+                guard frame.channelId != 0 else {
+                    // channel of 0 can only be Close or CloseOk, so no need to continue messages
+                    connection.dispatch(frame)
+                    break  // stop processing any further frames
+                }
                 guard let channel = channels.findChannel(id: frame.channelId) else {
                     preconditionFailure("Received frame for non-existing channel \(frame.channelId)")
                 }
                 channel.dispatch(frame: frame)
                 continue
             }
-            connection.dispatch(frame)
-            break  // stop processing any further frames
         }
     }
 
@@ -199,6 +219,12 @@ extension Connection {
             return
         }
         fatalError("unreachable: in Connection.dispatch with frame \(frame)")
+    }
+
+    // drops connection immediately without a handshake, used to react to fatal protocol violations
+    private func drop() {
+        self.state.store(.closed, ordering: .releasing)
+        self.transport.drop()
     }
 
     // does nothing if the state is not .open or if transport is not active

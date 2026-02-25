@@ -11,11 +11,12 @@ final class TransportMock: TransportProtocol, @unchecked Sendable {
 
     enum Action {
         case inbound(any Frame)
+        case inboundError(FramingError)
         case outbound(any Frame)
-        case keepAlive  // no-op action to make sure transport is not closed
+        case connectionDrop
 
-        var isKeepAlive: Bool {
-            if case .keepAlive = self {
+        var isConnectionDrop: Bool {
+            if case .connectionDrop = self {
                 return true
             }
             return false
@@ -25,10 +26,11 @@ final class TransportMock: TransportProtocol, @unchecked Sendable {
     private let eventLoop: EventLoop = MultiThreadedEventLoopGroup(numberOfThreads: 1).next()
     private let outboundContinuation: AsyncStream<any Frame>.Continuation
     private let outboundFrames: AsyncStream<any Frame>
-    private let inboundContinuation: AsyncStream<any Frame>.Continuation
+    private let inboundContinuation: AsyncStream<TransportEvent>.Continuation
     // Warning: the following variable is not Sendable
     private(set) var actions: [Action] = .init()
     private(set) var lastUsedIdx: ManagedAtomic<[Action].Index> = .init(0)
+    private(set) var connectionWasDropped: ManagedAtomic<Int> = .init(0)
 
     func expecting(sequenceOf actions: [Action]) {
         self.actions = actions
@@ -40,7 +42,7 @@ final class TransportMock: TransportProtocol, @unchecked Sendable {
         host: String,
         port: Int,
         logger: Logger,
-        inboundContinuation: AsyncStream<any AMQP.Frame>.Continuation,
+        inboundContinuation: AsyncStream<TransportEvent>.Continuation,
         negotiatorFactory: @escaping () -> any AMQPNegotiationDelegateProtocol
     ) async throws {
         self.inboundContinuation = inboundContinuation
@@ -72,11 +74,20 @@ final class TransportMock: TransportProtocol, @unchecked Sendable {
     func sendInboundActionsStarting(from idx: Int) -> Int {
         var idx = idx
         while idx < actions.endIndex {
-            guard case .inbound(let frame) = actions[idx] else {
+            switch actions[idx] {
+            case .inbound(let frame):
+                self.inboundContinuation.yield(.frame(frame))
+                idx = idx.advanced(by: 1)
+                continue
+            case .inboundError(let error):
+                self.inboundContinuation.yield(.error(error))
+                idx = idx.advanced(by: 1)
+            case .connectionDrop:
+                idx = idx.advanced(by: 1)
+            default:
                 break
             }
-            self.inboundContinuation.yield(frame)
-            idx = idx.advanced(by: 1)
+            break
         }
         return idx
     }
@@ -87,14 +98,17 @@ final class TransportMock: TransportProtocol, @unchecked Sendable {
         if idx == actions.endIndex {
             return
         }
+        lastUsedIdx.store(idx, ordering: .sequentiallyConsistent)
         for try await testedFrame in self.outboundFrames {
             switch actions[idx] {
             case .inbound(let frame):
-                self.inboundContinuation.yield(frame)
+                #expect(Bool(false), "Unexpected inbound frame \(frame) at index \(idx)")
+            case .inboundError(let error):
+                #expect(Bool(false), "Unexpected inbound error \(error) at index \(idx)")
             case .outbound(let expectedFrame):
                 #expect(testedFrame.isEqual(to: expectedFrame))
-            case .keepAlive:
-                #expect(Bool(false), "keepAlive action should not be matched on outbound frame")
+            case .connectionDrop:
+                #expect(Bool(false), "Unexpected connection drop at index \(idx)")
             }
             idx = idx.advanced(by: 1)
             idx = sendInboundActionsStarting(from: idx)
@@ -106,7 +120,9 @@ final class TransportMock: TransportProtocol, @unchecked Sendable {
         isActiveShadow.store(false, ordering: .sequentiallyConsistent)
     }
 
-    func drop() {}
+    func drop() {
+        connectionWasDropped.wrappingIncrement(by: 1, ordering: .acquiringAndReleasing)
+    }
 
     func stop() {
         self.inboundContinuation.finish()
@@ -118,8 +134,14 @@ final class TransportMock: TransportProtocol, @unchecked Sendable {
     deinit {
         stop()
         var lastUsedIdx = self.lastUsedIdx.load(ordering: .sequentiallyConsistent)
-        if let last = actions.last, last.isKeepAlive {
+        if lastUsedIdx < actions.endIndex && actions[lastUsedIdx].isConnectionDrop {
             lastUsedIdx = lastUsedIdx.advanced(by: 1)
+        }
+        if actions.contains(where: { $0.isConnectionDrop }) {
+            #expect(
+                connectionWasDropped.load(ordering: .sequentiallyConsistent) == 1,
+                "Expect connection drop be called once"
+            )
         }
         #expect(
             lastUsedIdx == actions.endIndex,
