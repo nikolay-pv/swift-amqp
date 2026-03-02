@@ -171,4 +171,93 @@ import Testing
         }
         #expect(!connection.isOpen)
     }
+
+    @Test("4.2.7 Heartbeat frames MUST have channel 0")
+    func heartbeatMustHaveZeroChannel() async throws {
+        let heartbeat = HeartbeatFrame()
+        var buffer = try? heartbeat.asData()
+        #expect(buffer != nil)
+        buffer!.setInteger(UInt16(1), at: 1)  // set non-zero channel
+        #expect(throws: FramingError.unexpectedNonzeroChannelId(class: 0, method: 0)) {
+            try decodeFrame(type: Spec.frameHeartbeat, from: buffer!)
+        }
+    }
+
+    @Test("4.2.3 Method frames that refer to Connection class MUST be on channel 0")
+    func methodFrameConnectionClassMustBeOnChannelZero() async throws {
+        let methods: [any AMQPMethodProtocol & FrameCodable] = [
+            AMQP.Spec.Connection.Start(serverProperties: [:]),
+            AMQP.Spec.Connection.StartOk(clientProperties: [:], mechanism: "PLAIN", response: ""),
+            AMQP.Spec.Connection.Secure(challenge: ""),
+            AMQP.Spec.Connection.SecureOk(response: ""),
+            AMQP.Spec.Connection.Tune(channelMax: 0, frameMax: 0, heartbeat: 0),
+            AMQP.Spec.Connection.TuneOk(channelMax: 0, frameMax: 0, heartbeat: 0),
+            AMQP.Spec.Connection.Open(),
+            AMQP.Spec.Connection.OpenOk(),
+            AMQP.Spec.Connection.Close(replyCode: 0, replyText: "", classId: 0, methodId: 0),
+            AMQP.Spec.Connection.CloseOk(),
+            AMQP.Spec.Connection.Blocked(),
+            AMQP.Spec.Connection.Unblocked(),
+            AMQP.Spec.Connection.UpdateSecret(newSecret: "", reason: ""),
+            AMQP.Spec.Connection.UpdateSecretOk(),
+        ]
+        for (i, method) in methods.enumerated() {
+            let buffer = try? MethodFrame(channelId: UInt16(i) + 1, payload: method).asData()
+            #expect(buffer != nil)
+            #expect(
+                throws: FramingError.unexpectedNonzeroChannelId(class: method.amqpClassId, method: method.amqpMethodId)
+            ) {
+                try decodeFrame(type: Spec.frameMethod, from: buffer!)
+            }
+        }
+    }
+
+    @Test("4.2.3 Connection-class frames with non-zero channel cause Close(503)")
+    func connectionClassFrameNonZeroChannelTriggersClose() async throws {
+        let actions: [TransportMock.Action] = [
+            .inboundError(FramingError.unexpectedNonzeroChannelId(class: 10, method: 51)),
+            .outbound(
+                MethodFrame(
+                    channelId: 0,
+                    payload: AMQP.Spec.Connection.Close(
+                        replyCode: AMQP.Spec.HardError.commandInvalid.rawValue,
+                        replyText: "",
+                        classId: 10,
+                        methodId: 51
+                    )
+                )
+            ),
+            .inbound(
+                MethodFrame(
+                    channelId: 0,
+                    payload: AMQP.Spec.Connection.CloseOk()
+                )
+            ),
+        ]
+        let env = makeTestEnv(with: actions)
+        let connection = try await Connection(with: .default, env: env)
+        try await Task.sleep(for: .milliseconds(100))  // wait for the connection to process the error and react
+
+        #expect(!connection.isOpen)
+    }
+
+    @Test(
+        "4.2.3 Connection-class frames with non-zero channel cause Close(503)",
+        arguments: [
+            FramingError.unknownClassAndMethod(class: 10, method: 51),
+            .unknownFrameType(100),
+            .invalidFrameEnd,
+        ]
+    )
+    func frameEndAndUnknownFrameTypesCauseClose(error: FramingError) async throws {
+        let actions: [TransportMock.Action] = [
+            .inboundError(error),
+            .connectionDrop,
+        ]
+        let env = makeTestEnv(with: actions)
+        let connection = try await Connection(with: .default, env: env)
+        try await Task.sleep(for: .milliseconds(100))  // wait for the connection to process the error and react
+
+        #expect(!connection.isOpen)
+    }
 }

@@ -6,7 +6,7 @@ struct Environment: Sendable {
 
     typealias TransportFactoryT =
         @Sendable (
-            String, Int, Logger, AsyncStream<any Frame>.Continuation,
+            String, Int, Logger, AsyncStream<TransportEvent>.Continuation,
             @escaping @Sendable () -> any AMQPNegotiationDelegateProtocol
         ) async throws -> any TransportProtocol & Sendable
 

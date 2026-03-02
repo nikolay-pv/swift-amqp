@@ -10,11 +10,11 @@ import Testing
 )
 func stopTransport() async throws {
     let config = Configuration.default
-    var inboundContinuation: AsyncStream<any Frame>.Continuation?
+    var inboundContinuation: AsyncStream<TransportEvent>.Continuation?
     let incomingFrames = AsyncStream { continuation in
         inboundContinuation = continuation
     }
-    #expect(inboundContinuation != nil, "AsyncStream can be constructed")
+    #expect(inboundContinuation != nil, "AsyncThrowingStream can be constructed")
     let transport = try await Transport(
         host: config.host,
         port: config.port,

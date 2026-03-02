@@ -10,19 +10,19 @@ import NIOPosix
 
 final class Transport: TransportProtocol, Sendable {
     private let eventLoopGroup: MultiThreadedEventLoopGroup
-    private let asyncNIOChannel: NIOAsyncChannel<any Frame, any Frame>
+    private let asyncNIOChannel: NIOAsyncChannel<TransportEvent, any Frame>
     private let asyncNIOChannelExecutor: Task<Void, Never>
 
     // reason for lock: need to ensure that several frames are yielded together
     private let outboundContinuation: NIOLockedValueBox<AsyncStream<any Frame>.Continuation>
-    private let inboundContinuation: AsyncStream<any Frame>.Continuation
+    private let inboundContinuation: AsyncStream<TransportEvent>.Continuation
     let negotiatedProperties: (Configuration, Spec.Table)
 
     init(
         host: String = "localhost",
         port: Int = 5672,
         logger: Logger,
-        inboundContinuation: AsyncStream<any Frame>.Continuation,
+        inboundContinuation: AsyncStream<TransportEvent>.Continuation,
         negotiatorFactory: @escaping @Sendable () -> any AMQPNegotiationDelegateProtocol
     ) async throws {
         // one event loop per connection
@@ -42,38 +42,45 @@ final class Transport: TransportProtocol, Sendable {
         self.inboundContinuation = inboundContinuation
         let negotiationComplete = eventLoopGroup.any()
             .makePromise(of: (Configuration, Spec.Table).self)
-        let channel = try await ClientBootstrap(group: eventLoopGroup)
-            .connect(host: host, port: port) { channel in
-                return channel.eventLoop.makeCompletedFuture {
-                    try channel.pipeline.syncOperations.addHandler(
-                        ByteToMessageHandler(ByteToFrameCoderHandler())
-                    )
-                    try channel.pipeline.syncOperations.addHandler(
-                        MessageToByteHandler(ByteToFrameCoderHandler())
-                    )
-                    #if DebugNIOEventHandlers
+        let channel: NIOAsyncChannel<TransportEvent, any Frame>
+        do {
+            channel = try await ClientBootstrap(group: eventLoopGroup)
+                .connect(host: host, port: port) { channel in
+                    return channel.eventLoop.makeCompletedFuture {
                         try channel.pipeline.syncOperations.addHandler(
-                            DebugOutboundEventsHandler { event, _ in
-                                logger.debug("\(event)")
-                            }
+                            ByteToMessageHandler(ByteToFrameCoderHandler())
                         )
                         try channel.pipeline.syncOperations.addHandler(
-                            DebugInboundEventsHandler { event, _ in logger.debug("\(event)")
-                            }
+                            MessageToByteHandler(ByteToFrameCoderHandler())
                         )
-                    #endif  // DebugNIOEventHandlers
-                    try channel.pipeline.syncOperations.addHandler(
-                        AMQPNegotiationHandler(
-                            negotiator: negotiatorFactory(),
-                            done: negotiationComplete
-                        ),
-                        name: AMQPNegotiationHandler.handlerName
-                    )
-                    return try NIOAsyncChannel<any Frame, any Frame>(
-                        wrappingChannelSynchronously: channel
-                    )
+                        #if DebugNIOEventHandlers
+                            try channel.pipeline.syncOperations.addHandler(
+                                DebugOutboundEventsHandler { event, _ in
+                                    logger.debug("\(event)")
+                                }
+                            )
+                            try channel.pipeline.syncOperations.addHandler(
+                                DebugInboundEventsHandler { event, _ in logger.debug("\(event)")
+                                }
+                            )
+                        #endif  // DebugNIOEventHandlers
+                        try channel.pipeline.syncOperations.addHandler(
+                            AMQPNegotiationHandler(
+                                negotiator: negotiatorFactory(),
+                                done: negotiationComplete
+                            ),
+                            name: AMQPNegotiationHandler.handlerName
+                        )
+                        return try NIOAsyncChannel<TransportEvent, any Frame>(
+                            wrappingChannelSynchronously: channel
+                        )
+                    }
                 }
-            }
+        } catch {
+            negotiationComplete.fail(error)
+            try? await self.eventLoopGroup.shutdownGracefully()
+            throw error
+        }
         self.asyncNIOChannel = channel
         var negotiationResult = try await negotiationComplete.futureResult.get()
         // for security reasons reset credentials after negotiation
@@ -133,8 +140,8 @@ extension Transport {
 
     /// Receives and sends out frames as they come through the AsyncStream's passed on construction of the object
     private static func execute(
-        channel: NIOAsyncChannel<any Frame, any Frame>,
-        inboundContinuation: AsyncStream<any Frame>.Continuation,
+        channel: NIOAsyncChannel<TransportEvent, any Frame>,
+        inboundContinuation: AsyncStream<TransportEvent>.Continuation,
         outboundFrames: AsyncStream<any Frame>,
         logger: Logger
     ) async {
@@ -148,10 +155,9 @@ extension Transport {
                                     inboundContinuation.yield(frame)
                                 }
                             } catch {
-                                // the inbound channel has been closed due to an error.
-                                // if decoding fails due to invalid frame end or unknown frame type, the client SHOULD write a log message and close the connection (see 4.2.3. General Frame Format)
-                                logger.error("Inbound channel closed with error: \(error)")
-                                inboundContinuation.finish()
+                                // the channel has been closed due to an exception (likely stopped iterating)
+                                // swallow the error as there is nobody to notify this about
+                                // because this means that owning Channel has been stopped / closed
                             }
                         }
                         do {

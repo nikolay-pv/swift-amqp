@@ -12,9 +12,9 @@ enum ConnectionError: Error {
     static func wrap(hardError: HardError) -> ConnectionError {
         switch hardError {
         case .broker(let code, let replyText, classId: _, methodId: _):
-            return Self.connectionIsClosed("by broker: \(code) \(replyText)")
+            return Self.connectionIsClosed("by broker: \(code)\(replyText.isEmpty ? "" : " ")\(replyText)")
         case .client(let code, let replyText, classId: _, methodId: _):
-            return Self.connectionIsClosed("by client: \(code) \(replyText)")
+            return Self.connectionIsClosed("by client: \(code)\(replyText.isEmpty ? "" : " ")\(replyText)")
         }
     }
 }
@@ -28,9 +28,9 @@ enum ChannelError: Error {
     static func wrap(softError: SoftError) -> ChannelError {
         switch softError {
         case .broker(let code, let replyText, classId: _, methodId: _):
-            return Self.channelIsClosed("by broker: \(code) \(replyText)")
+            return Self.channelIsClosed("by broker: \(code)\(replyText.isEmpty ? "" : " ")\(replyText)")
         case .client(let code, let replyText, classId: _, methodId: _):
-            return Self.channelIsClosed("by client: \(code) \(replyText)")
+            return Self.channelIsClosed("by client: \(code)\(replyText.isEmpty ? "" : " ")\(replyText)")
         }
     }
 }
