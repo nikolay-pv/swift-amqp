@@ -174,17 +174,8 @@ extension Connection {
         self.transport.send(frame)
     }
 
-    // same as send(_ frame: Frame) but for multiple frames
-    func send(_ frames: [any Frame]) -> EventLoopPromise<any Frame> {
-        self.transport.send(frames)
-    }
-
     func sendAsync(_ frame: any Frame) {
         self.transport.sendAsync(frame)
-    }
-
-    func sendAsync(_ frames: [any Frame]) {
-        self.transport.sendAsync(frames)
     }
 }
 

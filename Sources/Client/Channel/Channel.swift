@@ -510,13 +510,13 @@ extension Channel {
             bodySize: UInt64(body.utf8.count),
             properties: properties
         )
-        var framesToPublish: [any Frame] = [frame, contentHeaderFrame]
+        var pack = ContentFramesPack(header: contentHeaderFrame, bodyFragments: [])
         if body.utf8.count > self.maxFragmentSize {
             forEachChunk(
                 of: body.utf8,
                 maxChunkSize: Int(self.maxFragmentSize),
                 perform: {
-                    framesToPublish.append(
+                    pack.bodyFragments.append(
                         ContentBodyFrame(
                             channelId: self.id,
                             fragment: .init($0)
@@ -525,7 +525,7 @@ extension Channel {
                 }
             )
         } else {
-            framesToPublish.append(
+            pack.bodyFragments.append(
                 ContentBodyFrame(
                     channelId: self.id,
                     fragment: .init(body.utf8)
@@ -533,7 +533,8 @@ extension Channel {
             )
         }
         try withConnection {
-            $0.sendAsync(framesToPublish)
+            $0.sendAsync(frame)
+            $0.sendAsync(pack)
         }
     }
 

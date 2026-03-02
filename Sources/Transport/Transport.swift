@@ -13,8 +13,7 @@ final class Transport: TransportProtocol, Sendable {
     private let asyncNIOChannel: NIOAsyncChannel<TransportEvent, any Frame>
     private let asyncNIOChannelExecutor: Task<Void, Never>
 
-    // reason for lock: need to ensure that several frames are yielded together
-    private let outboundContinuation: NIOLockedValueBox<AsyncStream<any Frame>.Continuation>
+    private let outboundContinuation: AsyncStream<any Frame>.Continuation
     private let inboundContinuation: AsyncStream<TransportEvent>.Continuation
     let negotiatedProperties: (Configuration, Spec.Table)
 
@@ -37,7 +36,7 @@ final class Transport: TransportProtocol, Sendable {
             fatalError("Couldn't create outbound AsyncStream")
         }
         // save continuation for later use
-        self.outboundContinuation = .init(outboundContinuation)
+        self.outboundContinuation = outboundContinuation
 
         self.inboundContinuation = inboundContinuation
         let negotiationComplete = eventLoopGroup.any()
@@ -111,31 +110,12 @@ extension Transport {
     // the caller is responsible for making sure that the `Transport.isActive`
     func send(_ frame: any Frame) -> EventLoopPromise<any Frame> {
         let promise = eventLoopGroup.any().makePromise(of: (any Frame).self)
-        outboundContinuation.withLockedValue { _ = $0.yield(frame) }
-        return promise
-    }
-
-    // same as send(_ frame: Frame) but for multiple frames
-    func send(_ frames: [any Frame]) -> EventLoopPromise<any Frame> {
-        let promise = eventLoopGroup.any().makePromise(of: (any Frame).self)
-        outboundContinuation.withLockedValue { continuation in
-            frames.forEach {
-                continuation.yield($0)
-            }
-        }
+        outboundContinuation.yield(frame)
         return promise
     }
 
     func sendAsync(_ frame: any Frame) {
-        outboundContinuation.withLockedValue { _ = $0.yield(frame) }
-    }
-
-    func sendAsync(_ frames: [any Frame]) {
-        outboundContinuation.withLockedValue { continuation in
-            frames.forEach {
-                continuation.yield($0)
-            }
-        }
+        outboundContinuation.yield(frame)
     }
 
     /// Receives and sends out frames as they come through the AsyncStream's passed on construction of the object
@@ -181,7 +161,7 @@ extension Transport {
     }
 
     func stop() {
-        self.outboundContinuation.withLockedValue { $0.finish() }
+        self.outboundContinuation.finish()
         self.inboundContinuation.finish()
         drop()
         self.asyncNIOChannelExecutor.cancel()

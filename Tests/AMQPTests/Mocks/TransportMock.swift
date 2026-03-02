@@ -161,21 +161,7 @@ extension TransportMock {
         return promise
     }
 
-    func send(_ frames: [any AMQP.Frame]) -> NIOCore.EventLoopPromise<any AMQP.Frame> {
-        let promise = eventLoop.makePromise(of: (any Frame).self)
-        frames.forEach {
-            outboundContinuation.yield($0)
-        }
-        return promise
-    }
-
     func sendAsync(_ frame: any AMQP.Frame) {
         outboundContinuation.yield(frame)
-    }
-
-    func sendAsync(_ frames: [any AMQP.Frame]) {
-        frames.forEach {
-            outboundContinuation.yield($0)
-        }
     }
 }
