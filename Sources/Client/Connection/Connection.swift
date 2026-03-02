@@ -186,7 +186,7 @@ extension Connection {
             // first propagate any connection error to channels and set final state
             let error = self.closingError.withLockedValue { $0 }
             self.channels.forEach {
-                $0.handleConnectionError(error)
+                $0.handleConnectionCloseOk(error)
             }
             self.state.store(.closed, ordering: .releasing)
             // then fulfill the closing promise so callers waiting on closeHandshake

@@ -228,7 +228,7 @@ public final class Channel: Sendable {
         return MethodFrame(channelId: id, payload: method)
     }
 
-    internal func handleConnectionError(_ error: ConnectionError?) {
+    internal func handleConnectionCloseOk(_ error: ConnectionError?) {
         let promises = promises.withLockedValue {
             let current = $0
             $0.removeAll()
