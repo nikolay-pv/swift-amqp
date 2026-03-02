@@ -118,24 +118,34 @@ public final class Connection: Sendable {
         channels: ChannelManager,
         connection: Connection
     ) async {
-        for await event in inboundFrames {
+        in_for: for await event in inboundFrames {
             if case .error(let error) = event {
-                guard case .unexpectedNonzeroChannelId(let classId, let methodId) = error else {
+                switch error {
+                case .unexpectedNonzeroChannelId(let classId, let methodId):
+                    // if the channel id is non-zero, the connection should be closed with an error
+                    connection.initiateClose(
+                        replyCode: Spec.HardError.commandInvalid.rawValue,
+                        replyText: "",
+                        classId: classId,
+                        methodId: methodId
+                    )
+                    continue in_for  // process incoming frames until broker returns CloseOK
+                case .invalidFrame:
+                    connection.initiateClose(
+                        replyCode: Spec.HardError.frameError.rawValue,
+                        replyText: "",
+                        classId: 0,
+                        methodId: 0
+                    )
+                    continue in_for  // process incoming frames until broker returns CloseOK
+                default:
                     // if decoding fails due to invalid frame end or unknown
                     // frame type, the client SHOULD write a log message and
                     // close the connection (see 4.2.3. General Frame Format)
                     connection.logger.error("Breaking TCP connection due to framing error: \(error)")
                     connection.drop()
-                    break  // stop processing any further frames
+                    break in_for  // stop processing any further frames
                 }
-                // if the channel id is non-zero, the connection should be closed with an error
-                connection.initiateClose(
-                    replyCode: Spec.HardError.commandInvalid.rawValue,
-                    replyText: "",
-                    classId: classId,
-                    methodId: methodId
-                )
-                continue  // process incoming frames until broker returns CloseOK
             } else if case .frame(let frame) = event {
                 guard frame.channelId != 0 else {
                     // channel of 0 can only be Close or CloseOk, so no need to continue messages

@@ -53,6 +53,8 @@ enum NegotiationError: InternalError {
 
 enum FramingError: InternalError {
     case invalidFrameEnd
+    // thrown when the frame doesn't conform to the spec in some way (e.g. expected size is not 0 for method frames)
+    case invalidFrame
     case unknownClassAndMethod(class: UInt16, method: UInt16)
     case unknownFrameType(_ type: UInt8)
     case unexpectedNonzeroChannelId(class: UInt16, method: UInt16)

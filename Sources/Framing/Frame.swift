@@ -185,7 +185,9 @@ extension HeartbeatFrame: Frame {
             throw FramingError.unexpectedNonzeroChannelId(class: 0, method: 0)
         }
         let expectedSize = try decoder.decode(UInt32.self)
-        precondition(expectedSize == 0)
+        if expectedSize != 0 {
+            throw FramingError.invalidFrame
+        }
         let end = try decoder.decode(UInt8.self)
         precondition(end == Spec.frameEnd)
     }
