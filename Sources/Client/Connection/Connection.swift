@@ -147,10 +147,11 @@ public final class Connection: Sendable {
                     break in_for  // stop processing any further frames
                 }
             } else if case .frame(let frame) = event {
-                guard frame.channelId != 0 else {
-                    // channel of 0 can only be Close or CloseOk, so no need to continue messages
-                    connection.dispatch(frame)
-                    break  // stop processing any further frames
+                if frame.channelId == 0 {
+                    if !connection.dispatch(frame) {
+                        break  // stop processing any further frames
+                    }
+                    continue
                 }
                 guard let channel = channels.findChannel(id: frame.channelId) else {
                     preconditionFailure("Received frame for non-existing channel \(frame.channelId)")
@@ -180,8 +181,20 @@ extension Connection {
 }
 
 extension Connection {
-    private func dispatch(_ frame: any Frame) {
+    // returns true if the future frames should still be processed and false if
+    // they shouldn't
+    private func dispatch(_ frame: any Frame) -> Bool {
         precondition(frame.channelId == 0, "dispatch0 called with non-zero channel id")
+        if frame.isContent() {
+            // 4.2.6.1 The channel number in content frames MUST NOT be zero.
+            initiateClose(
+                replyCode: Spec.HardError.channelError.rawValue,
+                replyText: "Received content frame on channel 0",
+                classId: 60,
+                methodId: 0
+            )
+            return true
+        }
         precondition(frame is MethodFrame, "Unexpected frame type in channel 0: \(type(of: frame))")
         if frame.isPayload(of: Spec.Connection.CloseOk.self) {
             // first propagate any connection error to channels and set final state
@@ -197,7 +210,7 @@ extension Connection {
                 // reset the fulfilled promise so it is not used again
                 $0 = nil
             }
-            return
+            return false
         }
         if let payload = frame.unwrapPayload(as: Spec.Connection.Close.self) {
             self.sendCloseOk()
@@ -217,7 +230,7 @@ extension Connection {
                     $0 = ConnectionError.wrap(hardError: error)
                 }
             }
-            return
+            return false
         }
         fatalError("unreachable: in Connection.dispatch with frame \(frame)")
     }

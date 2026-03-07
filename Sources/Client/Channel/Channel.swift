@@ -14,6 +14,7 @@ private struct ContentContext: Sendable {
     private var state: State = .waitingForDeliver
     // note: channel 0 can't wait for content frames
     private(set) var channelId: UInt16 = 0
+    private(set) var classId: UInt16 = 0
     private(set) var expectedBodyBytes: UInt64 = 0
     private(set) var actualBodyBytes: UInt64 = 0
     private(set) var contentFrames = [any Frame]()
@@ -21,11 +22,12 @@ private struct ContentContext: Sendable {
     func isInitial() -> Bool { state == .waitingForDeliver }
     func isComplete() -> Bool { state == .complete }
 
-    mutating func push(deliver: any Frame) -> Bool {
+    mutating func push(deliver: any Frame, classId: UInt16 = 0) -> Bool {
         guard state == .waitingForDeliver else {
             return false
         }
         channelId = deliver.channelId
+        self.classId = classId
         contentFrames.append(deliver)
         state = .waitingForHeader
         return true
@@ -125,7 +127,7 @@ public final class Channel: Sendable {
             }
         }
         if let deliver = frame.unwrapPayload(as: Spec.Basic.Deliver.self) {
-            if !contentContext.withLockedValue({ $0.push(deliver: frame) }) {
+            if !contentContext.withLockedValue({ $0.push(deliver: frame, classId: deliver.amqpClassId) }) {
                 classId = deliver.amqpClassId
                 methodId = deliver.amqpMethodId
             }
@@ -133,6 +135,17 @@ public final class Channel: Sendable {
             if !contentContext.withLockedValue({ $0.push(header: header) }) {
                 classId = header.classId
                 methodId = 0
+            } else {
+                // 4.2.6.1 The class-id MUST match the method frame class id.
+                if header.classId != contentContext.withLockedValue({ $0.classId }) {
+                    self.connection.initiateClose(
+                        replyCode: Spec.HardError.frameError.rawValue,
+                        replyText: "Content frame with unexpected class id",
+                        classId: 60,
+                        methodId: 0
+                    )
+                    return true  // consume the frame
+                }
             }
         } else if let body = frame as? ContentBodyFrame {
             // only ContentBodyFrame is checked for maxFrameSize

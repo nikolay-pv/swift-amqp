@@ -286,4 +286,154 @@ import Testing
         }
         #expect(!connection.isOpen)
     }
+
+    static let contentWithInvalidClassId: [TransportMock.Action] = [
+        .inbound(
+            MethodFrame(
+                channelId: expectedChannelId,
+                payload: AMQP.Spec.Basic.Deliver(
+                    consumerTag: "some-random-tag",
+                    deliveryTag: 1,
+                    redelivered: false,
+                    exchange: "swift-amqp-exchange",
+                    routingKey: "swift-amqp-queue"
+                )
+            )
+        ),
+        .inbound(
+            ContentHeaderFrame(
+                channelId: expectedChannelId,
+                classId: 30,
+                bodySize: 4,
+                properties: AMQP.Spec.BasicProperties()
+            )
+        ),
+        .outbound(
+            MethodFrame(
+                channelId: 0,
+                payload: AMQP.Spec.Connection.Close(
+                    replyCode: AMQP.Spec.HardError.frameError.rawValue,
+                    replyText: "Content frame with unexpected class id",
+                    classId: 60,
+                    methodId: 0
+                )
+            )
+        ),
+    ]
+
+    @Test(
+        "4.2.6.1 content frames invalid class id",
+        arguments: [
+            Self.contentWithInvalidClassId
+        ]
+    )
+    func contentFramesInvalidClassId(midActions: [TransportMock.Action]) async throws {
+        let actions: [TransportMock.Action] =
+            Self.baseActions + midActions + [
+                .inbound(
+                    MethodFrame(
+                        channelId: 0,
+                        payload: AMQP.Spec.Connection.CloseOk()
+                    )
+                )
+            ]
+        let env = makeTestEnv(with: actions)
+        let connection = try await Connection(with: .default, env: env)
+        let channel = try await connection.makeChannel()
+
+        #expect(connection.isOpen)
+        try await channel.exchangeDeclare(named: "swift-amqp-exchange", durable: true)
+        _ = try await channel.queueDeclare(named: "swift-amqp-queue", durable: true)
+        try await channel.queueBind(queue: "swift-amqp-queue", exchange: "swift-amqp-exchange")
+        let messages = try await channel.basicConsume(
+            queue: "swift-amqp-queue",
+            tag: "some-random-tag"
+        )
+        try await #require(
+            throws: ConnectionError.connectionIsClosed(
+                "by client: frameError Content frame with unexpected class id"
+            )
+        ) {
+            for try await message in messages {
+                _ = message
+                break  // safeguard to not loop forever
+            }
+        }
+        #expect(!connection.isOpen)
+    }
+
+    static let contentOnChannelZero: [TransportMock.Action] = [
+        .inbound(
+            MethodFrame(
+                channelId: expectedChannelId,
+                payload: AMQP.Spec.Basic.Deliver(
+                    consumerTag: "some-random-tag",
+                    deliveryTag: 1,
+                    redelivered: false,
+                    exchange: "swift-amqp-exchange",
+                    routingKey: "swift-amqp-queue"
+                )
+            )
+        ),
+        .inbound(
+            ContentHeaderFrame(
+                channelId: 0,
+                classId: 60,
+                bodySize: 4,
+                properties: AMQP.Spec.BasicProperties()
+            )
+        ),
+        .outbound(
+            MethodFrame(
+                channelId: 0,
+                payload: AMQP.Spec.Connection.Close(
+                    replyCode: AMQP.Spec.HardError.channelError.rawValue,
+                    replyText: "Received content frame on channel 0",
+                    classId: 60,
+                    methodId: 0
+                )
+            )
+        ),
+    ]
+
+    @Test(
+        "4.2.6.1 content frames at channel 0 protocol violation",
+        arguments: [
+            Self.contentOnChannelZero
+        ]
+    )
+    func contentFramesAtChannel0ProtocolViolation(midActions: [TransportMock.Action]) async throws {
+        let actions: [TransportMock.Action] =
+            Self.baseActions + midActions + [
+                .inbound(
+                    MethodFrame(
+                        channelId: 0,
+                        payload: AMQP.Spec.Connection.CloseOk()
+                    )
+                )
+            ]
+        let env = makeTestEnv(with: actions)
+        let connection = try await Connection(with: .default, env: env)
+        let channel = try await connection.makeChannel()
+
+        #expect(connection.isOpen)
+        try await channel.exchangeDeclare(named: "swift-amqp-exchange", durable: true)
+        _ = try await channel.queueDeclare(named: "swift-amqp-queue", durable: true)
+        try await channel.queueBind(queue: "swift-amqp-queue", exchange: "swift-amqp-exchange")
+        let messages = try await channel.basicConsume(
+            queue: "swift-amqp-queue",
+            tag: "some-random-tag"
+        )
+        try await #require(
+            throws: ConnectionError.connectionIsClosed(
+                "by client: channelError Received content frame on channel 0"
+            )
+        ) {
+            for try await message in messages {
+                _ = message
+                break  // safeguard to not loop forever
+            }
+        }
+        #expect(!connection.isOpen)
+    }
 }
