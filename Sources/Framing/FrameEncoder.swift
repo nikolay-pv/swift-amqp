@@ -65,10 +65,10 @@ private class _FrameEncoder: FrameEncoderProtocol {
         func encode(to data: inout ByteBuffer) {
             switch self {
             case .shortstring(let value):
-                data.writeInteger(UInt8(value.count), endianness: .big)
+                data.writeInteger(UInt8(value.utf8.count), endianness: .big)
                 data.writeBytes(value.utf8)
             case .longstring(let value):
-                data.writeInteger(UInt32(value.count), endianness: .big)
+                data.writeInteger(UInt32(value.utf8.count), endianness: .big)
                 data.writeBytes(value.utf8)
             case .uint8(let value): data.writeInteger(value, endianness: .big)
             case .int8(let value): data.writeInteger(value, endianness: .big)
