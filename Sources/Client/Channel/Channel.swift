@@ -4,28 +4,55 @@ import NIOConcurrencyHelpers
 import NIOCore
 
 private struct ContentContext: Sendable {
+    enum State {
+        case waitingForDeliver
+        case waitingForHeader
+        case waitingForBody
+        case complete
+    }
+
+    private var state: State = .waitingForDeliver
+    // note: channel 0 can't wait for content frames
     private(set) var channelId: UInt16 = 0
+    private(set) var classId: UInt16 = 0
     private(set) var expectedBodyBytes: UInt64 = 0
     private(set) var actualBodyBytes: UInt64 = 0
     private(set) var contentFrames = [any Frame]()
 
-    // channel 0 can't wait for content frames
-    func waitForContent() -> Bool { channelId != 0 }
-    func isComplete() -> Bool { actualBodyBytes == expectedBodyBytes }
+    func isInitial() -> Bool { state == .waitingForDeliver }
+    func isComplete() -> Bool { state == .complete }
 
-    mutating func push(deliver: any Frame) {
+    mutating func push(deliver: any Frame, classId: UInt16 = 0) -> Bool {
+        guard state == .waitingForDeliver else {
+            return false
+        }
         channelId = deliver.channelId
+        self.classId = classId
         contentFrames.append(deliver)
+        state = .waitingForHeader
+        return true
     }
 
-    mutating func push(header: ContentHeaderFrame) {
+    mutating func push(header: ContentHeaderFrame) -> Bool {
+        guard state == .waitingForHeader else {
+            return false
+        }
         expectedBodyBytes = header.bodySize
         contentFrames.append(header)
+        state = .waitingForBody
+        return true
     }
 
-    mutating func push(body: ContentBodyFrame) {
+    mutating func push(body: ContentBodyFrame) -> Bool {
+        guard state == .waitingForBody else {
+            return false
+        }
         contentFrames.append(body)
         actualBodyBytes += UInt64(body.fragment.count)
+        if actualBodyBytes == expectedBodyBytes {
+            state = .complete
+        }
+        return true
     }
 
     mutating func reset() {
@@ -33,6 +60,7 @@ private struct ContentContext: Sendable {
         expectedBodyBytes = 0
         actualBodyBytes = 0
         contentFrames.removeAll()
+        state = .waitingForDeliver
     }
 }
 
@@ -59,83 +87,144 @@ public final class Channel: Sendable {
     private let promises: NIOLockedValueBox<[EventLoopPromise<any Frame>]> = .init([])
     private let contentContext: NIOLockedValueBox<ContentContext> = .init(ContentContext())
 
+    private func dispatchClose(_ frame: any Frame) -> Bool {
+        guard let incoming = frame.unwrapPayload(as: Spec.Channel.Close.self) else {
+            return false
+        }
+        self.state.store(.closing, ordering: .releasing)
+        let method = Spec.Connection.CloseOk()
+        let frame = MethodFrame(channelId: 0, payload: method)
+        // if connection is closed already so be it, thus `try?`
+        try? self.withConnectionUnchecked { $0.sendAsync(frame) }
+        self.state.store(.closed, ordering: .releasing)
+        if incoming.replyCode != 0 && incoming.replyCode != 200 {
+            guard let code = Spec.SoftError(rawValue: incoming.replyCode) else {
+                fatalError(
+                    "Broker sent unknown error reply code in Channel.Close frame: \(incoming.replyCode) with message \(incoming.replyText)"
+                )
+            }
+            let error = SoftError.broker(
+                code: code,
+                replyText: incoming.replyText,
+                classId: incoming.amqpClassId,
+                methodId: incoming.amqpMethodId
+            )
+            self.closingError.withLockedValue {
+                $0 = ChannelError.wrap(softError: error)
+            }
+        }
+        return true
+    }
+
+    func dispatchContent(_ frame: any Frame) -> Bool {
+        var classId: UInt16?
+        var methodId: UInt16?
+        // don't consider content frames in case they come out of order
+        if contentContext.withLockedValue({ $0.isInitial() }) && !frame.isContent() {
+            // only Deliver frames can be handled in this situations, others are probably valid in outside context
+            if !frame.isPayload(of: Spec.Basic.Deliver.self) {
+                return false
+            }
+        }
+        if let deliver = frame.unwrapPayload(as: Spec.Basic.Deliver.self) {
+            if !contentContext.withLockedValue({ $0.push(deliver: frame, classId: deliver.amqpClassId) }) {
+                classId = deliver.amqpClassId
+                methodId = deliver.amqpMethodId
+            }
+        } else if let header = frame as? ContentHeaderFrame {
+            if !contentContext.withLockedValue({ $0.push(header: header) }) {
+                classId = header.classId
+                methodId = 0
+            } else {
+                // 4.2.6.1 The class-id MUST match the method frame class id.
+                if header.classId != contentContext.withLockedValue({ $0.classId }) {
+                    self.connection.initiateClose(
+                        replyCode: Spec.HardError.frameError.rawValue,
+                        replyText: "Content frame with unexpected class id",
+                        classId: 60,
+                        methodId: 0
+                    )
+                    return true  // consume the frame
+                }
+            }
+        } else if let body = frame as? ContentBodyFrame {
+            // only ContentBodyFrame is checked for maxFrameSize
+            // because there is no way to split other frames into smaller pieces
+            // see also: https://www.rabbitmq.com/amqp-0-9-1-errata#section_11
+            // check for exceeding expected body size
+            // as per "4.2.3 General Frame Format"
+            // in case maxFrameSize is exceeded the connection must be
+            // closed
+            if self.maxFrameSize != 0 && body.bytesCount > UInt32(self.maxFrameSize) {
+                // A peer MUST NOT send frames larger than the agreed-upon size.
+                self.connection.initiateClose(
+                    replyCode: Spec.HardError.frameError.rawValue,
+                    replyText:
+                        "Received ContentBody Frame of size \(body.bytesCount) while max size agreed is \(self.maxFrameSize)",
+                    classId: 60,
+                    methodId: 60
+                )
+                return true  // consume the frame
+            }
+            let pushed = contentContext.withLockedValue {
+                if !$0.push(body: body) {
+                    return false
+                }
+                if $0.isComplete() {
+                    self.dispatch(content: $0.contentFrames)
+                    $0.reset()
+                }
+                return true
+            }
+            if !pushed {
+                classId = 0
+                methodId = 0
+            }
+        } else {
+            // treat any frame other than above as terminating content frames
+            // sequence, however, if the content is incomplete it is an error
+            classId = 0
+            methodId = 0
+        }
+        // A peer that receives an incomplete or badly-formatted content MUST raise a connection exception with reply code 505
+        if let classId = classId, let methodId = methodId {
+            self.connection.initiateClose(
+                replyCode: Spec.HardError.unexpectedFrame.rawValue,
+                replyText: "Received unexpected frame while waiting for content frames",
+                classId: classId,
+                methodId: methodId
+            )
+        }
+        return true  // consume all the frames
+    }
+
     /// method to handle incoming frames from a Broker
     internal func dispatch(frame: any Frame) {
         precondition(frame.channelId == self.id, "dispatch called with frame for different channel id")
-        if let payload = frame.unwrapPayload(as: Spec.Channel.Close.self) {
-            self.state.store(.closing, ordering: .releasing)
-            let method = Spec.Connection.CloseOk()
-            let frame = MethodFrame(channelId: 0, payload: method)
-            // if connection is closed already so be it, thus `try?`
-            try? self.withConnectionUnchecked { $0.sendAsync(frame) }
-            self.state.store(.closed, ordering: .releasing)
-            if payload.replyCode != 0 && payload.replyCode != 200 {
-                guard let code = Spec.SoftError(rawValue: payload.replyCode) else {
-                    fatalError(
-                        "Broker sent unknown error reply code in Channel.Close frame: \(payload.replyCode) with message \(payload.replyText)"
-                    )
-                }
-                let error = SoftError.broker(
-                    code: code,
-                    replyText: payload.replyText,
-                    classId: payload.amqpClassId,
-                    methodId: payload.amqpMethodId
-                )
-                self.closingError.withLockedValue {
-                    $0 = ChannelError.wrap(softError: error)
-                }
+        if dispatchClose(frame) {
+            return
+        }
+        if dispatchContent(frame) {
+            return
+        }
+        // not closing and not receiving content frames, so dispatch as normal
+        let promise = promises.withLockedValue {
+            let val = $0.first
+            if val != nil {
+                $0.removeFirst()
             }
-            return
+            return val
         }
-        if frame.isPayload(of: Spec.Basic.Deliver.self) {
-            contentContext.withLockedValue { $0.push(deliver: frame) }
-            return
-        }
-        if frame.isContent() {
-            precondition(
-                contentContext.withLockedValue { $0.waitForContent() },
-                "Received content frame without prior deliver method"
+        guard let promise else {
+            let method = frame.unwrapPayload(as: (any AMQPMethodProtocol).self)
+            self.connection.initiateClose(
+                replyCode: Spec.HardError.unexpectedFrame.rawValue,
+                replyText: "Received unexpected frame while waiting for content frames",
+                classId: method?.amqpMethodId ?? 0,
+                methodId: method?.amqpMethodId ?? 0
             )
-            if let header = frame as? ContentHeaderFrame {
-                contentContext.withLockedValue { $0.push(header: header) }
-                return
-            }
-            if let body = frame as? ContentBodyFrame {
-                // only ContentBodyFrame is checked for maxFrameSize
-                // because there is no way to split other frames into smaller pieces
-                // see also: https://www.rabbitmq.com/amqp-0-9-1-errata#section_11
-                // check for exceeding expected body size
-                // as per "4.2.3 General Frame Format"
-                // in case maxFrameSize is exceeded the connection must be
-                // closed
-                if self.maxFrameSize != 0 && body.bytesCount > UInt32(self.maxFrameSize) {
-                    // A peer MUST NOT send frames larger than the agreed-upon size.
-                    self.connection.initiateClose(
-                        replyCode: Spec.HardError.frameError.rawValue,
-                        replyText:
-                            "Received ContentBody Frame of size \(body.bytesCount) while max size agreed is \(self.maxFrameSize)",
-                        classId: 60,
-                        methodId: 60
-                    )
-                    return
-                }
-                contentContext.withLockedValue { $0.push(body: body) }
-            }
-            if contentContext.withLockedValue({ $0.isComplete() }) {
-                let contentFrames = contentContext.withLockedValue {
-                    let frames = $0.contentFrames
-                    $0.reset()
-                    return frames
-                }
-                self.dispatch(content: contentFrames)
-            }
             return
         }
-        precondition(
-            promises.withLockedValue { !$0.isEmpty },
-            "channel got an unexpected frame \(frame)"
-        )
-        let promise = promises.withLockedValue { $0.removeFirst() }
         promise.succeed(frame)
     }
 
@@ -510,13 +599,13 @@ extension Channel {
             bodySize: UInt64(body.utf8.count),
             properties: properties
         )
-        var framesToPublish: [any Frame] = [frame, contentHeaderFrame]
+        var pack = ContentFramesPack(header: contentHeaderFrame, bodyFragments: [])
         if body.utf8.count > self.maxFragmentSize {
             forEachChunk(
                 of: body.utf8,
                 maxChunkSize: Int(self.maxFragmentSize),
                 perform: {
-                    framesToPublish.append(
+                    pack.bodyFragments.append(
                         ContentBodyFrame(
                             channelId: self.id,
                             fragment: .init($0)
@@ -525,7 +614,7 @@ extension Channel {
                 }
             )
         } else {
-            framesToPublish.append(
+            pack.bodyFragments.append(
                 ContentBodyFrame(
                     channelId: self.id,
                     fragment: .init(body.utf8)
@@ -533,7 +622,8 @@ extension Channel {
             )
         }
         try withConnection {
-            $0.sendAsync(framesToPublish)
+            $0.sendAsync(frame)
+            $0.sendAsync(pack)
         }
     }
 

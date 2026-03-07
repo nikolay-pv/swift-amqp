@@ -118,29 +118,40 @@ public final class Connection: Sendable {
         channels: ChannelManager,
         connection: Connection
     ) async {
-        for await event in inboundFrames {
+        in_for: for await event in inboundFrames {
             if case .error(let error) = event {
-                guard case .unexpectedNonzeroChannelId(let classId, let methodId) = error else {
+                switch error {
+                case .unexpectedNonzeroChannelId(let classId, let methodId):
+                    // if the channel id is non-zero, the connection should be closed with an error
+                    connection.initiateClose(
+                        replyCode: Spec.HardError.commandInvalid.rawValue,
+                        replyText: "",
+                        classId: classId,
+                        methodId: methodId
+                    )
+                    continue in_for  // process incoming frames until broker returns CloseOK
+                case .invalidFrame:
+                    connection.initiateClose(
+                        replyCode: Spec.HardError.frameError.rawValue,
+                        replyText: "",
+                        classId: 0,
+                        methodId: 0
+                    )
+                    continue in_for  // process incoming frames until broker returns CloseOK
+                default:
                     // if decoding fails due to invalid frame end or unknown
                     // frame type, the client SHOULD write a log message and
                     // close the connection (see 4.2.3. General Frame Format)
                     connection.logger.error("Breaking TCP connection due to framing error: \(error)")
                     connection.drop()
-                    break  // stop processing any further frames
+                    break in_for  // stop processing any further frames
                 }
-                // if the channel id is non-zero, the connection should be closed with an error
-                connection.initiateClose(
-                    replyCode: Spec.HardError.commandInvalid.rawValue,
-                    replyText: "",
-                    classId: classId,
-                    methodId: methodId
-                )
-                continue  // process incoming frames until broker returns CloseOK
             } else if case .frame(let frame) = event {
-                guard frame.channelId != 0 else {
-                    // channel of 0 can only be Close or CloseOk, so no need to continue messages
-                    connection.dispatch(frame)
-                    break  // stop processing any further frames
+                if frame.channelId == 0 {
+                    if !connection.dispatch(frame) {
+                        break  // stop processing any further frames
+                    }
+                    continue
                 }
                 guard let channel = channels.findChannel(id: frame.channelId) else {
                     preconditionFailure("Received frame for non-existing channel \(frame.channelId)")
@@ -164,23 +175,26 @@ extension Connection {
         self.transport.send(frame)
     }
 
-    // same as send(_ frame: Frame) but for multiple frames
-    func send(_ frames: [any Frame]) -> EventLoopPromise<any Frame> {
-        self.transport.send(frames)
-    }
-
     func sendAsync(_ frame: any Frame) {
         self.transport.sendAsync(frame)
-    }
-
-    func sendAsync(_ frames: [any Frame]) {
-        self.transport.sendAsync(frames)
     }
 }
 
 extension Connection {
-    private func dispatch(_ frame: any Frame) {
+    // returns true if the future frames should still be processed and false if
+    // they shouldn't
+    private func dispatch(_ frame: any Frame) -> Bool {
         precondition(frame.channelId == 0, "dispatch0 called with non-zero channel id")
+        if frame.isContent() {
+            // 4.2.6.1 The channel number in content frames MUST NOT be zero.
+            initiateClose(
+                replyCode: Spec.HardError.channelError.rawValue,
+                replyText: "Received content frame on channel 0",
+                classId: 60,
+                methodId: 0
+            )
+            return true
+        }
         precondition(frame is MethodFrame, "Unexpected frame type in channel 0: \(type(of: frame))")
         if frame.isPayload(of: Spec.Connection.CloseOk.self) {
             // first propagate any connection error to channels and set final state
@@ -196,7 +210,7 @@ extension Connection {
                 // reset the fulfilled promise so it is not used again
                 $0 = nil
             }
-            return
+            return false
         }
         if let payload = frame.unwrapPayload(as: Spec.Connection.Close.self) {
             self.sendCloseOk()
@@ -216,7 +230,7 @@ extension Connection {
                     $0 = ConnectionError.wrap(hardError: error)
                 }
             }
-            return
+            return false
         }
         fatalError("unreachable: in Connection.dispatch with frame \(frame)")
     }

@@ -185,7 +185,9 @@ extension HeartbeatFrame: Frame {
             throw FramingError.unexpectedNonzeroChannelId(class: 0, method: 0)
         }
         let expectedSize = try decoder.decode(UInt32.self)
-        precondition(expectedSize == 0)
+        if expectedSize != 0 {
+            throw FramingError.invalidFrame
+        }
         let end = try decoder.decode(UInt8.self)
         precondition(end == Spec.frameEnd)
     }
@@ -289,5 +291,29 @@ extension ContentBodyFrame {
     static func maxPossibleFragmentSize(for maxFrameSize: Int32) -> Int32 {
         // maxFrameSize - type(1) - channelId(2) - size(4) - frameEnd(1)
         return maxFrameSize - 8
+    }
+}
+
+// Internal aid for sending packs of frames in order: ContentHeader + 1..N ContentBody
+struct ContentFramesPack {
+    var header: ContentHeaderFrame
+    var bodyFragments: [ContentBodyFrame]
+}
+
+extension ContentFramesPack: Frame {
+    var type: UInt8 { Spec.frameHeader }
+    var channelId: UInt16 { header.channelId }
+
+    var bytesCount: UInt32 {
+        bodyFragments.reduce(into: header.bytesCount) { $0 += $1.bytesCount }
+    }
+
+    init(from decoder: any FrameDecoderProtocol) throws {
+        fatalError("ContentFramesPack should never be decoded as a single frame")
+    }
+
+    func encode(to encoder: any FrameEncoderProtocol) throws {
+        try header.encode(to: encoder)
+        try bodyFragments.forEach { try $0.encode(to: encoder) }
     }
 }
