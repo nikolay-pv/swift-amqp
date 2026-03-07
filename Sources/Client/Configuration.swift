@@ -40,10 +40,10 @@ public struct Configuration: Sendable {
         case seconds(UInt16)
 
         static func make(_ value: UInt16) -> HeartbeatValue {
-            guard value == 0 else {
-                return .seconds(value)
+            guard value != 0 else {
+                return .disabled
             }
-            return .disabled
+            return .seconds(value)
         }
     }
     public var heartbeat: HeartbeatValue = .serverDefault

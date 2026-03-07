@@ -3,6 +3,7 @@ indirect enum TransportAction {
     case error(Error)
     case complete(Configuration, Spec.Table)
     // carries heartbeat timeout
+    case disableHeartbeat
     case installHeartbeat(UInt16)
     case several([TransportAction])
 }
