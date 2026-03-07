@@ -134,8 +134,10 @@ extension Spec.AMQPNegotiator: AMQPNegotiationDelegateProtocol {
             self.state = .waitingOpenOk
             var actions: [TransportAction] = [.reply(tuneFrame), .reply(openFrame)]
             // seconds were negotiated, install the handler
-            if case .seconds = self.config.heartbeat {
+            if case .seconds(let heartbeatTimeout) = self.config.heartbeat {
                 actions.insert(.installHeartbeat(heartbeatTimeout), at: 1)
+            } else {
+                actions.insert(.disableHeartbeat, at: 1)
             }
             return .several(actions)
         case .waitingOpenOk:
