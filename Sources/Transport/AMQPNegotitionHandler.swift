@@ -43,7 +43,6 @@ final class AMQPNegotiationHandler: ChannelInboundHandler,
             context.pipeline.removeHandler(name: Self.handlerName, promise: nil)
             complete.succeed((config, serverProperties))
         case .error(let error):
-            negotiationInterrupt?.cancel()
             throw error
         case .reply(let frame):
             context.writeAndFlush(wrapOutboundOut(frame), promise: nil)
@@ -67,7 +66,7 @@ final class AMQPNegotiationHandler: ChannelInboundHandler,
         do {
             try handle(action: negotiator.start(), on: context)
         } catch {
-            complete.fail(error)
+            handleError(context: context, error: error)
         }
     }
 
@@ -75,15 +74,25 @@ final class AMQPNegotiationHandler: ChannelInboundHandler,
         guard case .frame(let frame) = unwrapInboundIn(data),
             let frame = frame as? MethodFrame
         else {
-            context.fireErrorCaught(NegotiationError.unexpectedMethod)
+            handleError(context: context, error: NegotiationError.unexpectedMethod)
             return
         }
         let action = negotiator.negotiate(frame: frame)
         do {
             try handle(action: action, on: context)
         } catch {
-            complete.fail(error)
+            handleError(context: context, error: error)
         }
+    }
+
+    func handleError(context: ChannelHandlerContext, error: Error) {
+        negotiationInterrupt?.cancel()
+        // 2.2.4 peer that detects an error MUST close the socket without sending any further data
+        let promise = self.complete
+        _ = context.channel.close()
+            .map {
+                promise.fail(error)
+            }
     }
 
     // MARK: - init
