@@ -232,17 +232,17 @@ import Testing
         )
         let connection = try await Connection(with: .default, env: env)
         #expect(connection.isOpen)
-        do {
-            let channel = try await connection.makeChannel()
-            try await channel.close()
-        }
+        var channel: Channel? = try await connection.makeChannel()
+        try await channel!.close()
+        // destroy the channel
+        channel = nil
         #expect(connection.isOpen)
         // create channel again
-        let channel = try await connection.makeChannel()
+        channel = try await connection.makeChannel()
         // the connection should remain open
-        #expect(channel.isOpen)
+        #expect(channel!.isOpen)
         #expect(connection.isOpen)
         try await connection.close()
-        #expect(!channel.isOpen)
+        #expect(!channel!.isOpen)
     }
 }
